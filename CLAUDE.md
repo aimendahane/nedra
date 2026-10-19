@@ -114,3 +114,21 @@ chaque décision prise seul.
 - **Règle حالة العرض appliquée à la lettre** (brief §6) : un mélange « مرفوض + لم يُرسل » sans مرسل/مقبول donne
   « قيد الإعداد » (« sinon »). Point à confirmer avec le client.
 - Le brouillon d'un nouveau projet est gardé dans le navigateur jusqu'à l'enregistrement.
+
+### Étape 3 — Suivi Offres / Livraison / مهامي / calculs
+- **Projet ملغى** (toutes ses أصناف ملغى) : compté à part et exclu des autres indicateurs
+  (المؤكدة، المرفوضة، قيد الدراسة، المرسلة، لم تُرسل).
+- **العروض المرسلة** : règle du brief appliquée telle quelle (statut d'offre OU type de suivi) ; un projet
+  « لم يُرسل » dont le suivi indique une réponse du client (مؤكد/مرفوض/مسلّم) compte donc comme envoyé.
+- **« عرض متأخر » et « لازم قرار »** ont la même définition (brief §5 et §6) : un seul bloc dans مهامي
+  (« عروض متأخرة — لازم قرار »). Le jour même du أجل n'est pas un retard.
+- **Compteur du menu** « لازم قرار » : ses propres أصناف pour un موظف, toute l'équipe pour الإدارة
+  (et pour un compte non lié à un employé). En haut de Suivi Offres : total + « منها X لك ».
+- **مهامي** : blocs (1) offres en retard, (2) suivis prévus aujourd'hui ou dépassés (projets dont il est
+  المتابع ou المسؤول, non clôturés ; seule la prochaine date de la DERNIÈRE entrée compte), (3) projets sans
+  suivi depuis plus de 7 jours, (4) livraisons de la semaine = non livrées avec أجل ≤ aujourd'hui + 7 jours
+  (retards compris).
+- **Passage à مرسل** sans تاريخ تقديم العرض → date du jour (modifiable).
+- **« متأخر »** (livraison) n'est jamais choisi à la main : il s'affiche automatiquement ; le statut choisi
+  (في الانتظار / جاهز / تم التسليم) est conservé dessous.
+- Retirer « لم يُرسل » d'un صنف ne supprime pas le motif saisi (il reste en mémoire, ignoré dans les calculs).

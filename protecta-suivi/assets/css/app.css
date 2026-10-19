@@ -308,3 +308,30 @@ h2 { font-size: 1.15rem; }
 	.ps-span-2 { grid-column: auto; }
 	.ps-form-actions .ps-btn { flex: 1; }
 }
+
+/* ============ 7. Suivi Offres / Livraison / مهامي (étape 3) ============ */
+.ps-badge--danger { background: var(--ps-danger); border-color: var(--ps-danger); color: #fff; }
+.ps-input--auto { width: auto; }
+.ps-input--code { direction: ltr; max-width: 140px; }
+.ps-link { background: none; border: 0; padding: 0; color: var(--ps-primary); text-decoration: underline; cursor: pointer; font: inherit; }
+.ps-table--edit td { white-space: normal; }
+.ps-table--edit .ps-input--sm { min-width: 110px; width: 100%; }
+.ps-decision { font: inherit; display: inline-flex; gap: 6px; align-items: center; padding: 8px 14px; border-radius: var(--ps-radius-sm); border: 1px solid var(--ps-border); background: var(--ps-surface); color: var(--ps-text); cursor: pointer; }
+.ps-decision.is-on { border-color: var(--ps-danger); background: var(--ps-danger-soft); color: var(--ps-danger); }
+.ps-legend { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: middle; border: 1px solid var(--ps-border); }
+.ps-legend--late { background: var(--ps-row-late); }
+.ps-legend--done { background: var(--ps-row-done); }
+.ps-icard { background: var(--ps-surface); border: 1px solid var(--ps-border); border-inline-start: 4px solid var(--ps-border); border-radius: var(--ps-radius-sm); padding: 10px 12px; }
+.ps-icard.is-late { border-inline-start-color: var(--ps-danger); background: var(--ps-row-late); }
+.ps-icard.is-done { border-inline-start-color: var(--ps-success); background: var(--ps-row-done); }
+.ps-icard__edit { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.ps-tasks { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); align-items: start; }
+.ps-task { margin: 0; }
+.ps-task__count { margin-inline-start: auto; min-width: 28px; text-align: center; border-radius: 999px; padding: 0 8px; background: var(--ps-surface-2); color: var(--ps-text-muted); font-size: 14px; }
+.ps-task__count.is-on { background: var(--ps-accent); color: #fff; }
+.ps-task__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ps-task__item { display: grid; gap: 2px; padding: 8px 10px; border-radius: var(--ps-radius-sm); background: var(--ps-surface-2); border-inline-start: 3px solid var(--ps-border); }
+.ps-task__item a { color: var(--ps-text); text-decoration: none; font-weight: 600; }
+.ps-task__item a:hover { color: var(--ps-primary); }
+.ps-task__item.is-danger { border-inline-start-color: var(--ps-danger); }
+.ps-task__item.is-warning { border-inline-start-color: var(--ps-warning); }

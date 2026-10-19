@@ -220,7 +220,89 @@ async function step2(browser) {
 	await mob.ctx.close();
 }
 
-const STEPS = { step2 };
+async function step3(browser) {
+	console.log('Étape 3 — مهامي (محمد حسين, jeu de démonstration)');
+	const { ctx, page } = await newPage(browser, 'mowadhaf2');
+	await go(page, '#/taches');
+	await page.waitForSelector('.ps-task');
+	const counts = await page.$$eval('.ps-task__count', (e) => e.map((x) => Number(x.textContent)));
+	check('مهامي : 3 عروض متأخرة, 2 متابعات, 2 تسليمات (tableau §7)', counts[0] === 3 && counts[1] === 2 && counts[3] === 2, counts.join(','));
+	await page.waitForTimeout(600);
+	const menuCount = await page.$eval('a[href="#/offres"] .ps-nav__count', (e) => e.textContent).catch(() => '');
+	check('compteur « لازم قرار » sur le menu : 3', menuCount === '3', menuCount);
+	await page.screenshot({ path: SHOTS + '/s3-01-mes-taches.png', fullPage: true });
+
+	console.log('Étape 3 — Suivi Offres');
+	await go(page, '#/offres');
+	await page.waitForSelector('.ps-table--edit tbody tr');
+	// Toutes années confondues : 6 retards en 2026 + E06 (2025) = 7.
+	check('lignes rouges (en retard) : 7, vertes (مقبول) ≥ 7', (await page.$$('tr.is-late')).length === 7 && (await page.$$('tr.is-done')).length >= 7);
+	const decision = (await page.textContent('[data-decision]')).replace(/\s+/g, ' ');
+	check('compteur en haut : « لازم قرار: 7 (منها 3 لك) »', decision.includes('7') && decision.includes('3 لك'), decision);
+	await page.screenshot({ path: SHOTS + '/s3-02-suivi-offres.png', fullPage: true });
+	await page.check('[data-filter="late"]');
+	await page.waitForTimeout(800);
+	check('filtre « لازم قرار فقط » : 7 lignes', (await page.$$('.ps-table--edit tbody tr')).length === 7);
+	// Mon premier صنف en retard → لم يُرسل (motif obligatoire).
+	const mineSel = 'tr.is-late select[data-field="offerStatusId"]';
+	await page.selectOption(mineSel, { label: 'لم يُرسل' });
+	await page.waitForSelector('.ps-modal');
+	await page.click('.ps-modal [data-btn="ok"]');
+	await page.waitForTimeout(300);
+	check('« لم يُرسل » : motif obligatoire (fenêtre reste ouverte)', await page.isVisible('.ps-modal'));
+	await page.selectOption('.ps-modal [data-q="reason"]', { label: 'السعر غير منافس' });
+	await page.click('.ps-modal [data-btn="ok"]');
+	await page.waitForTimeout(1200);
+	check('après « لم يُرسل » : 6 lignes « لازم قرار »', (await page.$$('.ps-table--edit tbody tr')).length === 6);
+	// Suivant → مرسل : تاريخ إرسال العرض demandé (aujourd'hui proposé).
+	await page.selectOption(mineSel, { label: 'مرسل' });
+	await page.waitForSelector('.ps-modal [data-q="date"]');
+	check('مرسل sans تاريخ الإرسال : date du jour proposée', (await page.inputValue('.ps-modal [data-q="date"]')) === '2026-10-19');
+	await page.screenshot({ path: SHOTS + '/s3-03-date-envoi.png' });
+	await page.click('.ps-modal [data-btn="ok"]');
+	await page.waitForTimeout(1200);
+	check('après « مرسل » : 5 lignes « لازم قرار »', (await page.$$('.ps-table--edit tbody tr')).length === 5);
+	const menuAfter = await page.$eval('a[href="#/offres"] .ps-nav__count', (e) => e.textContent).catch(() => '0');
+	check('compteur du menu mis à jour : 1', menuAfter === '1', menuAfter);
+
+	console.log('Étape 3 — Suivi Livraison');
+	await go(page, '#/livraison');
+	await page.waitForSelector('.ps-table--edit tbody tr');
+	check('livraisons en retard en rouge : 3', (await page.$$('tr.is-late')).length === 3);
+	const lateHeader = await page.textContent('[data-results] [role=status]');
+	check('« 3 تسليم متأخر »', lateHeader.includes('3 تسليم متأخر'), lateHeader);
+	await page.screenshot({ path: SHOTS + '/s3-04-livraison.png', fullPage: true });
+	const editable = await page.$$('tr.is-late input[data-field="deliveryActualDate"]');
+	check('موظف : seules ses lignes sont modifiables (2)', editable.length === 2, String(editable.length));
+	await editable[0].fill('2026-10-01');
+	await editable[0].dispatchEvent('change');
+	await page.waitForTimeout(1200);
+	await page.selectOption('tr[data-row] >> nth=0 >> select[data-field="deliveryStatusId"]', { label: 'تم التسليم' }).catch(() => null);
+	await page.waitForTimeout(1200);
+	check('statut « متأخر » jamais proposé dans la liste', !(await page.$$eval('select[data-field="deliveryStatusId"] option', (o) => o.map((x) => x.textContent))).includes('متأخر'));
+	await ctx.close();
+
+	console.log('Étape 3 — الإدارة : مهامي de l\'équipe');
+	const admin = await newPage(browser, 'idara');
+	await go(admin.page, '#/taches');
+	await admin.page.waitForSelector('[data-emp]');
+	check('الإدارة : tâches de toute l\'équipe, filtre employé', (await admin.page.textContent('h1')).includes('الفريق'));
+	await admin.page.selectOption('[data-emp]', { label: 'وفاء حامدي' });
+	await admin.page.waitForSelector('.ps-task');
+	await admin.page.waitForTimeout(500);
+	check('filtre : مهام وفاء حامدي', (await admin.page.textContent('h1')).includes('وفاء حامدي'));
+	await admin.page.screenshot({ path: SHOTS + '/s3-05-taches-admin.png', fullPage: true });
+	await admin.ctx.close();
+
+	const mob = await newPage(browser, 'mowadhaf2', true);
+	await go(mob.page, '#/offres');
+	await mob.page.waitForSelector('.ps-icard');
+	check('téléphone : Suivi Offres en cartes, sans défilement horizontal', !(await mob.page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)));
+	await mob.page.screenshot({ path: SHOTS + '/s3-06-mobile-offres.png', fullPage: true });
+	await mob.ctx.close();
+}
+
+const STEPS = { step2, step3 };
 
 (async () => {
 	const browser = await chromium.launch();

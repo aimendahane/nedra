@@ -5,6 +5,8 @@
  *
  *   PS_TEST=1 php tests/e2e-setup.php
  *
+ * Option : DEMO=1 → charge le jeu de démonstration.
+ *
  * Comptes (mot de passe Test-pass-2026) :
  *   idara (الإدارة), masoul (مسؤول مشروع → وليد جدير), mowadhaf (موظف → وفاء حامدي), mowadhaf2 (موظف → محمد حسين)
  */
@@ -26,5 +28,11 @@ foreach ( array( array( 'idara', 'ps_admin', 'سارة الإدارة', null ), 
 	if ( $e ) {
 		update_user_meta( $id, 'ps_employee_id', $emp( $e ) );
 	}
+}
+// DEMO=1 : charge aussi le jeu de démonstration (30 projets, voir fixtures/demo-expected.md).
+if ( getenv( 'DEMO' ) ) {
+	require __DIR__ . '/fixtures/demo.php';
+	$n = count( ps_demo_seed( (int) get_user_by( 'login', 'idara' )->ID ) );
+	echo "Jeu de démonstration chargé : $n projets\n";
 }
 echo 'Site de test prêt : ' . home_url( '/' ) . ' (thème ' . PS_VERSION . ", base v" . get_option( 'ps_db_version' ) . ")\n";

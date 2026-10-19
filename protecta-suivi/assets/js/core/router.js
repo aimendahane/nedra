@@ -66,6 +66,19 @@ PS.router = (function () {
 		renderNav(parseHash().id);
 	}
 
+	/**
+	 * Compteurs du menu (« لازم قرار »…). Appel « passif » : ne prolonge pas la session.
+	 * Rafraîchis au démarrage, toutes les 5 minutes et après chaque modification d'un صنف.
+	 */
+	function refreshCounts() {
+		return PS.api.get('counters', { passive: true }).then(function (c) {
+			counts.offres = c.offres || 0;
+			counts.livraison = c.livraison || 0;
+			counts.taches = c.taches || 0;
+			renderNav(parseHash().id);
+		}).catch(function () {});
+	}
+
 	function closeMobileNav() {
 		document.getElementById('ps-nav').classList.remove('is-open');
 		document.getElementById('ps-nav-backdrop').classList.remove('is-open');
@@ -101,14 +114,19 @@ PS.router = (function () {
 		closeMobileNav();
 		document.title = page.title + ' — متابعة المشاريع';
 		const main = document.getElementById('ps-main');
-		main.innerHTML = '<div class="ps-loading" role="status">جاري التحميل…</div>';
+		// Conteneur NEUF à chaque page : les écouteurs d'événements posés par la page
+		// précédente disparaissent avec son conteneur (pas d'accumulation).
+		const view = document.createElement('div');
+		view.className = 'ps-view';
+		view.innerHTML = '<div class="ps-loading" role="status">جاري التحميل…</div>';
+		main.replaceChildren(view);
 		try {
-			const res = page.render(main, r.params);
+			const res = page.render(view, r.params);
 			if (res && typeof res.catch === 'function') {
-				res.catch(function (e) { main.innerHTML = PS.ui.html`<div class="ps-alert ps-alert--error">${e.message}</div>`.html; });
+				res.catch(function (e) { view.innerHTML = PS.ui.html`<div class="ps-alert ps-alert--error">${e.message}</div>`.html; });
 			}
 		} catch (e) {
-			main.innerHTML = PS.ui.html`<div class="ps-alert ps-alert--error">${e.message}</div>`.html;
+			view.innerHTML = PS.ui.html`<div class="ps-alert ps-alert--error">${e.message}</div>`.html;
 		}
 		main.focus({ preventScroll: true });
 		window.scrollTo(0, 0);
@@ -137,9 +155,11 @@ PS.router = (function () {
 		PS.session.init();
 		window.addEventListener('hashchange', route);
 		route();
+		refreshCounts();
+		setInterval(refreshCounts, 5 * 60 * 1000);
 	}
 
 	document.addEventListener('DOMContentLoaded', boot);
 
-	return { register, go, setParams, setCount, can, lists, route, params: function () { return parseHash().params; } };
+	return { register, go, setParams, setCount, refreshCounts, can, lists, route, params: function () { return parseHash().params; } };
 })();

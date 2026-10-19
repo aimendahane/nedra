@@ -666,6 +666,28 @@ function ps_project_to_api( array $p, int $user_id ): array {
 	);
 
 	$out['computed'] = ps_project_computed( $f, $p['items'] );
+	// Alertes (retards, suivi) : mêmes règles que مهامي et le Recap (inc/calculs.php).
+	$fact                      = ps_stats_facts( array( 'ids' => array( (int) $f['id'] ) ) )[0] ?? null;
+	$out['computed']['alerts'] = array(
+		'needsFollowup'  => $fact ? $fact['needs_followup'] : false,
+		'nextFollowup'   => $fact['next_followup'] ?? null,
+		'lateOffers'     => $fact ? count( array_filter( $fact['items'], fn( $i ) => $i['late'] ) ) : 0,
+		'lateDeliveries' => $fact ? count( array_filter( $fact['items'], fn( $i ) => $i['delivery_late'] ) ) : 0,
+	);
+	$by_item = array();
+	foreach ( $fact['items'] ?? array() as $i ) {
+		$by_item[ $i['id'] ] = $i;
+	}
+	foreach ( $out['items'] as &$it ) {
+		$c              = $by_item[ $it['id'] ] ?? null;
+		$it['computed'] = array(
+			'late'            => $c ? $c['late'] : false,
+			'deliveryLate'    => $c ? $c['delivery_late'] : false,
+			'delayDays'       => $c ? $c['delay'] : 0,
+			'deliveryDisplay' => $c ? $c['delivery_display'] : null,
+		);
+	}
+	unset( $it );
 
 	$reason             = ps_project_edit_reason( $f, $user_id );
 	$out['permissions'] = array(

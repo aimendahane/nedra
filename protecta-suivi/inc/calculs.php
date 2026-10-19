@@ -22,8 +22,14 @@
  *                             accepted (مقبول), rejected (مرفوض), cancelled (ملغى)
  *   Type de حالة المتابعة  : ongoing (جارية), rejected (مرفوض), confirmed (مؤكد), delivered (مسلّم)
  *
- * Étape 2 : statut d'offre du projet, types de suivi, priorité, marge.
- * Étape 3 : retards, تأخير, alertes de suivi, indicateurs (seront ajoutés ici).
+ * Sommaire :
+ *   1. Types de حالة المتابعة (مؤكد، مغلق)
+ *   2. حالة العرض d'un projet
+ *   3. Indicateurs : العروض المرسلة، لم تُرسل، نسبة النجاح، نسبة الإرسال، montants par devise
+ *   4. الأولوية التلقائية
+ *   5. هامش الربح
+ *   6. Retards : عرض متأخر / لازم قرار, تسليم متأخر, تأخير (أيام), حالة التسليم automatique, couleur des lignes
+ *   7. Alerte de suivi (7 jours)
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -86,6 +92,63 @@ function ps_calc_project_offer_status( array $item_codes ): string {
 }
 
 /* ---------------------------------------------------------------------------
+ * Indicateurs (Recap, مهامي)
+ * ------------------------------------------------------------------------ */
+
+/**
+ * « العروض المرسلة » : le projet compte comme offre envoyée si
+ *   حالة العرض ∈ { مرسل، مقبول، مرفوض }
+ *   OU le type de حالة المتابعة ∈ { مؤكد، مرفوض، مسلّم } (le client a répondu, donc l'offre est partie).
+ * Un projet « لم يُرسل » ne compte pas (sauf si le suivi indique une réponse du client).
+ */
+function ps_calc_is_offer_sent( string $project_offer_status, ?string $followup_type ): bool {
+	return in_array( $project_offer_status, array( 'sent', 'accepted', 'rejected' ), true )
+		|| in_array( $followup_type, array( 'confirmed', 'rejected', 'delivered' ), true );
+}
+
+/**
+ * « لم تُرسل » : حالة العرض du projet = لم يُرسل, et le projet n'est pas compté comme envoyé.
+ */
+function ps_calc_is_offer_not_sent( string $project_offer_status, ?string $followup_type ): bool {
+	return 'not_sent' === $project_offer_status && ! ps_calc_is_offer_sent( $project_offer_status, $followup_type );
+}
+
+/**
+ * نسبة النجاح = المؤكدة ÷ العروض المرسلة × 100, arrondie à 1 décimale.
+ * null (affiché « — ») si aucune offre envoyée.
+ */
+function ps_calc_success_rate( int $confirmed, int $sent ): ?float {
+	return $sent > 0 ? round( $confirmed / $sent * 100, 1 ) : null;
+}
+
+/**
+ * نسبة الإرسال = المرسلة ÷ (المرسلة + لم تُرسل) × 100, arrondie à 1 décimale.
+ * null si les deux sont à zéro.
+ */
+function ps_calc_send_rate( int $sent, int $not_sent ): ?float {
+	return ( $sent + $not_sent ) > 0 ? round( $sent / ( $sent + $not_sent ) * 100, 1 ) : null;
+}
+
+/**
+ * Montants TOUJOURS séparés par devise, jamais additionnés entre devises.
+ *
+ * @param array $rows Liste de [ montant, id_devise ] (montants vides ignorés).
+ * @return array id_devise => total (arrondi à 3 décimales).
+ */
+function ps_calc_amounts_by_currency( array $rows ): array {
+	$out = array();
+	foreach ( $rows as $r ) {
+		list( $amount, $currency ) = $r;
+		if ( null === $amount || '' === $amount || ! $currency ) {
+			continue;
+		}
+		$out[ (int) $currency ] = round( ( $out[ (int) $currency ] ?? 0 ) + (float) $amount, 3 );
+	}
+	ksort( $out );
+	return $out;
+}
+
+/* ---------------------------------------------------------------------------
  * الأولوية التلقائية
  * ------------------------------------------------------------------------ */
 
@@ -137,4 +200,98 @@ function ps_calc_margin( $offer_amount, $offer_currency_id, $purchase_amount, $p
 		'amount'  => $margin,
 		'percent' => 0.0 === $offer ? null : round( $margin / $offer * 100, 1 ),
 	);
+}
+
+/* ---------------------------------------------------------------------------
+ * Retards et couleurs
+ * ------------------------------------------------------------------------ */
+
+/**
+ * « عرض متأخر » (= alerte « لازم قرار ») pour un صنف :
+ *   statut d'offre « قيد الإعداد » ET الأجل المطلوب < aujourd'hui ET urgence du projet ≠ L.
+ * (Le jour même du أجل n'est pas encore un retard.)
+ */
+function ps_calc_is_offer_late( ?string $item_offer_code, ?string $due_date, ?string $urgency_code, string $today ): bool {
+	return 'preparing' === ( $item_offer_code ?? 'preparing' )
+		&& ! empty( $due_date ) && $due_date < $today
+		&& 'L' !== $urgency_code;
+}
+
+/**
+ * « تسليم متأخر » pour un صنف :
+ *   صنف مقبول ET حالة التسليم ≠ تم التسليم ET
+ *   ( date réelle > date demandée  OU  ( pas de date réelle ET date demandée < aujourd'hui ) ).
+ */
+function ps_calc_is_delivery_late( ?string $item_offer_code, ?string $delivery_code, ?string $due, ?string $actual, string $today ): bool {
+	if ( 'accepted' !== $item_offer_code || 'delivered' === $delivery_code || empty( $due ) ) {
+		return false;
+	}
+	return ! empty( $actual ) ? $actual > $due : $due < $today;
+}
+
+/**
+ * تأخير (أيام) :
+ *   date réelle − date demandée ; sans date réelle et date dépassée : aujourd'hui − date demandée ; sinon 0.
+ *   Jamais négatif.
+ */
+function ps_calc_delivery_delay_days( ?string $due, ?string $actual, string $today ): int {
+	if ( empty( $due ) ) {
+		return 0;
+	}
+	if ( ! empty( $actual ) ) {
+		return max( 0, ps_calc_days_between( $due, $actual ) );
+	}
+	return $due < $today ? ps_calc_days_between( $due, $today ) : 0;
+}
+
+/**
+ * Nombre de jours de $from à $to (dates « AAAA-MM-JJ » ; négatif si $to est avant $from).
+ */
+function ps_calc_days_between( string $from, string $to ): int {
+	return (int) round( ( strtotime( substr( $to, 0, 10 ) . ' 00:00:00 UTC' ) - strtotime( substr( $from, 0, 10 ) . ' 00:00:00 UTC' ) ) / DAY_IN_SECONDS );
+}
+
+/**
+ * حالة التسليم affichée : passe automatiquement à « متأخر » (late) quand la livraison est en retard,
+ * sinon le statut choisi.
+ */
+function ps_calc_effective_delivery_status( ?string $delivery_code, bool $is_late ): ?string {
+	return $is_late ? 'late' : $delivery_code;
+}
+
+/**
+ * Couleur d'une ligne de Suivi Offres : 'late' (rouge) = offre en retard (hors L),
+ * 'done' (vert) = مقبول, sinon null.
+ */
+function ps_calc_offer_row_color( ?string $item_offer_code, ?string $due_date, ?string $urgency_code, string $today ): ?string {
+	if ( ps_calc_is_offer_late( $item_offer_code, $due_date, $urgency_code, $today ) ) {
+		return 'late';
+	}
+	return 'accepted' === $item_offer_code ? 'done' : null;
+}
+
+/* ---------------------------------------------------------------------------
+ * Alerte de suivi
+ * ------------------------------------------------------------------------ */
+
+/**
+ * Alerte « مشروع يحتاج متابعة » :
+ *   projet NON مغلق ET urgence ≠ L ET
+ *   ( dernière entrée du سجل المتابعة — ou dernière modification du projet si le سجل est vide —
+ *     date de PLUS de $days jours (7 par défaut)
+ *     OU prochaine date de suivi dépassée (< aujourd'hui) ).
+ *
+ * @param string|null $last_followup_date Date de la dernière entrée du سجل (Y-m-d) ou null.
+ * @param string      $last_modified      Dernière modification du projet (Y-m-d ou Y-m-d H:i:s).
+ * @param string|null $next_date          Prochaine date de suivi de la dernière entrée.
+ */
+function ps_calc_needs_followup( ?string $followup_type, ?string $urgency_code, ?string $last_followup_date, string $last_modified, ?string $next_date, string $today, int $days = 7 ): bool {
+	if ( ps_calc_is_closed( $followup_type ) || 'L' === $urgency_code ) {
+		return false;
+	}
+	$ref = substr( $last_followup_date ?: $last_modified, 0, 10 );
+	if ( ps_calc_days_between( $ref, $today ) > $days ) {
+		return true;
+	}
+	return ! empty( $next_date ) && $next_date < $today;
 }

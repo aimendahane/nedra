@@ -3,11 +3,22 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 0.3.0 — 2026-10-19 · base v1 — Étape 3 : suivi des offres et des livraisons
+
+- Tous les calculs du brief §6 dans `inc/calculs.php` (statut d'offre du projet, المرسلة، لم تُرسل، نسبة النجاح،
+  نسبة الإرسال، montants par devise, priorité, marge, retards, تأخير، حالة التسليم automatique, alerte de suivi).
+- Suivi Offres : une ligne par صنف, lignes rouges (retard) / vertes (مقبول), compteur « لازم قرار »,
+  modification directe ; « لم يُرسل » avec motif obligatoire ; تاريخ إرسال العرض demandé à l'envoi.
+- Suivi Livraison : أصناف مقبولة, تأخير calculé, « متأخر » automatique.
+- Page d'accueil مهامي (et vue équipe filtrable pour la الإدارة) ; compteurs sur le menu.
+- Jeu de démonstration de 30 projets + résultats calculés à la main (tests/fixtures).
+- Correction : les écouteurs d'événements d'une page ne restent plus actifs sur les pages suivantes.
+
 ## 0.2.0 — 2026-10-19 · base v1 — Étape 2 : Fiche Projet et Base Projets
 
 - Fiche Projet : création et modification (معلومات، أطراف، أصناف، مبالغ، منافسون), champs obligatoires en jaune,
   validation serveur réglable (§11), رقم المشروع automatique PRJ-AAAA-NNN, suggestion de رقم العرض,
-  ajout rapide d'un مكان ou d'un صنف, brouillon conservé, hamش الربح et الأولوية calculés.
+  ajout rapide d'un مكان ou d'un صنف, brouillon conservé, هامش الربح et الأولوية calculés.
 - Annuaire des sociétés et des منافسين : autocomplétion, une seule fiche par société (normalisation arabe).
 - Détection de doublons (même société, nom proche, ±60 jours) : avertissement « حفظ رغم ذلك ».
 - Onglets d'un projet : سجل المتابعة, fichiers (stockage protégé), journal des modifications.
