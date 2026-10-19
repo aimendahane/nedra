@@ -1,0 +1,40 @@
+# Publie le thème installable dans les « Releases » du dépôt.
+# Déclenchement : pousser un tag de version, ex. `git tag v1.0.0 && git push origin v1.0.0`.
+# Le zip est construit par tools/build-zip.sh (sans le dossier tests) ; le numéro du tag doit
+# correspondre à la version du thème (style.css et inc/config.php).
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Construire le zip
+        id: build
+        run: |
+          ZIP="$(sh tools/build-zip.sh)"
+          VERSION="$(sed -n 's/^Version: *//p' protecta-suivi/style.css | tr -d '\r')"
+          if [ "v$VERSION" != "${GITHUB_REF_NAME}" ]; then
+            echo "Le tag ${GITHUB_REF_NAME} ne correspond pas à la version du thème ($VERSION)" >&2
+            exit 1
+          fi
+          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+
+      - name: Publier la release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="$(awk '/^## /{n++} n==1' protecta-suivi/CHANGELOG.md)"
+          gh release create "${GITHUB_REF_NAME}" "${{ steps.build.outputs.zip }}" \
+            --title "Protecta Suivi ${GITHUB_REF_NAME}" \
+            --notes "$NOTES
+
+          Installation : Apparence > Thèmes > Ajouter > Téléverser un thème (voir README.md, en arabe)."

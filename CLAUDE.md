@@ -18,15 +18,19 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 3 | Suivi Offres / Livraison, مهامي, tous les calculs §6, jeu de démo 30 projets | ✅ terminée, tests verts | 0.3.0 · `fe9eaca` |
 | 4 | Recap (Chart.js 4.5.1 inclus), comparaison N-1, clics filtrants, impression | ✅ terminée, tests verts | 0.4.0 · `6fb1871` + `Tests: fresh demo site…` |
 | 5 | الإعدادات, comptes, fusion annuaire, import prototype, export, sauvegarde/restauration, e-mail du matin, Cron | ✅ terminée, tests verts | 0.5.0 |
-| 6 | Zip final, test installation vierge + mise à jour depuis 0.1.0, docs, release GitHub | 🟡 EN COURS | — |
+| 6 | Zip final, test installation vierge + mise à jour depuis 0.1.0, docs, release GitHub | ✅ terminée (sauf publication GitHub, bloquée) | **1.0.0** |
 
-### Tests (dernier passage complet, fin d'étape 5)
-- `sh protecta-suivi/tests/run-all.sh` → **492 tests PHP réussis / 0 échoué** + tous les contrôles navigateur
-  (étapes 1 à 5) **passés**.
+### Tests (dernier passage complet, version 1.0.0) — détail : `docs/TEST-RESULTS.txt`
+- `sh protecta-suivi/tests/run-all.sh` → **492 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
+  (étapes 1 à 5) passés.
+- `sh protecta-suivi/tests/release-check.sh dist/protecta-suivi-1.0.0.zip dist/protecta-suivi-0.1.0.zip` →
+  installation vierge (connexion, saisie, Recap) OK ; mise à jour 0.1.0 → 1.0.0 avec données : **aucune perte**.
 
-### Étape 6 — reste à faire
-README arabe final, version 1.0.0, workflow de release GitHub, zip final, test d'installation sur WordPress vierge
-(activation, connexion, saisie d'un projet, Recap), test de mise à jour depuis 0.1.0 avec données, push + release.
+### Prochaines actions
+1. Dès que l'accès GitHub est rétabli : `git push -u origin claude/sweet-hopper-le9393` puis
+   `git tag v1.0.0 && git push origin v1.0.0` → le workflow `.github/workflows/release.yml` publie le zip.
+2. Retours du client sur les points ouverts ci-dessous ; toute évolution = nouvelle version (1.0.1…), CHANGELOG,
+   et nouvelle migration si la structure change (tests/test-migrations.php à étendre).
 
 ### Points ouverts (attente client ou blocage)
 - **Envoi GitHub bloqué** : `git push` → 403 (application Claude GitHub sans droit d'écriture sur

@@ -33,3 +33,13 @@ BASE_URL=http://localhost:8080 SHOTS=/tmp/captures node tests/e2e-smoke.js
 | `test-security.php` | Dossiers protégés, limite de tentatives, inactivité, accès wp-admin |
 | `test-rest.php` | Permissions de l'API, préférences, activité / expiration de session |
 | `e2e-smoke.js` | Parcours dans un vrai navigateur (Chromium) |
+
+## Tout lancer
+
+```bash
+sh tests/run-all.sh                                   # PHP + navigateur (étapes 1 à 5)
+sh tests/release-check.sh <zip final> <zip 0.1.0>     # installation vierge + mise à jour avec données
+```
+Fichiers ajoutés : `test-projects.php`, `test-calculs.php` (jeu de démo, `fixtures/demo-expected.md`), `test-items.php`,
+`test-recap.php`, `test-admin.php`, `e2e-app.js`, `e2e-setup.php` (site de test 8081), `release-check.php|.sh`,
+`e2e-release.js` (sites vierges 8082 et 8083).

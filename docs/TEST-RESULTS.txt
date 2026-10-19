@@ -1,0 +1,773 @@
+Protecta Suivi 1.0.0 — résultats complets des tests (2026-10-19 — WordPress 6.7, PHP 8.3, MariaDB 10.11, Apache)
+
+================ A. Tests automatiques + navigateur (tests/run-all.sh) ================
+######## Tests PHP ########
+Site de test installé (thème : protecta-suivi)
+Thème v1.0.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
+
+== Activation : base de données ==
+  ✔ ps_db_version = dernière migration
+  ✔ table wptest_ps_lists créée
+  ✔ table wptest_ps_projects créée
+  ✔ table wptest_ps_project_parties créée
+  ✔ table wptest_ps_companies créée
+  ✔ table wptest_ps_competitors créée
+  ✔ table wptest_ps_project_competitors créée
+  ✔ table wptest_ps_items créée
+  ✔ table wptest_ps_followups créée
+  ✔ table wptest_ps_files créée
+  ✔ table wptest_ps_changelog créée
+  ✔ colonne projects.project_no
+  ✔ colonne projects.offer_no
+  ✔ colonne projects.received_date
+  ✔ colonne projects.sent_date
+  ✔ colonne projects.source_id
+  ✔ colonne projects.offer_currency_id
+  ✔ colonne projects.purchase_currency_id
+  ✔ colonne projects.created_by
+  ✔ colonne projects.deleted_at
+  ✔ colonne projects.legacy_raw
+  ✔ colonne items.offer_status_id
+  ✔ colonne items.not_sent_reason_id
+  ✔ colonne items.not_sent_note
+  ✔ colonne items.delivery_due_date
+  ✔ colonne items.delivery_actual_date
+  ✔ colonne items.delivery_status_id
+  ✔ index unique projects.project_no (numéros jamais répétés)
+  ✔ index unique projects.offer_no (numéros jamais répétés)
+  ✔ index unique projects.year_seq (numéros jamais répétés)
+
+== Activation : listes par défaut ==
+  ✔ liste urgency : 4 valeurs
+  ✔ liste employee : 11 valeurs
+  ✔ liste followup_status : 10 valeurs
+  ✔ liste item_type : 26 valeurs
+  ✔ liste place : 9 valeurs
+  ✔ liste category : 6 valeurs
+  ✔ liste importance : 3 valeurs
+  ✔ liste source : 8 valeurs
+  ✔ liste offer_status : 6 valeurs
+  ✔ liste not_sent_reason : 7 valeurs
+  ✔ liste loss_reason : 5 valeurs
+  ✔ liste delivery_status : 4 valeurs
+  ✔ liste availability : 3 valeurs
+  ✔ liste currency : 4 valeurs
+  ✔ « موقع العطاءات » retiré des employés
+  ✔ « موقع العطاءات » présent dans مصدر الطلب
+  ✔ « غير محدد » : masqué à la saisie, réservé à l'import
+  ✔ statuts d'offre : 6 codes (dont لم يُرسل)
+  ✔ types des حالات المتابعة (3 جارية، 1 مرفوض، 5 مؤكد، 1 مسلّم)
+  ✔ poids des urgences VU=4 U=3 N=2 L=1
+  ✔ poids de الأهمية عالية=3 متوسطة=2 ضعيفة=1
+  ✔ codes des lieux (Zewiya = ZW)
+  ✔ devises LYD, USD, EUR, TND
+
+== Activation : réglages ==
+  ✔ déconnexion après inactivité : 120 min par défaut
+  ✔ fenêtre de modification du créateur : 24 h
+  ✔ jeton Cron : 64 caractères hexadécimaux aléatoires
+  ✔ fuseau horaire Africa/Tripoli
+  ✔ jeton Cron régénérable (nouveau jeton enregistré)
+  ✔ régénérer le jeton ne touche pas aux autres réglages
+
+== Activation : rôles ==
+  ✔ rôle موظف (ps_employee)
+  ✔ rôle مسؤول مشروع (ps_manager)
+  ✔ rôle الإدارة (ps_admin)
+  ✔ موظف : peut créer un projet et mettre à jour ses أصناف
+  ✔ موظف : ni modification des projets, ni Recap, ni الإعدادات, ni suppression
+  ✔ مسؤول مشروع : modifie ses projets, pas de Recap
+  ✔ الإدارة : toutes les capacités
+  ✔ administrateur WordPress : toutes les capacités ps_*
+
+== Réactivation (idempotence) ==
+  ✔ réactiver le thème ne duplique pas les listes
+
+== Mise à jour : préparation de données réelles ==
+  ✔ données de test en place
+
+== Mise à jour : nouvelle version avec migration n°2 ==
+  ✔ ps_db_version passe à 2
+  ✔ deuxième passage : aucune migration rejouée
+  ✔ verrou de migration libéré
+  ✔ une sauvegarde automatique créée AVANT la migration
+  ✔ sauvegarde au bon format, version 1 (avant migration)
+  ✔ la sauvegarde contient les projets et les أصناف
+  ✔ la sauvegarde reflète l'état avant migration
+  ✔ nom de sauvegarde non devinable (suffixe aléatoire)
+  ✔ « lists » identique après la mise à jour
+  ✔ « projects » identique après la mise à jour
+  ✔ « project_parties » identique après la mise à jour
+  ✔ « companies » identique après la mise à jour
+  ✔ « competitors » identique après la mise à jour
+  ✔ « project_competitors » identique après la mise à jour
+  ✔ « items » identique après la mise à jour
+  ✔ « followups » identique après la mise à jour
+  ✔ « files » identique après la mise à jour
+  ✔ « changelog » identique après la mise à jour
+  ✔ « ps_settings » identique après la mise à jour
+  ✔ « ps_seeded_lists » identique après la mise à jour
+  ✔ la nouvelle colonne est ajoutée
+
+== Mise à jour : listes et réglages de la الإدارة conservés ==
+  ✔ valeur renommée : nom conservé
+  ✔ valeur masquée : reste masquée
+  ✔ valeur supprimée : pas recréée
+  ✔ valeur système renommée : nom conservé
+  ✔ réglage inactivité personnalisé conservé
+  ✔ jeton Cron conservé
+
+== Mise à jour : valeur système disparue → recréée, sans toucher au reste ==
+  ✔ statut « لم يُرسل » (logique de calcul) recréé
+  ✔ une seule valeur ajoutée, rien d'autre
+
+== Mise à jour : sécurité de la procédure ==
+  ✔ migration déjà en cours ailleurs → pas d'exécution simultanée
+  ✔ verrou périmé (> 10 min) → migration reprise
+
+== Dossiers protégés (fichiers des projets + sauvegardes) ==
+  ✔ accès web interdit : racine/.htaccess (Apache 2.2 et 2.4)
+  ✔ listage impossible : racine/index.php
+  ✔ accès web interdit : files/.htaccess (Apache 2.2 et 2.4)
+  ✔ listage impossible : files/index.php
+  ✔ accès web interdit : backups/.htaccess (Apache 2.2 et 2.4)
+  ✔ listage impossible : backups/index.php
+  ✔ .htaccess altéré → réparé
+
+== Limitation des tentatives de connexion ==
+  ✔ 5 échecs : refus normal (mot de passe incorrect)
+  ✔ 6e essai avec le BON mot de passe : bloqué
+  ✔ message indique la durée du blocage (15 min)
+  ✔ limite réglable (10) : la connexion repasse
+  ✔ connexion réussie → compteur remis à zéro
+  ✔ autre adresse IP : non concernée par le blocage
+
+== Déconnexion après inactivité (contrôle serveur) ==
+  ✔ 119 min sans activité : session active (défaut 2 h)
+  ✔ 121 min sans activité : session expirée
+  ✔ durée réglable : 30 min → expirée après 31 min
+
+== Accès à wp-admin ==
+  ✔ موظف : wp-admin interdit
+  ✔ مسؤول مشروع : wp-admin interdit
+  ✔ الإدارة : wp-admin interdit (tout se fait dans l'application)
+  ✔ administrateur WordPress (technique) : wp-admin permis
+  ✔ barre admin désactivée
+  ✔ XML-RPC désactivé
+
+== API REST : permissions ==
+  ✔ visiteur non connecté : /lists refusé (401)
+  ✔ visiteur non connecté : /me refusé (401)
+  ✔ liste des utilisateurs WordPress non publique
+  ✔ موظف connecté : /lists autorisé
+  ✔ /lists renvoie les 14 listes
+  ✔ /me : rôle et capacités du موظف
+  ✔ préférences (mode nuit, e-mail du matin) enregistrées
+  ✔ valeur invalide refusée (400)
+
+== API REST : activité et expiration de session ==
+  ✔ rafraîchissement automatique (X-PS-Passive) : ne prolonge pas la session
+  ✔ activité réelle (ping) : session prolongée
+  ✔ session expirée : 401 « ps_session_expired »
+
+== Calculs de l'étape 2 (inc/calculs.php) ==
+  ✔ حالة العرض : aucun صنف → قيد الإعداد
+  ✔ حالة العرض : tous ملغى → ملغى
+  ✔ حالة العرض : un مقبول → مقبول
+  ✔ حالة العرض : tous مرفوض (ملغى ignorés) → مرفوض
+  ✔ حالة العرض : un مرسل (pas de مقبول) → مرسل
+  ✔ حالة العرض : tous لم يُرسل (ملغى ignorés) → لم يُرسل
+  ✔ حالة العرض : لم يُرسل + قيد الإعداد → قيد الإعداد
+  ✔ حالة العرض : مرفوض + لم يُرسل → قيد الإعداد (règle « sinon » du brief)
+  ✔ الأولوية : استعجال 4 + حجم 3 → P1
+  ✔ الأولوية : استعجال 4 + حجم 2 → P1
+  ✔ الأولوية : استعجال 3 + حجم 3 → P1
+  ✔ الأولوية : استعجال 4 + حجم 1 → P2
+  ✔ الأولوية : استعجال 3 + حجم 2 → P2
+  ✔ الأولوية : استعجال 2 + حجم 2 → P2
+  ✔ الأولوية : استعجال 3 + حجم 1 → P2
+  ✔ الأولوية : استعجال 2 + حجم 1 → P3
+  ✔ الأولوية : استعجال 1 + حجم 1 → P3
+  ✔ الأولوية : استعجال 1 + حجم 3 → P2
+  ✔ الأولوية : استعجال 2 + حجم vide(=1) → P3
+  ✔ الأولوية : استعجال 4 + حجم vide(=1) → P2
+  ✔ الأولوية : sans urgence → aucune
+  ✔ هامش : 10000 − 7500 = 2500 (25.0 %)
+  ✔ هامش négatif : 4000 − 4500 = −500 (−12.5 %)
+  ✔ هامش : devises différentes → non calculé
+  ✔ هامش : montant d'achat absent → non calculé
+  ✔ هامش : مبلغ العرض = 0 → pas de pourcentage
+
+== Normalisation arabe et similarité ==
+  ✔ ة/ه, إ/ا, voyelles : « شَرِكة الإنارة » = « شركه الانارة »
+  ✔ majuscules, ponctuation et chiffres arabes normalisés
+  ✔ similarité : orthographes différentes = 100 %
+  ✔ similarité : nom contenu dans un autre ≥ 75 %
+  ✔ similarité : projets différents < 50 %
+
+== Création (Fiche Projet) et numérotation ==
+  ✔ موظف : création d'un projet valide (201)
+  ✔ رقم المشروع automatique PRJ-2026-001
+  ✔ حالة المتابعة par défaut : في دراسة
+  ✔ صنف créé en « قيد الإعداد »
+  ✔ حالة العرض calculée : قيد الإعداد
+  ✔ الأولوية calculée : U(3) + حجم vide(1) = 4 → P2
+  ✔ المالك : société créée dans l'annuaire et liée
+  ✔ منافس créé dans l'annuaire avec sa ماركة et ses أصناف
+  ✔ créateur : peut modifier (fenêtre 24 h)
+  ✔ numéro suivant : PRJ-2026-002
+  ✔ numérotation par année de réception : PRJ-2025-001
+
+== Validation côté serveur (§11 + brief) ==
+  ✔ champs obligatoires manquants → refus (422)
+  ✔ erreurs indiquées champ par champ (اسم المشروع، مصدر الطلب، هاتف المالك، الأجل)
+  ✔ aucun صنف → refus (صنف واحد على الأقل)
+  ✔ تاريخ الإرسال < تاريخ الاستلام → refus
+  ✔ تاريخ الإرسال = تاريخ الاستلام → accepté
+  ✔ e-mail invalide et téléphone non numérique → refus
+  ✔ téléphone : chiffres (+, espaces, tirets tolérés), 6 à 15 chiffres
+  ✔ رقم العرض déjà utilisé → refus (indique le projet)
+  ✔ « غير محدد » refusé à la saisie (réservé à l'import)
+  ✔ valeur d'une autre liste → refus
+  ✔ valeur masquée refusée pour un nouveau projet
+  ✔ valeur masquée conservée sur un projet existant (pas d'erreur)
+  ✔ règles modifiables : رقم العرض rendu facultatif dans les réglages → accepté
+
+== Annuaire des sociétés : une seule fiche par société ==
+  ✔ « شركه النور » saisi à la main → même fiche que « شركة النور »
+  ✔ aucune fiche en double créée (المالك et المنفذة déjà dans l'annuaire)
+  ✔ coordonnées vides de la fiche complétées, existantes conservées
+  ✔ autocomplétion : « نور » trouve « شركة النور »
+
+== Détection de doublons (avertir sans bloquer) ==
+  ✔ même société + nom proche à 50 jours → avertissement (409)
+  ✔ le projet ressemblant est indiqué (PRJ-2026-001)
+  ✔ « حفظ رغم ذلك » → enregistré
+  ✔ même nom mais à plus de 60 jours → pas d'avertissement
+  ✔ même nom, autre société → pas d'avertissement
+
+== Droits de modification (vérifiés par le serveur) ==
+  ✔ موظف (autre que le créateur) : modification refusée (403)
+  ✔ مسؤول مشروع d'un AUTRE projet : refusé (403)
+  ✔ مسؤول مشروع de CE projet (المسؤول عن المشروع) : modification acceptée
+  ✔ créateur dans les 24 h : modification acceptée
+  ✔ créateur après 25 h : modification refusée (403)
+  ✔ créateur après 25 h : fiche en lecture seule
+  ✔ الإدارة : modification acceptée
+  ✔ موظف : lecture de tous les projets autorisée
+
+== Numéro fixe, أصناف, journal des modifications ==
+  ✔ date de réception corrigée → رقم المشروع inchangé, السنة suit la date
+  ✔ ajout d'un 2e صنف
+  ✔ صنف déjà envoyé : retrait refusé (passer en ملغى)
+  ✔ un صنف مرسل → تاريخ إرسال العرض obligatoire
+  ✔ صنف encore قيد الإعداد : retrait accepté (montant sans devise → LYD par défaut)
+  ✔ هامش calculé : 15000 − 11000.5 = 3999.5 LYD (26.7 %)
+  ✔ حالة العرض recalculée : مرسل
+  ✔ journal : champs modifiés enregistrés
+  ✔ journal : ancienne valeur + auteur (qui, quoi, quand)
+  ✔ journal : retrait d'un صنف enregistré
+
+== سجل المتابعة ==
+  ✔ ajout par un intervenant : date, auteur, texte, prochaine date
+  ✔ prochaine date avant la date du suivi → refus
+  ✔ موظف qui n'intervient pas sur le projet : refusé (403)
+  ✔ modifier le suivi d'un autre : refusé
+  ✔ l'auteur modifie son suivi
+
+== Fichiers joints (stockage protégé) ==
+  ✔ PDF accepté
+  ✔ nom de stockage aléatoire (nom réel jamais dans le chemin)
+  ✔ fichier écrit dans uploads/protecta-suivi/files (dossier protégé)
+  ✔ faux PDF (contenu PHP) refusé
+  ✔ extension .php refusée
+  ✔ retrait du fichier d'un autre : refusé
+  ✔ l'envoyeur retire son fichier (corbeille)
+  ✔ fichier retiré : conservé sur le disque (aucune perte)
+
+== Base Projets : recherche, filtres, tri ==
+  ✔ liste : tous les projets visibles par un موظف
+  ✔ recherche par mot du nom
+  ✔ recherche tolérante à l'orthographe arabe
+  ✔ recherche par téléphone du الشخص المباشر
+  ✔ filtre السنة (année de réception)
+  ✔ filtre حالة العرض (valeur calculée)
+  ✔ tri croissant par تاريخ الاستلام
+  ✔ pagination
+  ✔ corbeille : réservée à la الإدارة
+
+== مصدر غير محدد : filtre et modification groupée (décision n°3) ==
+  ✔ filtre « مصدر غير محدد » : 2 projets
+  ✔ modification groupée : refusée au موظف
+  ✔ modification groupée vers « غير محدد » : refusée
+  ✔ الإدارة : 2 projets passent à « إيميل » en une fois
+  ✔ plus aucun projet « غير محدد »
+  ✔ modification groupée inscrite au journal de chaque projet, en texte lisible (غير محدد → إيميل)
+
+== Corbeille et ajout rapide de valeurs ==
+  ✔ suppression refusée au موظف (passer en ملغى)
+  ✔ الإدارة : projet mis à la corbeille (masqué de la liste, pas effacé)
+  ✔ visible dans la corbeille
+  ✔ restauration
+  ✔ « + إضافة مكان جديد » : Zliten (ZL) ajouté
+  ✔ pas de doublon (même nom ou même code)
+  ✔ ajout rapide impossible sur les listes à logique (urgence…)
+
+== A. Règles unitaires (§6) ==
+  ✔ مؤكد = type مؤكد ou مسلّم (مسلّم compte comme مؤكد)
+  ✔ مغلق = مرفوض ou مسلّم
+  ✔ المرسلة : حالة العرض مرسل / مقبول / مرفوض
+  ✔ المرسلة : OU suivi de type مؤكد / مرفوض / مسلّم
+  ✔ لم يُرسل et قيد الإعداد (suivi جارية) : pas envoyées
+  ✔ لم تُرسل : statut لم يُرسل et pas compté comme envoyé
+  ✔ نسبة النجاح 7 ÷ 11 = 63.6 (1 décimale)
+  ✔ نسبة النجاح 1 ÷ 3 = 33.3
+  ✔ نسبة النجاح sans offre envoyée → « — » (null)
+  ✔ نسبة الإرسال 11 ÷ 13 = 84.6
+  ✔ نسبة الإرسال 5 ÷ 5 = 100.0
+  ✔ نسبة الإرسال sans donnée → null
+  ✔ montants séparés par devise, jamais additionnés entre devises
+  ✔ عرض متأخر : قيد الإعداد, أجل hier, N
+  ✔ pas en retard le jour même du أجل
+  ✔ urgence L : jamais en retard
+  ✔ مرسل / لم يُرسل : pas en retard
+  ✔ sans أجل : pas en retard
+  ✔ تسليم متأخر : sans date réelle, demandée < aujourd'hui
+  ✔ تسليم متأخر : date réelle > demandée (pas encore « تم التسليم »)
+  ✔ « تم التسليم » : jamais en retard
+  ✔ demandée = aujourd'hui : pas en retard
+  ✔ صنف non مقبول : hors livraison
+  ✔ تأخير = réelle − demandée = 10
+  ✔ تأخير jamais négatif (livré en avance → 0)
+  ✔ تأخير sans date réelle = aujourd'hui − demandée = 19
+  ✔ تأخير : date future → 0
+  ✔ تأخير à cheval sur février (28 j) = 29
+  ✔ حالة التسليم passe automatiquement à « متأخر »
+  ✔ sinon : statut choisi conservé
+  ✔ ligne ROUGE : offre en retard
+  ✔ pas de rouge pour L
+  ✔ ligne VERTE : مقبول
+  ✔ alerte suivi : dernier suivi il y a 8 jours (> 7)
+  ✔ pas d'alerte à 7 jours exactement
+  ✔ alerte : prochaine date de suivi dépassée
+  ✔ prochaine date = aujourd'hui : pas encore dépassée
+  ✔ sans سجل : dernière modification du projet (18 j)
+  ✔ projet مغلق : pas d'alerte
+  ✔ urgence L : pas d'alerte
+  ✔ seuil réglable (3 jours)
+
+== B. Jeu de démonstration (30 projets) vs résultats calculés à la main ==
+  ✔ 30 projets chargés
+  ✔ 24 projets 2026 : حالة العرض, « مرسل ? » et الأولوية conformes au tableau §1
+  ✔ D07 : مرسل + لم يُرسل → مرسل
+  ✔ D17 : قيد الإعداد + ملغى → ملغى ignoré → قيد الإعداد
+  ✔ D14 : offre قيد الإعداد mais suivi مؤكد → compte comme envoyée
+  ✔ 2026 عدد المشاريع (hors ملغى) = 23
+  ✔ 2026 ملغى (à part) = 1
+  ✔ 2026 المؤكدة = 7
+  ✔ 2026 المرفوضة = 2
+  ✔ 2026 قيد الدراسة = 14
+  ✔ 2026 العروض المرسلة = 11
+  ✔ 2026 لم تُرسل = 2
+  ✔ 2026 نسبة النجاح = 7 ÷ 11 = 63.6 %
+  ✔ 2026 نسبة الإرسال = 11 ÷ 13 = 84.6 %
+  ✔ 2026 مبالغ العروض : LYD 75 000, USD 17 000, EUR 24 000, TND 3 000
+  ✔ 2026 مبالغ المؤكدة : LYD 68 000, USD 12 000, EUR 24 000
+  ✔ 2026 العروض المتأخرة = 6
+  ✔ 2026 التسليمات المتأخرة = 3
+  ✔ 2026 alertes de suivi = 14
+  ✔ أصناف en retard (لازم قرار) : D03, D14, D17, D20, D21, D23 (+ E06 en 2025)
+  ✔ D01 هامش 2 500 (25.0 %)
+  ✔ D05 هامش 5 000 EUR (25.0 %)
+  ✔ D06 هامش −500 (−6.3 %)
+  ✔ D10 هامش 9 000 (18.0 %)
+  ✔ D16 هامش 3 000 USD (25.0 %)
+  ✔ D02 : USD vs LYD → pas de marge
+  ✔ D24 : pas de مبلغ الشراء → pas de marge
+  ✔ D01 : retard non, تأخير 0, حالة « delivered »
+  ✔ D05 : retard non, تأخير 5, حالة « delivered »
+  ✔ D06 : retard oui, تأخير 19, حالة « late »
+  ✔ D10 : retard non, تأخير 0, حالة « ready »
+  ✔ D16 : retard oui, تأخير 10, حالة « late »
+  ✔ D24 : retard oui, تأخير 1, حالة « late »
+  ✔ D19 : livraison future → ni retard ni تأخير
+  ✔ alertes de suivi 2026 : 14 projets du tableau §5
+  ✔ 2025 : 6 projets, 2 مؤكدة, 1 مرفوضة, 3 قيد الدراسة, 4 مرسلة, 1 لم تُرسل, 50.0 %, 80.0 %, 1 retard d'offre, 0 livraison
+  ✔ 2025 montants : LYD 9 000, USD 15 000
+  ✔ مهامي محمد حسين : 3 عروض متأخرة, 2 متابعات, 2 تسليمات
+  ✔ مهامي وفاء حامدي : 2, 1, 1
+  ✔ مهامي غفران دريدي : 1, 0, 1
+  ✔ مهامي الإدارة (toute l'équipe) : 7 offres en retard (6 en 2026 + E06)
+  ✔ « شركة النور » et « شركه النور » : même fiche
+  ✔ « مؤسسة الأفق » et « مؤسسة الأفق للتجارة » : deux fiches (à fusionner par la الإدارة)
+
+== Suivi Offres : modification d'un صنف (droits et règles) ==
+  ✔ موظف : le صنف d'un autre employé → refusé (403)
+  ✔ موظف responsable du صنف : modification acceptée
+  ✔ « لم يُرسل » sans سبب → refusé
+  ✔ سبب pris dans une autre liste → refusé
+  ✔ « لم يُرسل » + سبب + note → accepté, n'est plus « لازم قرار »
+  ✔ مرسل sur un projet sans تاريخ الإرسال → date demandée
+  ✔ تاريخ الإرسال avant تاريخ الاستلام → refusé
+  ✔ date du jour acceptée → enregistrée comme تاريخ إرسال العرض du projet
+  ✔ تاريخ تقديم العرض rempli automatiquement (aujourd'hui)
+  ✔ journal : statut et تاريخ الإرسال enregistrés
+
+== Suivi Livraison : règles ==
+  ✔ « متأخر » ne peut pas être choisi à la main
+  ✔ date impossible refusée
+  ✔ livré le 05/10 (demandé 30/09) : plus en retard, تأخير 5 jours, « تم التسليم »
+
+== Listes Suivi Offres / Livraison et compteurs ==
+  ✔ Suivi Offres : 5 « لازم قرار » (7 − D03 لم يُرسل − D20 مرسل)
+  ✔ filtre « لازم قرار فقط » : lignes rouges
+  ✔ mes أصناف en retard (محمد حسين) : D17, D21
+  ✔ lignes VERTES = أصناف مقبولة
+  ✔ موظف : seuls ses أصناف sont modifiables dans la liste
+  ✔ Suivi Livraison : uniquement les أصناف مقبولة
+  ✔ livraisons en retard après correction de D06 : D16, D24
+  ✔ filtre par سبب عدم الإرسال (clic depuis le Recap)
+  ✔ compteurs du menu disponibles
+  ✔ موظف : compteur du menu = ses أصناف « لازم قرار »
+  ✔ الإدارة : compteur du menu = toute l'équipe
+
+== مهامي : API par rôle ==
+  ✔ موظف : toujours SES tâches (le filtre employé est ignoré)
+  ✔ compte non lié à un employé : message, pas de tâches
+  ✔ الإدارة : filtre par employé
+  ✔ الإدارة : toute l'équipe par défaut
+
+== Fiche projet : alertes calculées ==
+  ✔ D21 : 1 offre en retard signalée sur la fiche
+
+== Recap 2026 : indicateurs et comparaison avec 2025 ==
+  ✔ indicateurs identiques au calcul à la main (23 projets, 1 ملغى, 7 مؤكدة, 63.6 %)
+  ✔ عدد المشاريع : 23 vs 6 en 2025 → ↑ 283.3 %
+  ✔ نسبة النجاح : 63.6 vs 50.0 → ↑ 13.6 points
+  ✔ نسبة الإرسال : 84.6 vs 80.0 → ↑ 4.6 points
+  ✔ المرفوضة : 2 vs 1 → ↑ 100.0 %
+  ✔ مبالغ LYD : 75 000 vs 9 000 → ↑ 733.3 %
+  ✔ TND absent en 2025 → pas de pourcentage (« جديد »)
+
+== Recap 2026 : graphiques et tableaux ==
+  ✔ حسب الشهر : جارية / مؤكدة / مرفوضة / total pour جانفي…ديسمبر (D11 ملغى exclu)
+  ✔ حسب التصنيف : إنارة 6, كهرباء 6, شبكات 4, أمان 4, تجهيزات 3
+  ✔ pourcentage : 6 ÷ 23 = 26.1 %
+  ✔ حسب درجة الاستعجال : VU 4, U 10, N 7, L 2
+  ✔ حسب حالة المتابعة : رفض 2, تسليم 1, تأكيد 3, في دراسة 10
+  ✔ chaque حالة a sa couleur (reprise des réglages)
+  ✔ حسب الموظف : محمد حسين 3 projets, 1 مؤكدة, 100.0 %
+  ✔ حسب الموظف : أميرة 3 / 1 مؤكدة / 1 مرفوضة / 1 مسلّمة / 1 لم تُرسل / 50.0 %
+  ✔ حسب الصنف : CABLE 4, RELLI 3 (D19 compte une seule fois), حساسات 3
+  ✔ حسب الصنف : barres triées
+  ✔ حسب المكان : T (Tripoli) en tête avec 10 projets
+  ✔ حسب المصدر : موقع العطاءات 4 projets, 0 مؤكدة, 0.0 %
+  ✔ حسب المصدر : مباشر 8 projets, 100.0 %
+  ✔ أهم الشركات : 1. شركة الأمان (4 projets, 3 مؤكدة)
+  ✔ شركة الأمان : montants confirmés par devise (8 000 LYD · 4 000 EUR)
+  ✔ 2. شركة النور (« شركه النور » fusionnée) : 4 projets, 60 000 LYD
+  ✔ المنافسون : المنافس الأول (3 projets, Philips, Nexans)
+  ✔ لم يُرسل : 4 أصناف
+  ✔ أسباب عدم الإرسال : السعر 50 %, المنتج 25 %, الأجل 25 %
+  ✔ لم تُرسل حسب الصنف : 4 أصناف
+
+== Recap : filtres ==
+  ✔ أكتوبر 2026 : 4 projets, 1 مؤكدة
+  ✔ comparaison avec أكتوبر 2025 (0 projet) → pas de %
+  ✔ filtre الموظف المتابع : محمد حسين → 3 projets
+  ✔ filtre المكان : BG → 4 projets (D02, D05, D15, D22)
+  ✔ filtre مصدر : موقع العطاءات → 4 projets
+  ✔ année sans projet → 0 (état vide)
+
+== Recap : « غير محدد » à part et hors نسبة النجاح ; anneau limité à 8 parts ==
+  ✔ « غير محدد » affiché en dernier, 2 projets, sans نسبة النجاح
+  ✔ > 8 parts : 7 + « أخرى » (total conservé = 23)
+
+== Recap : réservé à la الإدارة ==
+  ✔ Recap : موظف → 403
+  ✔ Recap : مسؤول مشروع → 403
+  ✔ Recap : الإدارة → 200
+
+== الإعدادات : listes (ajouter, renommer, masquer, réordonner, supprimer) ==
+  ✔ موظف : modification des listes refusée (403)
+  ✔ ajout d'une valeur (التصنيف)
+  ✔ doublon (orthographe proche) refusé
+  ✔ حالة المتابعة sans type → refusée
+  ✔ حالة avec type (جارية) et couleur → ajoutée
+  ✔ renommer « إنارة » → « الإنارة »
+  ✔ les projets gardent la valeur et affichent le nouveau nom
+  ✔ renommer une حالة ne change AUCUN calcul (les calculs utilisent le type)
+  ✔ masquer une valeur utilisée
+  ✔ valeur de calcul (مرسل) : impossible à masquer
+  ✔ « غير محدد » : reste masqué
+  ✔ supprimer une valeur utilisée → refus (proposer de masquer)
+  ✔ supprimer une valeur de calcul (L) → refus
+  ✔ supprimer une valeur jamais utilisée → accepté
+  ✔ réordonner une liste
+  ✔ ordre incomplet refusé
+
+== الإعدادات : règles de validation et réglages ==
+  ✔ réglages enregistrés (inactivité 90 min, alerte 10 j)
+  ✔ champs obligatoires modifiables (clé inconnue ignorée), autres règles conservées
+  ✔ jeton Cron affiché à part (64 caractères)
+  ✔ valeur hors limites refusée (inactivité < 5 min)
+  ✔ jeton Cron régénéré, URL Cron mise à jour
+
+== Comptes utilisateurs (الإدارة) ==
+  ✔ موظف : gestion des comptes refusée
+  ✔ création : rôle مسؤول مشروع, employé lié, e-mail du matin
+  ✔ mot de passe enregistré (empreinte)
+  ✔ contrôles : identifiant existant, e-mail, mot de passe ≥ 8, rôle
+  ✔ un employé ne peut être lié qu'à un seul compte
+  ✔ changer le rôle
+  ✔ impossible de désactiver son propre compte
+  ✔ compte désactivé : connexion refusée
+  ✔ compte désactivé : plus aucun accès à l'application
+  ✔ réactivation : accès rétabli (aucun compte n'est supprimé)
+
+== Annuaire : fusion des doublons (الإدارة) ==
+  ✔ doublon probable proposé : « مؤسسة الأفق » / « مؤسسة الأفق للتجارة »
+  ✔ fusion refusée au موظف
+  ✔ fusion : projets liés réaffectés
+  ✔ D05 pointe maintenant vers « مؤسسة الأفق »
+  ✔ fiche fusionnée conservée (lien vers la fiche gardée), pas supprimée
+  ✔ fusion inscrite au journal du projet
+  ✔ fusion dans elle-même refusée
+  ✔ Recap : la société fusionnée regroupe ses projets (D02 + D05)
+
+== Import du backup du prototype (aperçu puis import) ==
+  ✔ aperçu : 7 projets seraient importés
+  ✔ aperçu : AUCUNE donnée écrite (ni projet ni valeur de liste)
+  ✔ aperçu : nouvelles valeurs de listes annoncées (إنارة طرقات, موظف جديد, أعمدة إنارة)
+  ✔ aperçu : conversions d'urgence (عاجل → U ×2, متوسط → U, عادي → N ×3)
+  ✔ import : 7 projets, sauvegarde automatique avant import
+  ✔ fichier de sauvegarde « before-import » créé
+  ✔ P1 : عاجل → U ; مقبول → تم تأكيد الطلبية
+  ✔ P1 (employé normal) : مصدر = غير محدد
+  ✔ P2 (employé « موقع العطاءات ») : مصدر = موقع العطاءات, المتابع = المسؤول (محمد حسين)
+  ✔ P4 : مرفوض → رفض العرض ; موقع العطاءات → مصدر
+  ✔ lieux : « Zewiya » → ZW, « T – Tripoli » → T
+  ✔ P3 : مغلق → تم التسليم ; عادي → N
+  ✔ P5 : في انتظار الحريف → في انتظار الرد
+  ✔ « شركة النور » / « شركه النور » → une seule fiche société
+  ✔ أصناف : statut, livraison, dates, المتوفر, factures conservés
+  ✔ P3 : ancien « متأخر » → recalculé automatiquement ; ملغى conservé
+  ✔ منافسون : ماركة et أصناف reconnus
+  ✔ رقم العرض déjà utilisé → suffixe ajouté (aucun écrasement)
+  ✔ date de réception manquante → déduite de l'identifiant du prototype
+  ✔ projet sans numéro → numéro généré
+  ✔ JSON d'origine conservé (legacy_raw, legacy_id)
+  ✔ journal : « استيراد »
+  ✔ réimport du même fichier : 7 ignorés, aucun doublon, rien écrasé
+  ✔ option de l'aperçu : « عاجل » → VU
+  ✔ import refusé au موظف
+  ✔ fichier qui n'est pas un backup du prototype → refusé
+
+== Export CSV / Excel ==
+  ✔ export Base Projets : 30 lignes, colonnes du cahier §4
+  ✔ export : filtres appliqués (année 2025 → 6)
+  ✔ CSV : UTF-8 avec BOM, arabe lisible dans Excel
+  ✔ CSV : formules neutralisées (sécurité)
+  ✔ Excel : vrai fichier .xlsx, feuille de droite à gauche
+  ✔ export Suivi Livraison
+
+== Sauvegarde et restauration JSON ==
+  ✔ sauvegarde : projets, comptes, réglages
+  ✔ restauration : 30 projets rétablis
+  ✔ données remises à l'état de la sauvegarde (projets supprimés revenus, libellé « شبكات » rétabli)
+  ✔ sauvegarde automatique AVANT la restauration (retour arrière possible)
+  ✔ après restauration : calculs identiques (23 projets, 63.6 %)
+  ✔ sauvegarde d'une version plus récente → refusée
+  ✔ fichier d'un autre format → refusé
+  ✔ API : confirmation « استرجاع » obligatoire
+  ✔ liste des sauvegardes du serveur
+
+== E-mail du matin et Cron ==
+  ✔ e-mail du matin désactivé dans les réglages → rien n'est envoyé
+  ✔ envoyé à l'employé (ses tâches) et à la الإدارة (résumé)
+  ✔ employé sans aucune tâche : pas d'e-mail
+  ✔ contenu : HTML RTL avec ses offres en retard
+  ✔ الإدارة : résumé global avec indicateurs
+  ✔ une seule fois par jour (deuxième appel ignoré)
+  ✔ aucun e-mail en double
+  ✔ compte désactivé : plus d'e-mail
+  ✔ Cron (HTTP) : mauvais jeton → 403
+  ✔ Cron (HTTP) : bon jeton → « OK … »
+  ✔ Cron : exécution renvoie un compte rendu
+
+----------------------------------------
+Résultat : 492 réussis, 0 échoués
+
+######## Navigateur : fondations (étape 1) ########
+Page de connexion
+  ✔ formulaire de connexion affiché
+  ✔ logo affiché
+  ✔ page en arabe RTL
+  ✔ pas de barre admin WordPress
+  ✔ mauvais mot de passe → message d'erreur
+Employé (موظف)
+  ✔ application affichée après connexion
+  ✔ menu sans Recap ni الإعدادات  [✅مهامي | ➕إدخال مشروع | 📁المشاريع | 📨متابعة العروض | 🚚متابعة التسليم | 🏢الشركات والمنافسون]
+  ✔ page d'accueil = مهامي
+  ✔ #/parametres interdit → renvoi vers مهامي
+  ✔ wp-admin interdit → renvoi vers l'application  [http://localhost:8081/]
+  ✔ pas de barre admin WordPress
+الإدارة
+  ✔ menu complet (8 pages)  [✅مهامي | ➕إدخال مشروع | 📁المشاريع | 📨متابعة العروض | 🚚متابعة التسليم | 📊Recap | 🏢الشركات والمنافسون | ⚙️الإعدادات]
+  ✔ الإعدادات : 14 listes  [14]
+  ✔ مصدر « غير محدد » présent et réservé à l'import
+  ✔ mode nuit activé
+  ✔ fond sombre en mode nuit  [rgb(15, 20, 28)]
+  ✔ mode nuit mémorisé après rechargement
+  ✔ déconnexion → page de connexion
+Mobile
+  ✔ menu caché par défaut sur mobile
+  ✔ bouton ☰ ouvre le menu
+  ✔ pas de défilement horizontal
+Limitation des tentatives de connexion
+  ✔ après 5 échecs, même le bon mot de passe est refusé  [محاولات كثيرة. حاول مرة أخرى بعد 15 دقيقة.]
+
+Tous les contrôles navigateur sont passés.
+
+######## Navigateur : fonctionnalités (étapes 2-5) ########
+Étape 2 — Fiche Projet
+  ✔ formulaire affiché
+  ✔ champs obligatoires en jaune
+  ✔ employé connecté proposé comme المتابع
+  ✔ enregistrement vide → erreurs affichées sous les champs
+  ✔ « + إضافة مكان جديد » : Zliten ajouté et choisi
+  ✔ projet enregistré : PRJ-2026-001 affiché
+  ✔ formulaire vidé pour un nouveau projet
+  ✔ société choisie dans l'annuaire : liée (🔗)
+  ✔ doublon détecté : avertissement avec le projet PRJ-2026-001
+  ✔ « حفظ رغم ذلك » : PRJ-2026-002 enregistré
+Étape 2 — Base Projets
+  ✔ 3 projets listés
+  ✔ colonnes du cahier §4 dans l'ordre (السنة … رابط ملف المشاريع)
+  ✔ recherche tolérante (« مستشفي ») : 1 résultat
+  ✔ filtres conservés dans l'adresse
+  ✔ filtre الاستعجال = VU : 1 projet
+  ✔ tri par اسم المشروع
+Étape 2 — Projet existant : onglets
+  ✔ fiche du projet : PRJ-2026-001
+  ✔ créateur : bandeau « modifiable jusqu'à »
+  ✔ سجل المتابعة : entrée ajoutée (auteur, date, prochaine date)
+  ✔ fichier PDF envoyé et listé
+  ✔ fichier téléchargeable par un utilisateur connecté
+  ✔ fichier inaccessible sans connexion
+  ✔ سجل التعديلات : NOTE modifiée + fichier ajouté
+Étape 2 — Droits et affichage par rôle
+  ✔ autre موظف : fiche en lecture seule
+  ✔ الإدارة : sélection multiple + barre « تعيين مصدر الطلب »
+  ✔ modification groupée du مصدر : 2 projets « إيميل »
+  ✔ annuaire : « شركة النور للمقاولات » une seule fois, 2 projets
+  ✔ téléphone : liste en cartes
+  ✔ téléphone : pas de défilement horizontal
+  ✔ téléphone : Fiche Projet sans défilement horizontal
+
+Tous les contrôles navigateur sont passés.
+
+######## Navigateur : step3 (jeu de démonstration) ########
+Étape 3 — مهامي (محمد حسين, jeu de démonstration)
+  ✔ مهامي : 3 عروض متأخرة, 2 متابعات, 2 تسليمات (tableau §7)
+  ✔ compteur « لازم قرار » sur le menu : 3
+Étape 3 — Suivi Offres
+  ✔ lignes rouges (en retard) : 7, vertes (مقبول) ≥ 7
+  ✔ compteur en haut : « لازم قرار: 7 (منها 3 لك) »
+  ✔ filtre « لازم قرار فقط » : 7 lignes
+  ✔ « لم يُرسل » : motif obligatoire (fenêtre reste ouverte)
+  ✔ après « لم يُرسل » : 6 lignes « لازم قرار »
+  ✔ مرسل sans تاريخ الإرسال : date du jour proposée
+  ✔ après « مرسل » : 5 lignes « لازم قرار »
+  ✔ compteur du menu mis à jour : 1
+Étape 3 — Suivi Livraison
+  ✔ livraisons en retard en rouge : 3
+  ✔ « 3 تسليم متأخر »
+  ✔ موظف : seules ses lignes sont modifiables (2)
+  ✔ statut « متأخر » jamais proposé dans la liste
+Étape 3 — الإدارة : مهامي de l'équipe
+  ✔ الإدارة : tâches de toute l'équipe, filtre employé
+  ✔ filtre : مهام وفاء حامدي
+  ✔ téléphone : Suivi Offres en cartes, sans défilement horizontal
+
+Tous les contrôles navigateur sont passés.
+
+######## Navigateur : step4 (jeu de démonstration) ########
+Étape 4 — Recap (الإدارة, jeu de démonstration)
+  ✔ عدد المشاريع 23 (ملغى: 1) avec comparaison 2025
+  ✔ نسبة النجاح 63.6 % ↑ 13.6 نقطة
+  ✔ montants séparés par devise (LYD, USD, EUR, TND)
+  ✔ 5 graphiques dessinés (mois, تصنيف, أصناف, مكان, أسباب…)
+  ✔ clic sur une barre du mois → Base Projets filtrée (année + mois)
+  ✔ أكتوبر 2026 / جارية : 3 projets
+  ✔ clic sur une raison de non-envoi → Suivi Offres filtrée
+  ✔ 2 أصناف « السعر غير منافس »
+  ✔ filtre الشهر : أكتوبر → 4 projets
+  ✔ année sans projet : état vide clair
+  ✔ mode nuit : graphiques redessinés avec les couleurs du thème
+  ✔ impression : menu et filtres masqués
+  ✔ téléphone : Recap sans défilement horizontal
+  ✔ موظف : pas d'accès au Recap (redirigé)
+
+Tous les contrôles navigateur sont passés.
+
+######## Navigateur : step5 (jeu de démonstration) ########
+Étape 5 — الإعدادات : listes, règles, réglages
+  ✔ liste التصنيف : valeur ajoutée
+  ✔ renommer une valeur (كهرباء → كهرباء عامة)
+  ✔ statuts de calcul : 🔒 non supprimables
+  ✔ règle modifiée : رقم العرض n'est plus obligatoire (plus en jaune)
+  ✔ Cron : commande wget avec jeton de 64 caractères
+  ✔ Cron : mauvais jeton → 403, bon jeton → « OK »
+  ✔ valeur hors limites (2 min) refusée avec message
+Étape 5 — comptes
+  ✔ compte créé (مسؤول مشروع, employé lié)
+  ✔ le nouveau compte se connecte
+  ✔ compte désactivé : connexion refusée avec message
+Étape 5 — annuaire : fusion
+  ✔ doublons probables proposés (مؤسسة الأفق / …للتجارة)
+  ✔ fusion faite : une seule fiche « مؤسسة الأفق… »
+Étape 5 — données : import, export, sauvegarde
+  ✔ aperçu : 1 projet à importer, 6 déjà présents ignorés, rien d'écrit
+  ✔ import effectué (sauvegarde automatique avant)
+  ✔ export Excel des projets téléchargé
+  ✔ export CSV des offres téléchargé
+  ✔ sauvegarde JSON téléchargée (31 projets)
+  ✔ restauration effectuée (31 projets, sauvegarde de l'état précédent)
+  ✔ Base Projets après import + restauration : 31 projets
+
+Tous les contrôles navigateur sont passés.
+
+=== TOUS LES TESTS SONT PASSÉS ===
+
+================ B. Contrôles de livraison : installation vierge + mise à jour depuis 0.1.0 (tests/release-check.sh) ================
+######## 1. Installation vierge : /srv/protecta-suivi-1.0.0.zip ########
+Téléverser le thème : OK
+Thème actif : protecta-suivi 1.0.0
+######## 2. Mise à jour depuis 0.1.0 avec données ########
+Téléverser le thème : OK
+Thème actif : protecta-suivi 0.1.0
+Données de test insérées (projet PRJ-2026-001, comptes wafa et idara, fichier, listes personnalisées)
+Photographie : 1 projet(s), 106 valeurs de listes
+Mise à jour (remplacer le thème) : OK
+Thème après mise à jour : 1.0.0 · base v1
+AUCUNE PERTE : projets, أصناف, intervenants, sociétés, suivis, fichiers, journal, listes, réglages et comptes identiques
+######## Navigateur ########
+Installation vierge (zip 1.0.0) — http://localhost:8082
+  ✔ page de connexion personnalisée (pas WordPress)
+  ✔ connexion (administrateur du site) → application
+  ✔ saisie d'un projet : PRJ-2026-001 enregistré
+  ✔ Recap : 1 projet
+  ✔ Recap : graphique mensuel dessiné
+  ✔ dossier des sauvegardes inaccessible par URL
+Mise à jour 0.1.0 → 1.0.0 avec données — http://localhost:8083
+  ✔ compte créé en 0.1.0 : connexion OK après mise à jour
+  ✔ projet d'avant la mise à jour présent dans Base Projets
+  ✔ سجل المتابعة conservé
+  ✔ fichier joint conservé et téléchargeable
+  ✔ Suivi Livraison : le صنف مقبول d'avant est suivi
+  ✔ Recap après mise à jour : 1 projet, 1 مؤكدة, 12 500 LYD
+  ✔ listes personnalisées conservées (« كهرباء عامة »)
+
+Contrôles de livraison : tout est passé.
+=== LIVRAISON VÉRIFIÉE ===

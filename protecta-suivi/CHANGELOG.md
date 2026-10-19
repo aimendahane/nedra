@@ -3,6 +3,13 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.0.0 — 2026-10-19 · base v1 — Étape 6 : version livrée
+
+- Version complète (étapes 1 à 5) testée : 492 tests automatiques + parcours navigateur, installation sur
+  WordPress vierge depuis le zip, mise à jour depuis 0.1.0 avec données (aucune perte).
+- README arabe : installation HostGator, mise à jour, HTTPS, sauvegarde, Cron, « où modifier quoi ».
+- Publication automatique du zip dans les Releases GitHub (tag vX.Y.Z).
+
 ## 0.5.0 — 2026-10-19 · base v1 — Étape 5 : الإعدادات et données
 
 - الإعدادات : listes (ajouter, renommer, couleur, type, masquer, réordonner, supprimer si jamais utilisée),
