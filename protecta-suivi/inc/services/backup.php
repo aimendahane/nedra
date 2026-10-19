@@ -124,3 +124,115 @@ function ps_backup_rotate(): void {
 		wp_delete_file( $old );
 	}
 }
+
+/**
+ * Restaure une sauvegarde complète (الإعدادات › النسخ الاحتياطي).
+ *
+ * Sécurité des données :
+ *   - une sauvegarde automatique de l'état ACTUEL est écrite avant toute modification ;
+ *   - une sauvegarde plus récente que le thème installé est refusée ;
+ *   - les comptes ne sont jamais supprimés : ceux de la sauvegarde qui manquent sont recréés
+ *     (même identifiant, même mot de passe), les identifiants sont remis en correspondance ;
+ *   - après restauration, les migrations manquantes sont rejouées (structure à jour).
+ * Les fichiers joints eux-mêmes ne sont pas dans le JSON (sauvegarde cPanel du dossier uploads).
+ *
+ * @return array|WP_Error Rapport : [ tables => [nom => lignes], users_created => n, backup => fichier ]
+ */
+function ps_backup_restore( array $data, int $user_id ) {
+	global $wpdb;
+	if ( 'protecta-suivi-backup' !== ( $data['format'] ?? '' ) || ! isset( $data['tables'] ) || ! is_array( $data['tables'] ) ) {
+		return new WP_Error( 'ps_restore_format', 'الملف ليس نسخة احتياطية لهذا التطبيق', array( 'status' => 422 ) );
+	}
+	if ( (int) ( $data['db_version'] ?? 0 ) > ps_target_db_version() ) {
+		return new WP_Error( 'ps_restore_version', 'النسخة الاحتياطية من إصدار أحدث للتطبيق: حدّث القالب أولًا', array( 'status' => 422 ) );
+	}
+	$backup = ps_backup_write_auto( 'before-restore' );
+	if ( false === $backup ) {
+		return new WP_Error( 'ps_restore_backup', 'تعذّرت النسخة الاحتياطية التلقائية قبل الاسترجاع: لم يتم أي تغيير', array( 'status' => 500 ) );
+	}
+
+	// Comptes : correspondance identifiant de la sauvegarde → identifiant local (par nom d'utilisateur).
+	$map     = array();
+	$created = 0;
+	foreach ( (array) ( $data['users'] ?? array() ) as $u ) {
+		if ( empty( $u['user_login'] ) ) {
+			continue;
+		}
+		$local = get_user_by( 'login', $u['user_login'] );
+		if ( ! $local ) {
+			$id = wp_insert_user( array( 'user_login' => $u['user_login'], 'user_pass' => wp_generate_password( 24 ), 'user_email' => $u['user_email'] ?? '', 'display_name' => $u['display_name'] ?? $u['user_login'], 'role' => '' ) );
+			if ( is_wp_error( $id ) ) {
+				continue;
+			}
+			$wpdb->update( $wpdb->users, array( 'user_pass' => $u['user_pass'] ), array( 'ID' => $id ) ); // même mot de passe (empreinte)
+			clean_user_cache( $id );
+			$local = get_userdata( $id );
+			foreach ( (array) ( $u['roles'] ?? array() ) as $role ) {
+				$local->add_role( $role );
+			}
+			++$created;
+		}
+		foreach ( (array) ( $u['meta'] ?? array() ) as $k => $v ) {
+			if ( str_starts_with( $k, 'ps_' ) && '' === (string) get_user_meta( $local->ID, $k, true ) ) {
+				update_user_meta( $local->ID, $k, $v );
+			}
+		}
+		$map[ (int) $u['ID'] ] = (int) $local->ID;
+	}
+	$user_cols = array( 'created_by', 'updated_by', 'deleted_by', 'author_id', 'uploaded_by', 'user_id' );
+
+	$report = array( 'tables' => array(), 'users_created' => $created, 'backup' => basename( $backup ) );
+	$wpdb->query( 'START TRANSACTION' );
+	foreach ( ps_table_names() as $name ) {
+		if ( ! isset( $data['tables'][ $name ] ) ) {
+			continue;
+		}
+		$t    = ps_table( $name );
+		$cols = $wpdb->get_col( "SHOW COLUMNS FROM $t" ); // phpcs:ignore
+		$wpdb->query( "DELETE FROM $t" ); // phpcs:ignore -- remplacement volontaire, après sauvegarde automatique
+		$n = 0;
+		foreach ( (array) $data['tables'][ $name ] as $row ) {
+			$row = array_intersect_key( (array) $row, array_flip( $cols ) );
+			foreach ( $user_cols as $uc ) {
+				if ( 'lists' !== $name && ! empty( $row[ $uc ] ) && isset( $map[ (int) $row[ $uc ] ] ) ) {
+					$row[ $uc ] = $map[ (int) $row[ $uc ] ];
+				}
+			}
+			if ( $wpdb->insert( $t, $row ) ) {
+				++$n;
+			}
+		}
+		$report['tables'][ $name ] = $n;
+	}
+	if ( $wpdb->last_error ) {
+		$err = $wpdb->last_error;
+		$wpdb->query( 'ROLLBACK' );
+		return new WP_Error( 'ps_restore_db', 'فشل الاسترجاع، لم يتغير شيء: ' . $err, array( 'status' => 500 ) );
+	}
+	$wpdb->query( 'COMMIT' );
+
+	foreach ( array( 'ps_settings', 'ps_seeded_lists' ) as $opt ) {
+		if ( isset( $data['options'][ $opt ] ) && is_array( $data['options'][ $opt ] ) ) {
+			update_option( $opt, $data['options'][ $opt ], false );
+		}
+	}
+	// Structure : rejouer les migrations postérieures à la sauvegarde (additives, sans perte).
+	update_option( 'ps_db_version', (int) ( $data['db_version'] ?? 1 ) );
+	ps_maybe_upgrade();
+	update_option( 'ps_db_version', ps_target_db_version() );
+	ps_lists_by_id( true );
+	ps_log( null, 'restore', 'backup', null, null, null, $report['backup'], $user_id );
+	return $report;
+}
+
+/**
+ * Sauvegardes présentes dans le dossier protégé (les plus récentes d'abord).
+ */
+function ps_backup_list(): array {
+	$out = array();
+	foreach ( glob( ps_storage_dir( 'backups' ) . '/*.json' ) ?: array() as $f ) {
+		$out[] = array( 'name' => basename( $f ), 'size' => filesize( $f ), 'date' => wp_date( 'Y-m-d H:i', filemtime( $f ) ) );
+	}
+	usort( $out, fn( $a, $b ) => strcmp( $b['name'], $a['name'] ) );
+	return $out;
+}

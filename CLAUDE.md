@@ -4,7 +4,71 @@ Thème WordPress « protecta-suivi » = application web de suivi des projets et 
 (interface arabe RTL). Le client installe le zip lui-même sur HostGator (mutualisé,
 PHP 8.1+, MySQL), sans aucun plugin.
 
+## 📍 ÉTAT DU PROJET (mis à jour le 19/10/2026 — à lire en premier)
+
+Le client a demandé d'enchaîner les étapes 2 à 6 **sans attendre son accord** entre les étapes,
+en lançant tous les tests à la fin de chaque étape (ne passer à la suivante que si tout passe) et en
+notant ici chaque décision prise seul. Ne lui poser une question que si l'on est vraiment bloqué.
+
+| Étape | Contenu | État | Version / commit |
+|---|---|---|---|
+| 0 | Environnement local (WordPress + MariaDB + Apache) | ✅ terminée | — |
+| 1 | Fondations (schéma, migrations, rôles, connexion, coquille) | ✅ validée par le client | 0.1.0 · `ff82507` |
+| 2 | Fiche Projet, Base Projets, annuaire, سجل المتابعة, fichiers, journal | ✅ terminée, tests verts | 0.2.0 · `5709e25` |
+| 3 | Suivi Offres / Livraison, مهامي, tous les calculs §6, jeu de démo 30 projets | ✅ terminée, tests verts | 0.3.0 · `fe9eaca` |
+| 4 | Recap (Chart.js 4.5.1 inclus), comparaison N-1, clics filtrants, impression | ✅ terminée, tests verts | 0.4.0 · `6fb1871` + `Tests: fresh demo site…` |
+| 5 | الإعدادات, comptes, fusion annuaire, import prototype, export, sauvegarde/restauration, e-mail du matin, Cron | 🟡 **EN COURS** (serveur écrit, interface et tests à finir) | commit « WIP étape 5 » |
+| 6 | Zip final, test installation vierge + mise à jour depuis 0.1.0, docs, release GitHub | ⏳ à faire | — |
+
+### Tests (dernier passage complet, fin d'étape 4)
+- `sh protecta-suivi/tests/run-all.sh` → **401 tests PHP réussis / 0 échoué** + tous les contrôles navigateur
+  (étape 1, étape 2, étapes 3 et 4 sur le jeu de démo) **passés**.
+- Avec le code serveur de l'étape 5 ajouté (WIP) : les 401 tests PHP passent toujours.
+- `tests/test-admin.php` (tests de l'étape 5) est **écrit mais PAS encore lancé ni inscrit** dans `run-tests.php`.
+
+### Étape 5 — fait / reste à faire
+Fait (serveur, non testé) :
+- `inc/repo/lists.php` (admin des listes : usage, contrôles), `inc/rest/settings.php` (listes, réglages, jeton Cron,
+  e-mail d'essai, comptes), `inc/services/digest.php` + `inc/cron.php` + `cron.php` (e-mail du matin, URL secrète
+  `?ps_cron=` et ligne de commande), `inc/auth.php` (comptes désactivés), `inc/repo/directory.php` + `inc/rest/directory.php`
+  (fusion + doublons probables), `inc/services/importer.php` (import prototype, aperçu = import + ROLLBACK),
+  `inc/services/exporter.php` (CSV BOM + XLSX via ZipArchive), `inc/services/backup.php` (restauration + liste),
+  `inc/rest/data.php` (routes export / sauvegarde / restauration / import), `tests/fixtures/prototype-sample.json`.
+Reste à faire, dans l'ordre :
+1. Inscrire `test-admin.php` dans `tests/run-tests.php`, le lancer, corriger. ⚠️ Nettoyer d'abord 4 assertions bâclées :
+   « (contrôle interne) » (à supprimer), « fusion dans elle-même refusée » (tester simplement le code 422),
+   la restauration (expression avec `||` à remplacer par un vrai contrôle du libellé « شبكات » rétabli),
+   le test Cron (remplacer par un appel HTTP réel sur le site de test : mauvais jeton → 403, bon jeton → « OK »).
+2. Interface `assets/js/pages/parametres.js` (aujourd'hui en lecture seule) : onglets القوائم (ajout, renommer,
+   couleur, type, masquer, ordre ↑↓, supprimer), القواعد (cases des champs obligatoires + 3 règles), عام (réglages
+   numériques, e-mail du matin, jeton + commande Cron, e-mail d'essai), المستخدمون (nouveau fichier
+   `parametres-utilisateurs.js`), البيانات (nouveau fichier `parametres-donnees.js` : import avec aperçu + choix
+   عاجل→U/VU + devise, export, sauvegarde téléchargée, liste des sauvegardes serveur, restauration avec « استرجاع »).
+   Ajouter les nouveaux fichiers dans `ps_page_scripts()` (`inc/assets.php`).
+3. Annuaire : implémenter `PS.directoryMerge(kind, reload)` (appelé par `annuaire.js`) : doublons probables +
+   choix de la fiche à garder.
+4. Export : boutons de Suivi Offres / Livraison (`export/items`) ; ceux de Base Projets existent déjà.
+5. Test navigateur `step5` dans `tests/e2e-app.js` (déjà prévu par `run-all.sh`), puis `run-all.sh` complet.
+6. Version 0.5.0 (style.css + config.php), CHANGELOG, décisions ci-dessous, commit.
+
+### Points ouverts (attente client ou blocage)
+- **Envoi GitHub bloqué** : `git push` → 403 (application Claude GitHub sans droit d'écriture sur
+  `aimendahane/nedra`, dépôt vide). Le client doit installer/reconnecter l'app (claude.ai/connect-github).
+  Il n'existe pas d'outil « créer une release » : prévu à l'étape 6 → workflow `.github/workflows/release.yml`
+  qui construit le zip (`tools/build-zip.sh`) et publie la release quand on pousse un tag `vX.Y.Z`.
+- À confirmer par le client : règle حالة العرض « مرفوض + لم يُرسل → قيد الإعداد » (appliquée à la lettre) ;
+  « عاجل » → U (attente direction) ; liste réelle des التصنيف ; `backup.json` réel (test fait avec l'exemple).
+
+### Environnement local (conteneur éphémère : à recréer si besoin)
+- `/srv/wp` (WordPress 6.7 tiré de npm `@wp-playground/wordpress-builds` car wordpress.org est bloqué),
+  MariaDB (`service mariadb start`), Apache (`service apache2 start`) : port 8080 = base `wp_` (dev),
+  port 8081 = base `wptest_` (tests navigateur, `SetEnv PS_TEST 1`). Thème = lien symbolique vers `protecta-suivi/`.
+- Test de mise à jour depuis 0.1.0 (étape 6) : `dist/` n'est pas versionné → reconstruire le zip 0.1.0 avec
+  `git archive ff82507 protecta-suivi | …` (en excluant `tests/`). Copie WP séparée `/srv/wp2` (préfixe `wpzip_`)
+  et script `tests/zip-update-flow.php`.
+
 Documents de référence (à relire avant toute modification importante) :
+- `docs/BRIEF.md` — brief complet du client (prime sur le cahier).
 - `docs/PLAN.md` — plan validé : architecture, schéma de la base, permissions, étapes.
 - Cahier des charges (docx, fourni par le client) + brief complémentaire (prime en cas de différence).
 - `protecta-suivi/CHANGELOG.md` — historique des versions.
@@ -145,3 +209,24 @@ chaque décision prise seul.
 - **Anneau التصنيف** : 7 parts + « أخرى » au-delà de 8 ; palette de 8 couleurs testée pour le daltonisme.
 - **Top sociétés** : classées par nombre de projets puis par nombre de مؤكدة ; **concurrents** : 15 premiers.
 - Chaque graphique a une vue « عرض كجدول » (accessibilité) ; impression A4 via le bouton « طباعة / PDF ».
+
+### Étape 5 — décisions déjà prises (code serveur écrit)
+- **Listes** : suppression seulement si la valeur n'est utilisée nulle part (projets, أصناف, concurrents, comptes) ;
+  sinon proposer de la masquer. Valeurs « système » (codes utilisés par les calculs) : renommables et recolorables,
+  jamais masquées ni supprimées ; « غير محدد » toujours masquée. Le TYPE d'une حالة المتابعة est modifiable.
+- **Comptes** : jamais supprimés, seulement **désactivés** (connexion refusée, sessions fermées, plus aucun droit) ;
+  un employé de la liste ne peut être lié qu'à un seul compte ; mot de passe ≥ 8 caractères ; on ne peut pas
+  changer son propre rôle ni désactiver son propre compte ; le compte administrateur WordPress n'est pas modifiable ici.
+- **Fusion annuaire** : projets réaffectés, coordonnées vides complétées, fiche fusionnée conservée (merged_into_id).
+- **Import du prototype** : un projet déjà présent (même رقم المشروع ou même identifiant du prototype) est ignoré ;
+  رقم العرض déjà pris → suffixe « -N » ; date de réception manquante → déduite de l'identifiant du prototype ;
+  valeurs inconnues ajoutées aux listes ; ancien « متأخر » (livraison) → « في الانتظار » (le retard est recalculé) ;
+  aucune règle de validation imposée aux anciennes données (signalées dans les avertissements).
+- **Restauration** : remplace les données par celles de la sauvegarde, APRÈS sauvegarde automatique de l'état
+  actuel ; confirmation « استرجاع » obligatoire ; refusée si la sauvegarde vient d'une version plus récente ;
+  comptes manquants recréés avec le même mot de passe, jamais supprimés ; migrations rejouées ensuite.
+  Les fichiers joints ne sont pas dans le JSON (sauvegarde cPanel du dossier uploads).
+- **CSV** : UTF-8 avec BOM, virgule, formules neutralisées ; **Excel** : .xlsx natif RTL (CSV si ZipArchive absent).
+- **E-mail du matin** : interrupteur général (désactivé par défaut) + case par compte ; rien n'est envoyé à un
+  employé sans tâche ; une seule fois par jour ; الإدارة reçoit le résumé de toute l'équipe + indicateurs de l'année.
+- **Cron** : URL secrète `?ps_cron=<jeton>` (wget dans cPanel) ou `php …/cron.php` ; mauvais jeton → 403.

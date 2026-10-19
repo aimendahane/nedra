@@ -37,7 +37,7 @@ function ps_handle_login_post(): void {
 	);
 
 	if ( is_wp_error( $user ) ) {
-		$code = 'ps_locked' === $user->get_error_code() ? 'locked' : 'failed';
+		$code = in_array( $user->get_error_code(), array( 'ps_locked', 'ps_disabled' ), true ) ? substr( $user->get_error_code(), 3 ) : 'failed';
 		wp_safe_redirect( add_query_arg( 'ps_msg', $code, $home ) );
 		exit;
 	}
@@ -83,6 +83,26 @@ function ps_login_block_if_locked( $user, $username ) {
 		return new WP_Error( 'ps_locked', sprintf( 'محاولات كثيرة. حاول مرة أخرى بعد %d دقيقة.', $minutes ) );
 	}
 	return $user;
+}
+
+// Compte désactivé par la الإدارة : connexion refusée et plus aucun droit dans l'application.
+add_filter( 'authenticate', 'ps_login_block_disabled', 98, 2 );
+function ps_login_block_disabled( $user ) {
+	if ( $user instanceof WP_User && get_user_meta( $user->ID, 'ps_disabled', true ) ) {
+		return new WP_Error( 'ps_disabled', 'هذا الحساب معطّل. اتصل بالإدارة.' );
+	}
+	return $user;
+}
+add_filter( 'user_has_cap', 'ps_disabled_user_caps', 10, 4 );
+function ps_disabled_user_caps( array $allcaps, array $caps, array $args, WP_User $user ): array {
+	if ( $user->ID && get_user_meta( $user->ID, 'ps_disabled', true ) ) {
+		foreach ( array_keys( $allcaps ) as $cap ) {
+			if ( str_starts_with( $cap, 'ps_' ) ) {
+				$allcaps[ $cap ] = false;
+			}
+		}
+	}
+	return $allcaps;
 }
 
 add_action( 'wp_login_failed', 'ps_login_record_failure' );

@@ -11,6 +11,7 @@ $ps_messages = array(
 	'locked'    => sprintf( 'محاولات كثيرة. حاول مرة أخرى بعد %d دقيقة.', (int) ps_setting( 'login_window_minutes' ) ),
 	'expired'   => 'انتهت الجلسة بسبب عدم النشاط. الرجاء تسجيل الدخول من جديد.',
 	'loggedout' => 'تم تسجيل الخروج.',
+	'disabled'  => 'هذا الحساب معطّل. اتصل بالإدارة.',
 );
 $ps_msg_key = sanitize_key( $_GET['ps_msg'] ?? '' ); // phpcs:ignore WordPress.Security.NonceVerification
 $ps_msg     = $ps_messages[ $ps_msg_key ] ?? '';

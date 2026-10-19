@@ -8,7 +8,8 @@
  *   PUT  /companies/{id}            modifier              — ps_manage_directory (الإدارة)
  *   (mêmes routes pour /competitors)
  *
- * La fusion des doublons (الإدارة) est ajoutée à l'étape 5.
+ *   GET  /companies/duplicates     doublons probables (noms proches) — ps_manage_directory
+ *   POST /companies/{id}/merge      { intoId } fusionner (projets réaffectés) — ps_manage_directory
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -49,6 +50,27 @@ function ps_register_directory_routes(): void {
 						return rest_ensure_response( ps_dir_to_api( $kind, ps_dir_get( $kind, $id ) ) );
 					},
 				),
+			)
+		);
+		register_rest_route(
+			PS_REST_NS,
+			'/' . $kind . '/duplicates',
+			array(
+				'methods'             => 'GET',
+				'permission_callback' => ps_rest_permission( 'ps_manage_directory' ),
+				'callback'            => static fn() => rest_ensure_response( ps_dir_duplicate_suggestions( $kind ) ),
+			)
+		);
+		register_rest_route(
+			PS_REST_NS,
+			'/' . $kind . '/(?P<id>\d+)/merge',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => ps_rest_permission( 'ps_manage_directory' ),
+				'callback'            => static function ( WP_REST_Request $r ) use ( $kind ) {
+					$n = ps_dir_merge( $kind, (int) $r['id'], (int) $r->get_param( 'intoId' ), get_current_user_id() );
+					return is_wp_error( $n ) ? $n : rest_ensure_response( array( 'ok' => true, 'moved' => $n ) );
+				},
 			)
 		);
 		register_rest_route(

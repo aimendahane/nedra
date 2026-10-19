@@ -214,3 +214,64 @@ function ps_dir_to_api( string $kind, array $r ): array {
 	}
 	return $out;
 }
+
+/**
+ * Fusionne la fiche $from dans la fiche $into (الإدارة) :
+ *   - les projets liés à $from sont réaffectés à $into (journal de chaque projet) ;
+ *   - les coordonnées vides de $into sont complétées par celles de $from ;
+ *   - $from n'est PAS supprimée : elle garde un lien vers $into (merged_into_id).
+ *
+ * @return int|WP_Error Nombre de liens de projets réaffectés.
+ */
+function ps_dir_merge( string $kind, int $from, int $into, int $user_id ) {
+	global $wpdb;
+	$src = ps_dir_get( $kind, $from );
+	$dst = ps_dir_get( $kind, ps_dir_resolve( $kind, $into ) );
+	if ( ! $src || ! $dst || $src['merged_into_id'] ) {
+		return new WP_Error( 'ps_not_found', 'الفيشة غير موجودة أو مدموجة مسبقًا', array( 'status' => 404 ) );
+	}
+	if ( (int) $src['id'] === (int) $dst['id'] ) {
+		return new WP_Error( 'ps_validation', 'لا يمكن دمج الفيشة في نفسها', array( 'status' => 422 ) );
+	}
+	$link = 'companies' === $kind ? ps_table( 'project_parties' ) : ps_table( 'project_competitors' );
+	$col  = 'companies' === $kind ? 'company_id' : 'competitor_id';
+	$rows = $wpdb->get_results( $wpdb->prepare( "SELECT id, project_id FROM $link WHERE $col = %d", (int) $src['id'] ), ARRAY_A ); // phpcs:ignore
+
+	$wpdb->query( 'START TRANSACTION' );
+	foreach ( $rows as $r ) {
+		$wpdb->update( $link, array( $col => (int) $dst['id'], 'updated_at' => ps_now() ), array( 'id' => (int) $r['id'] ) );
+		ps_log( (int) $r['project_id'], 'merge', 'companies' === $kind ? 'party' : 'competitor', (int) $r['id'], $col, $src['name'], $dst['name'], $user_id );
+	}
+	if ( 'companies' === $kind ) {
+		ps_company_fill_empty( (int) $dst['id'], array_intersect_key( $src, array_flip( PS_COMPANY_FIELDS ) ) );
+	}
+	$wpdb->update( ps_dir_table( $kind ), array( 'merged_into_id' => (int) $dst['id'], 'updated_at' => ps_now() ), array( 'id' => (int) $src['id'] ) );
+	ps_log( null, 'merge', $kind, (int) $src['id'], null, $src['name'], $dst['name'], $user_id );
+	if ( $wpdb->last_error ) {
+		$wpdb->query( 'ROLLBACK' );
+		return new WP_Error( 'ps_db', 'تعذّر الدمج', array( 'status' => 500 ) );
+	}
+	$wpdb->query( 'COMMIT' );
+	return count( $rows );
+}
+
+/**
+ * Doublons probables (noms proches) pour aider la الإدارة à fusionner.
+ * Similarité ≥ 0.75 (inc/services/arabic.php). Au plus 50 paires.
+ */
+function ps_dir_duplicate_suggestions( string $kind ): array {
+	global $wpdb;
+	$rows  = $wpdb->get_results( 'SELECT id, name FROM ' . ps_dir_table( $kind ) . ' WHERE merged_into_id IS NULL ORDER BY id LIMIT 2000', ARRAY_A ); // phpcs:ignore
+	$pairs = array();
+	$n     = count( $rows );
+	for ( $i = 0; $i < $n; $i++ ) {
+		for ( $j = $i + 1; $j < $n; $j++ ) {
+			$s = ps_text_similarity( $rows[ $i ]['name'], $rows[ $j ]['name'] );
+			if ( $s >= 0.75 ) {
+				$pairs[] = array( 'a' => array( 'id' => (int) $rows[ $i ]['id'], 'name' => $rows[ $i ]['name'] ), 'b' => array( 'id' => (int) $rows[ $j ]['id'], 'name' => $rows[ $j ]['name'] ), 'similarity' => round( $s, 2 ) );
+			}
+		}
+	}
+	usort( $pairs, fn( $x, $y ) => $y['similarity'] <=> $x['similarity'] );
+	return array_slice( $pairs, 0, 50 );
+}
