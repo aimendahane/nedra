@@ -96,6 +96,7 @@ PS.items = (function () {
 			${p.notSentReasonId ? html`<span class="ps-chip">سبب: ${L.label(Number(p.notSentReasonId))} <button type="button" class="ps-chip__x" data-clear="notSentReasonId">×</button></span>` : ''}
 			${p.itemTypeId ? html`<span class="ps-chip">الصنف: ${L.label(Number(p.itemTypeId))} <button type="button" class="ps-chip__x" data-clear="itemTypeId">×</button></span>` : ''}
 			<label class="ps-check"><input type="checkbox" data-filter="late" ${p.late ? ui.raw('checked') : ''}> ⚠ لازم قرار فقط</label>
+			${PS.router.can('ps_export') ? html`<button type="button" class="ps-btn" data-export="csv">⬇ CSV</button><button type="button" class="ps-btn" data-export="xlsx">⬇ Excel</button>` : ''}
 		</div></div>`;
 	}
 
@@ -188,6 +189,12 @@ PS.items = (function () {
 		const m = st.main;
 		const onSearch = ui.debounce(function (v) { setParam('q', v.trim()); }, 300);
 		m.querySelector('[data-search]').addEventListener('input', function (e) { onSearch(e.target.value); });
+		m.addEventListener('click', function (e) {
+			const ex = e.target.closest('[data-export]');
+			if (!ex) return;
+			const qs = new URLSearchParams(Object.assign({}, st.params, { view: 'offers', format: ex.dataset.export, _wpnonce: PS.config.nonce })).toString();
+			window.location.href = PS.config.restUrl + 'export/items?' + qs;
+		});
 		m.addEventListener('change', function (e) {
 			const t = e.target;
 			if (t.dataset.filter) setParam(t.dataset.filter, t.type === 'checkbox' ? (t.checked ? 1 : '') : t.value);

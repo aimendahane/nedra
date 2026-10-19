@@ -20,7 +20,7 @@ function ps_core_scripts(): array {
  * Un fichier JS par page (assets/js/pages/<nom>.js), dans l'ordre du menu.
  */
 function ps_page_scripts(): array {
-	return array( 'mes-taches', 'fiche-projet', 'fiche-projet-onglets', 'base-projets', 'suivi-offres', 'suivi-livraison', 'recap', 'annuaire', 'parametres' );
+	return array( 'mes-taches', 'fiche-projet', 'fiche-projet-onglets', 'base-projets', 'suivi-offres', 'suivi-livraison', 'recap', 'annuaire', 'parametres', 'parametres-utilisateurs', 'parametres-donnees' );
 }
 
 add_action( 'wp_enqueue_scripts', 'ps_enqueue_assets' );

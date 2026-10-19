@@ -123,3 +123,44 @@
 		},
 	});
 })();
+
+/**
+ * Fusion des doublons de l'annuaire (الإدارة) : PS.directoryMerge(kind, reload).
+ * Propose les paires de noms proches ; on choisit la fiche à GARDER, l'autre y est fusionnée
+ * (ses projets sont réaffectés, elle-même est conservée avec un lien vers la fiche gardée).
+ */
+PS.directoryMerge = function (kind, reload) {
+	'use strict';
+	const ui = PS.ui;
+	const html = ui.html;
+	PS.api.get(kind + '/duplicates').then(function (pairs) {
+		const body = pairs.length ? html`<p class="ps-muted ps-small">اختر الاسم الذي تريد الاحتفاظ به؛ الآخر يُدمج فيه وتنتقل كل مشاريعه.</p>
+			<ul class="ps-dup-list">${pairs.map(function (p, i) {
+				return html`<li data-pair="${i}"><span class="ps-muted">تشابه ${Math.round(p.similarity * 100)}%</span><br>
+					<button type="button" class="ps-btn ps-btn--small" data-keep="a">الاحتفاظ بـ «${p.a.name}»</button>
+					<button type="button" class="ps-btn ps-btn--small" data-keep="b">الاحتفاظ بـ «${p.b.name}»</button></li>`;
+			})}</ul>` : html`<p>✔ لا توجد أسماء متشابهة في الدليل.</p>`;
+		ui.modal({
+			title: '🔀 دمج المكررات',
+			body: body,
+			wide: true,
+			buttons: [{ id: 'close', label: 'إغلاق' }],
+			onButton: function () { return true; },
+			onOpen: function (box) {
+				box.addEventListener('click', function (e) {
+					const b = e.target.closest('[data-keep]');
+					if (!b) return;
+					const p = pairs[Number(b.closest('[data-pair]').dataset.pair)];
+					const keep = b.dataset.keep === 'a' ? p.a : p.b;
+					const drop = b.dataset.keep === 'a' ? p.b : p.a;
+					if (!window.confirm('دمج «' + drop.name + '» في «' + keep.name + '»؟')) return;
+					PS.api.post(kind + '/' + drop.id + '/merge', { intoId: keep.id }).then(function (r) {
+						ui.toast('تم الدمج: ' + r.moved + ' ارتباط مشروع نُقل', 'success');
+						b.closest('[data-pair]').remove();
+						reload();
+					}).catch(function (er) { ui.toast(er.message, 'error'); });
+				});
+			},
+		});
+	}).catch(function (e) { ui.toast(e.message, 'error'); });
+};

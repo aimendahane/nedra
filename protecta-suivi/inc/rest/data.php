@@ -67,12 +67,12 @@ function ps_rest_uploaded_json( WP_REST_Request $r ) {
 function ps_rest_export_projects( WP_REST_Request $r ) {
 	list( $h, $rows ) = ps_export_projects_table( $r->get_params() );
 	ps_log( null, 'create', 'export', null, 'projects', null, (string) count( $rows ) );
-	ps_rest_send_table( $h, $rows, 'المشاريع', (string) $r->get_param( 'format' ) );
+	ps_rest_send_table( $h, $rows, 'projects', (string) $r->get_param( 'format' ) );
 }
 
 function ps_rest_export_items( WP_REST_Request $r ) {
 	list( $h, $rows ) = ps_export_items_table( $r->get_params(), get_current_user_id() );
-	ps_rest_send_table( $h, $rows, 'delivery' === $r->get_param( 'view' ) ? 'التسليم' : 'العروض', (string) $r->get_param( 'format' ) );
+	ps_rest_send_table( $h, $rows, 'delivery' === $r->get_param( 'view' ) ? 'delivery' : 'offers', (string) $r->get_param( 'format' ) );
 }
 
 function ps_rest_send_table( array $headers, array $rows, string $name, string $format ): void {

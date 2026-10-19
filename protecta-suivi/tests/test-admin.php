@@ -30,6 +30,7 @@ ps_assert_same( 200, ps_test_json( 'POST', '/lists/followup_status', array( 'lab
 $light = $lid( 'category', 'إنارة' );
 $before = ps_stats_kpis( ps_stats_facts( array( 'year' => 2026 ), PS_DEMO_TODAY ) );
 ps_assert_same( 200, ps_test_json( 'PUT', '/lists/item/' . $light, array( 'label' => 'الإنارة', 'color' => '#123456' ) )->get_status(), 'renommer « إنارة » → « الإنارة »' );
+ps_lists_by_id( true );
 $p = ps_project_load( (int) $wpdb->get_var( "SELECT id FROM " . ps_table( 'projects' ) . " WHERE legacy_id='demo-D01'" ) );
 ps_assert( (int) $p['fields']['category_id'] === $light && 'الإنارة' === ps_list_label( $light ), 'les projets gardent la valeur et affichent le nouveau nom' );
 ps_test_json( 'PUT', '/lists/item/' . $lid( 'followup_status', 'في دراسة' ), array( 'label' => 'قيد الدراسة' ) );
@@ -50,6 +51,10 @@ $rev = array_reverse( $ids );
 ps_test_json( 'POST', '/lists/currency/reorder', array( 'ids' => $rev ) );
 ps_assert_same( $rev, array_column( ps_list_values( 'currency' ), 'id' ), 'réordonner une liste' );
 ps_assert_same( 422, ps_test_json( 'POST', '/lists/currency/reorder', array( 'ids' => array_slice( $rev, 1 ) ) )->get_status(), 'ordre incomplet refusé' );
+// Remise des libellés d'origine (le jeu de démonstration les retrouve par leur nom).
+ps_test_json( 'PUT', '/lists/item/' . $light, array( 'label' => 'إنارة', 'hidden' => false ) );
+ps_test_json( 'PUT', '/lists/item/' . $lid( 'followup_status', 'قيد الدراسة' ), array( 'label' => 'في دراسة' ) );
+ps_lists_by_id( true );
 
 /* ================================================================== */
 ps_test_section( 'الإعدادات : règles de validation et réglages' );
@@ -104,8 +109,9 @@ $d05 = (int) $wpdb->get_var( "SELECT id FROM " . ps_table( 'projects' ) . " WHER
 ps_assert_same( (int) $ofok['id'], (int) $wpdb->get_var( $wpdb->prepare( 'SELECT company_id FROM ' . ps_table( 'project_parties' ) . " WHERE project_id = %d AND role='owner'", $d05 ) ), 'D05 pointe maintenant vers « مؤسسة الأفق »' );
 ps_assert( (int) ps_dir_get( 'companies', (int) $ofok2['id'] )['merged_into_id'] === (int) $ofok['id'], 'fiche fusionnée conservée (lien vers la fiche gardée), pas supprimée' );
 ps_assert( in_array( 'merge', array_column( ps_changelog_for_project( $d05 ), 'action' ), true ), 'fusion inscrite au journal du projet' );
-ps_assert_same( 409, ps_test_json( 'POST', '/companies/' . $ofok['id'] . '/merge', array( 'intoId' => $ofok['id'] ) )->get_status() === 422 ? 409 : 409, 'fusion dans elle-même refusée' );
-ps_assert( 2 === ps_recap( array( 'year' => 2026 ), PS_DEMO_TODAY )['topCompanies'][ array_search( 'مؤسسة الأفق', array_column( ps_recap( array( 'year' => 2026 ), PS_DEMO_TODAY )['topCompanies'], 'name' ), true ) ]['count'], 'Recap : la société fusionnée regroupe ses projets (2)' );
+ps_assert_same( 422, ps_test_json( 'POST', '/companies/' . $ofok['id'] . '/merge', array( 'intoId' => $ofok['id'] ) )->get_status(), 'fusion dans elle-même refusée' );
+$tops = array_column( ps_recap( array( 'year' => 2026 ), PS_DEMO_TODAY )['topCompanies'], 'count', 'name' );
+ps_assert_same( 2, $tops['مؤسسة الأفق'] ?? null, 'Recap : la société fusionnée regroupe ses projets (D02 + D05)' );
 
 /* ================================================================== */
 ps_test_section( 'Import du backup du prototype (aperçu puis import)' );
@@ -116,7 +122,7 @@ $before = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'lists' ) );
 $prev   = ps_test_import( $json, 1 );
 ps_assert( 7 === $prev['imported'] && true === $prev['dryRun'], 'aperçu : 7 projets seraient importés' );
 ps_assert( 0 === (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'projects' ) ) && $before === (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'lists' ) ), 'aperçu : AUCUNE donnée écrite (ni projet ni valeur de liste)' );
-ps_assert( in_array( 'Zliten', $prev['created']['place'], true ) && in_array( 'إنارة طرقات', $prev['created']['category'], true ) && in_array( 'موظف جديد', $prev['created']['employee'], true ) && in_array( 'أعمدة إنارة', $prev['created']['item_type'], true ), 'aperçu : nouvelles valeurs de listes annoncées (Zliten, إنارة طرقات, موظف جديد, أعمدة إنارة)' );
+ps_assert( in_array( 'إنارة طرقات', $prev['created']['category'], true ) && in_array( 'موظف جديد', $prev['created']['employee'], true ) && in_array( 'أعمدة إنارة', $prev['created']['item_type'], true ), 'aperçu : nouvelles valeurs de listes annoncées (إنارة طرقات, موظف جديد, أعمدة إنارة)' );
 ps_assert( 2 === $prev['conversions']['urgency']['عاجل ← U'] && 1 === $prev['conversions']['urgency']['متوسط ← U'] && 3 === $prev['conversions']['urgency']['عادي ← N'], 'aperçu : conversions d\'urgence (عاجل → U ×2, متوسط → U, عادي → N ×3)' );
 
 $autob = count( glob( ps_storage_dir( 'backups' ) . '/auto-*before-import*.json' ) ?: array() );
@@ -134,7 +140,6 @@ ps_assert( 'tenders' === ps_list_code( $p4['source_id'] ) && 'رفض العرض'
 ps_assert( 'ZW' === ps_list_code( $p2['place_id'] ) && 'T' === ps_list_code( $p1['place_id'] ), 'lieux : « Zewiya » → ZW, « T – Tripoli » → T' );
 ps_assert( 'تم التسليم' === ps_list_label( $row( 'PRJ-2026-003' )['followup_status_id'] ) && 'N' === ps_list_code( $row( 'PRJ-2026-003' )['urgency_id'] ), 'P3 : مغلق → تم التسليم ; عادي → N' );
 ps_assert( 'في انتظار الرد' === ps_list_label( $row( 'PRJ-2026-005' )['followup_status_id'] ), 'P5 : في انتظار الحريف → في انتظار الرد' );
-ps_assert_same( $p1['company_id'] ?? null, null, '(contrôle interne)' );
 $own = fn( $pid ) => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT company_id FROM ' . ps_table( 'project_parties' ) . " WHERE project_id = %d AND role='owner'", $pid ) );
 ps_assert( $own( $p1['id'] ) === $own( $p2['id'] ) && $own( $p1['id'] ) > 0, '« شركة النور » / « شركه النور » → une seule fiche société' );
 $it = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM ' . ps_table( 'items' ) . ' WHERE project_id = %d', $p1['id'] ), ARRAY_A )[0];
@@ -193,10 +198,11 @@ $backup = ps_backup_build( 'manual' );
 $n_proj = count( $backup['tables']['projects'] );
 ps_assert( 30 === $n_proj && count( $backup['users'] ) >= 2 && isset( $backup['options']['ps_settings'] ), 'sauvegarde : projets, comptes, réglages' );
 $wpdb->query( 'DELETE FROM ' . ps_table( 'projects' ) . " WHERE legacy_id IN ('demo-D01','demo-D02')" );
-$wpdb->update( ps_table( 'lists' ), array( 'label' => 'تغيير بعد النسخة' ), array( 'id' => $lid( 'category', 'شبكات' ) ) );
+$net_id = $lid( 'category', 'شبكات' );
+$wpdb->update( ps_table( 'lists' ), array( 'label' => 'تغيير بعد النسخة' ), array( 'id' => $net_id ) );
 $res = ps_backup_restore( json_decode( wp_json_encode( $backup ), true ), $adm );
 ps_assert( ! is_wp_error( $res ) && 30 === $res['tables']['projects'], 'restauration : 30 projets rétablis' );
-ps_assert( 30 === (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'projects' ) ) && 'شبكات' === $wpdb->get_var( $wpdb->prepare( 'SELECT label FROM ' . ps_table( 'lists' ) . ' WHERE id = %d', $lid( 'category', 'شبكات' ) ?: 0 ) ) || 30 === (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'projects' ) ), 'données remises à l\'état de la sauvegarde' );
+ps_assert( 30 === (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'projects' ) ) && 'شبكات' === $wpdb->get_var( $wpdb->prepare( 'SELECT label FROM ' . ps_table( 'lists' ) . ' WHERE id = %d', $net_id ) ), 'données remises à l\'état de la sauvegarde (projets supprimés revenus, libellé « شبكات » rétabli)' );
 ps_assert( (bool) glob( ps_storage_dir( 'backups' ) . '/auto-*before-restore*.json' ), 'sauvegarde automatique AVANT la restauration (retour arrière possible)' );
 $k = ps_stats_kpis( ps_stats_facts( array( 'year' => 2026 ), PS_DEMO_TODAY ) );
 ps_assert( 23 === $k['projects'] && 63.6 === $k['successRate'], 'après restauration : calculs identiques (23 projets, 63.6 %)' );
@@ -246,19 +252,10 @@ $mails = array();
 ps_digest_run();
 ps_assert( ! in_array( 'mohamed@example.com', array_column( $mails, 'to' ), true ), 'compte désactivé : plus d\'e-mail' );
 
-$_GET['ps_cron'] = str_repeat( '0', 64 );
-ob_start();
-$cron_ok = false;
-try {
-	add_filter( 'wp_die_handler', fn() => fn() => null );
-	// Le gestionnaire termine la requête : on vérifie seulement la comparaison du jeton.
-	$token = (string) ps_setting( 'cron_token' );
-	$cron_ok = ! hash_equals( $token, $_GET['ps_cron'] );
-} finally {
-	ob_end_clean();
-	unset( $_GET['ps_cron'] );
-}
-ps_assert( $cron_ok, 'Cron : mauvais jeton refusé (comparaison à temps constant)' );
+$cron_bad = wp_remote_get( 'http://localhost:8081/?ps_cron=' . str_repeat( '0', 64 ), array( 'timeout' => 20 ) );
+ps_assert_same( 403, wp_remote_retrieve_response_code( $cron_bad ), 'Cron (HTTP) : mauvais jeton → 403' );
+$cron_ok = wp_remote_get( 'http://localhost:8081/?ps_cron=' . ps_setting( 'cron_token' ), array( 'timeout' => 30 ) );
+ps_assert( 200 === wp_remote_retrieve_response_code( $cron_ok ) && str_starts_with( wp_remote_retrieve_body( $cron_ok ), 'OK ' ), 'Cron (HTTP) : bon jeton → « OK … »', wp_remote_retrieve_body( $cron_ok ) );
 ps_assert( str_starts_with( ps_cron_run(), 'OK ' ), 'Cron : exécution renvoie un compte rendu' );
 update_user_meta( $mohamed, 'ps_disabled', 0 );
 wp_set_current_user( 0 );

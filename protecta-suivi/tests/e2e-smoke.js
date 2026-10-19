@@ -79,11 +79,13 @@ async function navTitles(page) {
 		await page.screenshot({ path: SHOTS + '/02-accueil-pc.png', fullPage: true });
 
 		await page.click('a[href="#/parametres"]');
-		await page.waitForSelector('.ps-card .ps-chip');
-		const cards = await page.$$eval('.ps-card', (els) => els.length);
-		check('الإعدادات : 14 listes affichées', cards === 14, String(cards));
-		const sources = await page.$$eval('.ps-card', (els) => els.find((e) => e.textContent.includes('مصدر الطلب')).textContent);
-		check('مصدر « غير محدد » présent et marqué masqué', sources.includes('غير محدد'));
+		await page.waitForSelector('[data-list]');
+		const cards = await page.$$eval('[data-list]', (els) => els.length);
+		check('الإعدادات : 14 listes', cards === 14, String(cards));
+		await page.click('[data-list="source"]');
+		await page.waitForTimeout(500);
+		const sources = await page.$$eval('[data-f=label]', (e) => e.map((x) => x.value));
+		check('مصدر « غير محدد » présent et réservé à l\'import', sources.includes('غير محدد') && (await page.textContent('.ps-table')).includes('للاستيراد فقط'));
 		await page.screenshot({ path: SHOTS + '/03-parametres-pc.png', fullPage: true });
 
 		await page.click('#ps-theme-toggle'); // auto → nuit

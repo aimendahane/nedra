@@ -17,39 +17,16 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 2 | Fiche Projet, Base Projets, annuaire, سجل المتابعة, fichiers, journal | ✅ terminée, tests verts | 0.2.0 · `5709e25` |
 | 3 | Suivi Offres / Livraison, مهامي, tous les calculs §6, jeu de démo 30 projets | ✅ terminée, tests verts | 0.3.0 · `fe9eaca` |
 | 4 | Recap (Chart.js 4.5.1 inclus), comparaison N-1, clics filtrants, impression | ✅ terminée, tests verts | 0.4.0 · `6fb1871` + `Tests: fresh demo site…` |
-| 5 | الإعدادات, comptes, fusion annuaire, import prototype, export, sauvegarde/restauration, e-mail du matin, Cron | 🟡 **EN COURS** (serveur écrit, interface et tests à finir) | commit « WIP étape 5 » |
-| 6 | Zip final, test installation vierge + mise à jour depuis 0.1.0, docs, release GitHub | ⏳ à faire | — |
+| 5 | الإعدادات, comptes, fusion annuaire, import prototype, export, sauvegarde/restauration, e-mail du matin, Cron | ✅ terminée, tests verts | 0.5.0 |
+| 6 | Zip final, test installation vierge + mise à jour depuis 0.1.0, docs, release GitHub | 🟡 EN COURS | — |
 
-### Tests (dernier passage complet, fin d'étape 4)
-- `sh protecta-suivi/tests/run-all.sh` → **401 tests PHP réussis / 0 échoué** + tous les contrôles navigateur
-  (étape 1, étape 2, étapes 3 et 4 sur le jeu de démo) **passés**.
-- Avec le code serveur de l'étape 5 ajouté (WIP) : les 401 tests PHP passent toujours.
-- `tests/test-admin.php` (tests de l'étape 5) est **écrit mais PAS encore lancé ni inscrit** dans `run-tests.php`.
+### Tests (dernier passage complet, fin d'étape 5)
+- `sh protecta-suivi/tests/run-all.sh` → **492 tests PHP réussis / 0 échoué** + tous les contrôles navigateur
+  (étapes 1 à 5) **passés**.
 
-### Étape 5 — fait / reste à faire
-Fait (serveur, non testé) :
-- `inc/repo/lists.php` (admin des listes : usage, contrôles), `inc/rest/settings.php` (listes, réglages, jeton Cron,
-  e-mail d'essai, comptes), `inc/services/digest.php` + `inc/cron.php` + `cron.php` (e-mail du matin, URL secrète
-  `?ps_cron=` et ligne de commande), `inc/auth.php` (comptes désactivés), `inc/repo/directory.php` + `inc/rest/directory.php`
-  (fusion + doublons probables), `inc/services/importer.php` (import prototype, aperçu = import + ROLLBACK),
-  `inc/services/exporter.php` (CSV BOM + XLSX via ZipArchive), `inc/services/backup.php` (restauration + liste),
-  `inc/rest/data.php` (routes export / sauvegarde / restauration / import), `tests/fixtures/prototype-sample.json`.
-Reste à faire, dans l'ordre :
-1. Inscrire `test-admin.php` dans `tests/run-tests.php`, le lancer, corriger. ⚠️ Nettoyer d'abord 4 assertions bâclées :
-   « (contrôle interne) » (à supprimer), « fusion dans elle-même refusée » (tester simplement le code 422),
-   la restauration (expression avec `||` à remplacer par un vrai contrôle du libellé « شبكات » rétabli),
-   le test Cron (remplacer par un appel HTTP réel sur le site de test : mauvais jeton → 403, bon jeton → « OK »).
-2. Interface `assets/js/pages/parametres.js` (aujourd'hui en lecture seule) : onglets القوائم (ajout, renommer,
-   couleur, type, masquer, ordre ↑↓, supprimer), القواعد (cases des champs obligatoires + 3 règles), عام (réglages
-   numériques, e-mail du matin, jeton + commande Cron, e-mail d'essai), المستخدمون (nouveau fichier
-   `parametres-utilisateurs.js`), البيانات (nouveau fichier `parametres-donnees.js` : import avec aperçu + choix
-   عاجل→U/VU + devise, export, sauvegarde téléchargée, liste des sauvegardes serveur, restauration avec « استرجاع »).
-   Ajouter les nouveaux fichiers dans `ps_page_scripts()` (`inc/assets.php`).
-3. Annuaire : implémenter `PS.directoryMerge(kind, reload)` (appelé par `annuaire.js`) : doublons probables +
-   choix de la fiche à garder.
-4. Export : boutons de Suivi Offres / Livraison (`export/items`) ; ceux de Base Projets existent déjà.
-5. Test navigateur `step5` dans `tests/e2e-app.js` (déjà prévu par `run-all.sh`), puis `run-all.sh` complet.
-6. Version 0.5.0 (style.css + config.php), CHANGELOG, décisions ci-dessous, commit.
+### Étape 6 — reste à faire
+README arabe final, version 1.0.0, workflow de release GitHub, zip final, test d'installation sur WordPress vierge
+(activation, connexion, saisie d'un projet, Recap), test de mise à jour depuis 0.1.0 avec données, push + release.
 
 ### Points ouverts (attente client ou blocage)
 - **Envoi GitHub bloqué** : `git push` → 403 (application Claude GitHub sans droit d'écriture sur

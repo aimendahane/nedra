@@ -317,7 +317,7 @@ function ps_import_one( array $p, int $index, array &$ctx ): void {
 		$dl   = $deliv_map[ ps_normalize_text( (string) ( $it['ds'] ?? '' ) ) ] ?? 'waiting';
 		$av   = $avail_map[ ps_normalize_text( (string) ( $it['av'] ?? '' ) ) ] ?? null;
 		$qty  = ps_clean_number( $it['q'] ?? null );
-		ps_import_count( $ctx, 'offer', (string) ( $it['st'] ?? '' ), $st );
+		ps_import_count( $ctx, 'offer', (string) ( $it['st'] ?? '' ), (string) ps_list_label( ps_list_id_by_code( 'offer_status', $st ) ) );
 		$wpdb->insert(
 			ps_table( 'items' ),
 			array(

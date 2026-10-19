@@ -9,23 +9,25 @@ SHOTS="${SHOTS:-/tmp/ps-shots}"
 mkdir -p "$SHOTS"
 export NODE_PATH="${NODE_PATH:-/opt/node22/lib/node_modules}"
 FAIL=0
+# Signale la commande qui échoue (au lieu d'un simple FAIL=1).
+fail() { echo "✘ ÉCHEC : $1"; FAIL=1; }
 
 echo "######## Tests PHP ########"
-(cd "$WP" && sudo -u www-data env PS_TEST=1 php "$DIR/run-tests.php") || FAIL=1
+(cd "$WP" && sudo -u www-data env PS_TEST=1 php "$DIR/run-tests.php") || fail "tests PHP"
 
 echo "\n######## Navigateur : fondations (étape 1) ########"
-(cd "$WP" && sudo -u www-data env PS_TEST=1 php "$DIR/e2e-setup.php") >/dev/null || FAIL=1
-BASE_URL=http://localhost:8081 SHOTS="$SHOTS" node "$DIR/e2e-smoke.js" || FAIL=1
+(cd "$WP" && sudo -u www-data env PS_TEST=1 php "$DIR/e2e-setup.php") >/dev/null || fail "préparation du site de test"
+BASE_URL=http://localhost:8081 SHOTS="$SHOTS" node "$DIR/e2e-smoke.js" || fail "navigateur étape 1"
 
 echo "\n######## Navigateur : fonctionnalités (étapes 2-5) ########"
-(cd "$WP" && sudo -u www-data env PS_TEST=1 php "$DIR/e2e-setup.php") >/dev/null || FAIL=1
-ONLY=step2 BASE_URL=http://localhost:8081 SHOTS="$SHOTS" node "$DIR/e2e-app.js" || FAIL=1
+(cd "$WP" && sudo -u www-data env PS_TEST=1 php "$DIR/e2e-setup.php") >/dev/null || fail "préparation du site de test"
+ONLY=step2 BASE_URL=http://localhost:8081 SHOTS="$SHOTS" node "$DIR/e2e-app.js" || fail "navigateur étape 2"
 
 # Chaque étape repart d'un site neuf avec le jeu de démonstration (les étapes modifient les données).
 for STEP in step3 step4 step5; do
 	echo "\n######## Navigateur : $STEP (jeu de démonstration) ########"
-	(cd "$WP" && sudo -u www-data env PS_TEST=1 DEMO=1 php "$DIR/e2e-setup.php") >/dev/null || FAIL=1
-	ONLY=$STEP BASE_URL=http://localhost:8081 SHOTS="$SHOTS" node "$DIR/e2e-app.js" || FAIL=1
+	(cd "$WP" && sudo -u www-data env PS_TEST=1 DEMO=1 php "$DIR/e2e-setup.php") >/dev/null || fail "préparation démo $STEP"
+	ONLY=$STEP BASE_URL=http://localhost:8081 SHOTS="$SHOTS" node "$DIR/e2e-app.js" || fail "navigateur $STEP"
 done
 
 echo

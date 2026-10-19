@@ -373,7 +373,148 @@ async function step4(browser) {
 	await emp.ctx.close();
 }
 
-const STEPS = { step2, step3, step4 };
+async function step5(browser) {
+	const fs = require('fs');
+	const path = require('path');
+	console.log('Étape 5 — الإعدادات : listes, règles, réglages');
+	const { ctx, page } = await newPage(browser, 'idara');
+	await go(page, '#/parametres?tab=lists');
+	await page.waitForSelector('[data-list]');
+	await page.click('[data-list="category"]');
+	await page.waitForTimeout(500);
+	await page.fill('[data-add] [name=label]', 'طاقة شمسية');
+	await page.click('[data-add] [type=submit]');
+	await page.waitForTimeout(800);
+	check('liste التصنيف : valeur ajoutée', (await page.textContent('.ps-table')).length > 0 && (await page.$$eval('[data-f=label]', (e) => e.map((x) => x.value))).includes('طاقة شمسية'));
+	const firstLabel = await page.$('tr[data-id] [data-f=label]');
+	await firstLabel.fill('كهرباء عامة');
+	await firstLabel.dispatchEvent('change');
+	await page.waitForTimeout(800);
+	check('renommer une valeur (كهرباء → كهرباء عامة)', (await page.$$eval('[data-f=label]', (e) => e.map((x) => x.value))).includes('كهرباء عامة'));
+	await page.screenshot({ path: SHOTS + '/s5-01-listes.png', fullPage: true });
+	await page.click('[data-list="offer_status"]');
+	await page.waitForTimeout(500);
+	check('statuts de calcul : 🔒 non supprimables', (await page.$$('tr[data-id] [data-del]')).length === 0 && (await page.textContent('.ps-table')).includes('أساسية'));
+
+	await go(page, '#/parametres?tab=rules');
+	await page.waitForSelector('[data-rules]');
+	await page.uncheck('[name=req][value=offer_no]');
+	await page.click('[data-rules] [type=submit]');
+	await page.waitForTimeout(800);
+	await go(page, '#/projet');
+	await page.waitForSelector('[data-form]');
+	const offerReq = await page.$eval('[data-bind="offerNo"]', (e) => e.closest('.ps-field').classList.contains('ps-field--required'));
+	check('règle modifiée : رقم العرض n\'est plus obligatoire (plus en jaune)', !offerReq);
+	await go(page, '#/parametres?tab=rules');
+	await page.waitForSelector('[data-rules]');
+	await page.check('[name=req][value=offer_no]');
+	await page.click('[data-rules] [type=submit]');
+	await page.waitForTimeout(600);
+
+	await go(page, '#/parametres?tab=general');
+	await page.waitForSelector('[data-general]');
+	const cron = await page.textContent('pre.ps-code');
+	check('Cron : commande wget avec jeton de 64 caractères', /ps_cron=[0-9a-f]{64}/.test(cron));
+	const bad = await page.request.get(BASE + '/?ps_cron=' + '0'.repeat(64));
+	const good = await page.request.get(cron.match(/"(http[^"]+)"/)[1]);
+	check('Cron : mauvais jeton → 403, bon jeton → « OK »', bad.status() === 403 && (await good.text()).startsWith('OK'));
+	await page.fill('[name=inactivity_minutes]', '2');
+	await page.click('[data-general] [type=submit]');
+	await page.waitForTimeout(600);
+	check('valeur hors limites (2 min) refusée avec message', await page.isVisible('.ps-field--error'));
+	await page.fill('[name=inactivity_minutes]', '120');
+	await page.click('[data-general] [type=submit]');
+	await page.waitForTimeout(600);
+	await page.screenshot({ path: SHOTS + '/s5-02-general.png', fullPage: true });
+
+	console.log('Étape 5 — comptes');
+	await go(page, '#/parametres?tab=users');
+	await page.waitForSelector('[data-new]');
+	await page.click('[data-new]');
+	await page.waitForSelector('[data-user-form]');
+	await page.fill('[data-user-form] [name=login]', 'amira');
+	await page.fill('[data-user-form] [name=name]', 'أميرة السعيداني');
+	await page.fill('[data-user-form] [name=email]', 'amira@example.com');
+	await page.fill('[data-user-form] [name=password]', 'Amira-2026');
+	await page.selectOption('[data-user-form] [name=role]', 'ps_manager');
+	await page.selectOption('[data-user-form] [name=employeeId]', { label: 'أميرة السعيداني' });
+	await page.click('.ps-modal [data-btn=ok]');
+	await page.waitForTimeout(1000);
+	check('compte créé (مسؤول مشروع, employé lié)', (await page.textContent('.ps-table')).includes('amira'));
+	await page.screenshot({ path: SHOTS + '/s5-03-comptes.png', fullPage: true });
+	{
+		const actx = await browser.newContext();
+		const ap = await actx.newPage();
+		await ap.goto(BASE + '/');
+		await ap.fill('input[name=log]', 'amira');
+		await ap.fill('input[name=pwd]', 'Amira-2026');
+		await Promise.all([ap.waitForLoadState('networkidle'), ap.click('button[type=submit]')]);
+		const ok = await ap.isVisible('.ps-header');
+		check('le nouveau compte se connecte', ok, ok ? '' : (await ap.textContent('body')).replace(/\s+/g, ' ').slice(0, 200));
+		await actx.close();
+	}
+	await page.click('tr:has-text("amira") [data-toggle]');
+	await page.click('.ps-modal [data-btn=ok]');
+	await page.waitForTimeout(900);
+	const dis = await browser.newContext();
+	const dp = await dis.newPage();
+	await dp.goto(BASE + '/');
+	await dp.fill('input[name=log]', 'amira');
+	await dp.fill('input[name=pwd]', 'Amira-2026');
+	await Promise.all([dp.waitForLoadState('networkidle'), dp.click('button[type=submit]')]);
+	check('compte désactivé : connexion refusée avec message', (await dp.textContent('.ps-alert')).includes('معطّل'));
+	await dis.close();
+
+	console.log('Étape 5 — annuaire : fusion');
+	await go(page, '#/annuaire');
+	await page.waitForSelector('[data-action=merge]');
+	await page.click('[data-action=merge]');
+	await page.waitForSelector('.ps-modal [data-keep]');
+	check('doublons probables proposés (مؤسسة الأفق / …للتجارة)', (await page.textContent('.ps-modal')).includes('مؤسسة الأفق للتجارة'));
+	page.once('dialog', (d) => d.accept());
+	await page.click('.ps-modal [data-pair] [data-keep=a]');
+	await page.waitForTimeout(1200);
+	await page.click('.ps-modal [data-btn=close]');
+	await page.waitForTimeout(600);
+	check('fusion faite : une seule fiche « مؤسسة الأفق… »', ((await page.textContent('.ps-table')).match(/مؤسسة الأفق/g) || []).length === 1);
+
+	console.log('Étape 5 — données : import, export, sauvegarde');
+	await go(page, '#/parametres?tab=data');
+	await page.waitForSelector('[data-import]');
+	const sample = fs.readFileSync(path.join(__dirname, 'fixtures', 'prototype-sample.json'));
+	await page.setInputFiles('[data-import] [name=file]', { name: 'backup.json', mimeType: 'application/json', buffer: sample });
+	await page.click('[data-preview]');
+	await page.waitForSelector('[data-import-report] .ps-alert');
+	const prev = await page.textContent('[data-import-report]');
+	// Le site de démonstration contient déjà PRJ-2026-001…024 : 6 projets du fichier ont ces numéros → ignorés (jamais écrasés).
+	check('aperçu : 1 projet à importer, 6 déjà présents ignorés, rien d\'écrit', prev.includes('معاينة') && prev.includes('1 مشروع سيتم استيراده') && prev.includes('6 موجود مسبقًا'), prev.replace(/\s+/g, ' ').slice(0, 160));
+	await page.screenshot({ path: SHOTS + '/s5-04-import-apercu.png', fullPage: true });
+	await page.click('[data-run]');
+	await page.click('.ps-modal [data-btn=ok]');
+	await page.waitForSelector('[data-import-report] .ps-alert--success', { timeout: 15000 });
+	check('import effectué (sauvegarde automatique avant)', (await page.textContent('[data-import-report]')).includes('before-import'));
+	const [dl1] = await Promise.all([page.waitForEvent('download'), page.click('[data-export="projects|xlsx"]')]);
+	check('export Excel des projets téléchargé', /\.xlsx$/.test(dl1.suggestedFilename()), dl1.suggestedFilename());
+	const [dl2] = await Promise.all([page.waitForEvent('download'), page.click('[data-export="offers|csv"]')]);
+	check('export CSV des offres téléchargé', /\.csv$/.test(dl2.suggestedFilename()));
+	const [dl3] = await Promise.all([page.waitForEvent('download'), page.click('[data-backup]')]);
+	const bpath = await dl3.path();
+	const bjson = JSON.parse(fs.readFileSync(bpath, 'utf8'));
+	check('sauvegarde JSON téléchargée (31 projets)', bjson.format === 'protecta-suivi-backup' && bjson.tables.projects.length === 31, String(bjson.tables && bjson.tables.projects.length));
+	await go(page, '#/parametres?tab=data');
+	await page.waitForSelector('[data-restore]');
+	await page.setInputFiles('[data-restore] [name=file]', { name: 'b.json', mimeType: 'application/json', buffer: fs.readFileSync(bpath) });
+	await page.fill('[data-restore] [name=confirm]', 'استرجاع');
+	await page.click('[data-restore-run]');
+	await page.waitForSelector('[data-restore-report] .ps-alert--success', { timeout: 20000 });
+	check('restauration effectuée (31 projets, sauvegarde de l\'état précédent)', (await page.textContent('[data-restore-report]')).includes('31'));
+	await page.screenshot({ path: SHOTS + '/s5-05-donnees.png', fullPage: true });
+	await go(page, '#/projets');
+	check('Base Projets après import + restauration : 31 projets', (await page.textContent('[data-results] [role=status]')).trim().startsWith('31'));
+	await ctx.close();
+}
+
+const STEPS = { step2, step3, step4, step5 };
 
 (async () => {
 	const browser = await chromium.launch();

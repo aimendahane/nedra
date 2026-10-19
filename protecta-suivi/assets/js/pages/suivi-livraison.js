@@ -90,11 +90,18 @@
 				<input type="search" class="ps-input ps-search" placeholder="🔍 بحث: مشروع، شركة، صنف، فاتورة" value="${p.q || ''}" data-search>
 				<select class="ps-input ps-input--auto" data-filter="employeeId" aria-label="الموظف">${empOpts}</select>
 				<label class="ps-check"><input type="checkbox" data-filter="deliveryLate" ${p.deliveryLate ? ui.raw('checked') : ''}> ⚠ المتأخرة فقط</label>
+				${PS.router.can('ps_export') ? html`<button type="button" class="ps-btn" data-export="csv">⬇ CSV</button><button type="button" class="ps-btn" data-export="xlsx">⬇ Excel</button>` : ''}
 			</div></div>
 			<div data-results><div class="ps-loading">جاري التحميل…</div></div>`.html;
 		const m = st.main;
 		const onSearch = ui.debounce(function (v) { setParam('q', v.trim()); }, 300);
 		m.querySelector('[data-search]').addEventListener('input', function (e) { onSearch(e.target.value); });
+		m.addEventListener('click', function (e) {
+			const ex = e.target.closest('[data-export]');
+			if (!ex) return;
+			const qs = new URLSearchParams(Object.assign({}, st.params, { view: 'delivery', format: ex.dataset.export, _wpnonce: PS.config.nonce })).toString();
+			window.location.href = PS.config.restUrl + 'export/items?' + qs;
+		});
 		m.addEventListener('change', function (e) {
 			const t = e.target;
 			if (t.dataset.filter) { setParam(t.dataset.filter, t.type === 'checkbox' ? (t.checked ? 1 : '') : t.value); return; }

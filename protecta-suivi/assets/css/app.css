@@ -367,3 +367,15 @@ tr.ps-drill:hover td { background: var(--ps-primary-soft); }
 .ps-row-muted td { color: var(--ps-text-muted); font-style: italic; }
 .ps-print-only { display: none; }
 @media (max-width: 560px) { .ps-kpi--wide { grid-column: auto; } .ps-kpi__value { font-size: 1.6rem; } }
+
+/* ============ 9. الإعدادات (étape 5) ============ */
+.ps-settings-lists { display: grid; gap: 16px; grid-template-columns: 240px 1fr; align-items: start; }
+.ps-sidelist { padding: 8px; display: grid; gap: 2px; }
+.ps-sidelist__btn { font: inherit; text-align: start; background: none; border: 0; border-inline-start: 3px solid transparent; padding: 7px 10px; border-radius: var(--ps-radius-sm); cursor: pointer; color: var(--ps-text); }
+.ps-sidelist__btn:hover { background: var(--ps-surface-2); }
+.ps-sidelist__btn[aria-current="true"] { background: var(--ps-primary-soft); color: var(--ps-primary); border-inline-start-color: var(--ps-accent); font-weight: 700; }
+.ps-checks { display: grid; gap: 6px 16px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.ps-code { background: var(--ps-surface-2); border: 1px solid var(--ps-border); border-radius: var(--ps-radius-sm); padding: 10px; overflow-x: auto; font-size: 13px; white-space: pre-wrap; word-break: break-all; }
+.ps-report { margin: 8px 0; padding-inline-start: 18px; display: grid; gap: 4px; }
+.ps-add-value input[type=color], .ps-table input[type=color] { width: 44px; height: 34px; padding: 2px; border: 1px solid var(--ps-border); border-radius: var(--ps-radius-sm); background: var(--ps-surface); }
+@media (max-width: 760px) { .ps-settings-lists { grid-template-columns: 1fr; } }

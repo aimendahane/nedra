@@ -113,7 +113,7 @@ function ps_xlsx( array $headers, array $rows, string $sheet = 'Projets' ): ?str
 		'xl/styles.xml'              => '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Arial"/></font><font><b/><sz val="11"/><name val="Arial"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="2"><xf fontId="0"/><xf fontId="1" applyFont="1"/></cellXfs></styleSheet>',
 		'xl/worksheets/sheet1.xml'   => '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView rightToLeft="1" workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetData>' . $data . '</sheetData></worksheet>',
 	);
-	$tmp = wp_tempnam( 'ps-xlsx' );
+	$tmp = tempnam( get_temp_dir(), 'ps-xlsx' ); // (wp_tempnam n'existe que dans wp-admin)
 	$zip = new ZipArchive();
 	if ( true !== $zip->open( $tmp, ZipArchive::OVERWRITE ) ) {
 		return null;
@@ -134,7 +134,9 @@ function ps_send_download( string $content, string $filename, string $mime ): vo
 	nocache_headers();
 	header( 'Content-Type: ' . $mime );
 	header( 'Content-Length: ' . strlen( $content ) );
-	header( "Content-Disposition: attachment; filename*=UTF-8''" . rawurlencode( $filename ) );
+	// Nom simple (ASCII) + nom UTF-8 : compatible avec tous les navigateurs.
+	$ascii = preg_replace( '/[^A-Za-z0-9._-]+/', '-', remove_accents( $filename ) );
+	header( 'Content-Disposition: attachment; filename="' . $ascii . '"; filename*=UTF-8\'\'' . rawurlencode( $filename ) );
 	header( 'X-Content-Type-Options: nosniff' );
 	echo $content; // phpcs:ignore
 	exit;
