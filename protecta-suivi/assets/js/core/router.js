@@ -161,5 +161,11 @@ PS.router = (function () {
 
 	document.addEventListener('DOMContentLoaded', boot);
 
-	return { register, go, setParams, setCount, refreshCounts, can, lists, route, params: function () { return parseHash().params; } };
+	/** Recharge la page courante et les compteurs du menu (après une action). */
+	function refresh() {
+		route();
+		refreshCounts();
+	}
+
+	return { register, go, setParams, setCount, refreshCounts, refresh, can, lists, route, params: function () { return parseHash().params; } };
 })();

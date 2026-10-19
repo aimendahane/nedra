@@ -12,7 +12,7 @@ FAIL=0
 echo "######## 1. Installation vierge : $NEW ########"
 run /srv/wpf install 8082 "$NEW" || FAIL=1
 curl -s -o /dev/null http://localhost:8082/   # premier chargement (activation)
-echo "######## 2. Mise à jour depuis 0.1.0 avec données ########"
+echo "######## 2. Mise à jour depuis $(basename "$OLD") avec données ########"
 run /srv/wpu install 8083 "$OLD" || FAIL=1
 curl -s -o /dev/null http://localhost:8083/
 run /srv/wpu seed 8083 || FAIL=1

@@ -18,11 +18,12 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 3 | Suivi Offres / Livraison, مهامي, tous les calculs §6, jeu de démo 30 projets | ✅ terminée, tests verts | 0.3.0 · `fe9eaca` |
 | 4 | Recap (Chart.js 4.5.1 inclus), comparaison N-1, clics filtrants, impression | ✅ terminée, tests verts | 0.4.0 · `6fb1871` + `Tests: fresh demo site…` |
 | 5 | الإعدادات, comptes, fusion annuaire, import prototype, export, sauvegarde/restauration, e-mail du matin, Cron | ✅ terminée, tests verts | 0.5.0 |
-| 6 | Zip final, test installation vierge + mise à jour depuis 0.1.0, docs, release GitHub | ✅ terminée (sauf publication GitHub, bloquée) | **1.0.0** |
+| 6 | Zip final, test installation vierge + mise à jour depuis 0.1.0, docs, release GitHub | ✅ terminée (sauf publication GitHub, bloquée) | 1.0.0 |
+| 1.0.1 | Demande client : tâches libres « مهمة جديدة » + e-mail (SMTP, vraie erreur) + explication Cron | ✅ terminée, tests verts | **1.0.1** · base v2 |
 
-### Tests (dernier passage complet, version 1.0.0) — détail : `docs/TEST-RESULTS.txt`
-- `sh protecta-suivi/tests/run-all.sh` → **492 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
-  (étapes 1 à 5) passés.
+### Tests (dernier passage complet, version 1.0.1) — détail : `docs/TEST-RESULTS.txt`
+- `sh protecta-suivi/tests/run-all.sh` → **545 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
+  (étapes 1 à 5 + step6 = 1.0.1) passés.
 - `sh protecta-suivi/tests/release-check.sh dist/protecta-suivi-1.0.0.zip dist/protecta-suivi-0.1.0.zip` →
   installation vierge (connexion, saisie, Recap) OK ; mise à jour 0.1.0 → 1.0.0 avec données : **aucune perte**.
 
@@ -31,6 +32,13 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
    `git tag v1.0.0 && git push origin v1.0.0` → le workflow `.github/workflows/release.yml` publie le zip.
 2. Retours du client sur les points ouverts ci-dessous ; toute évolution = nouvelle version (1.0.1…), CHANGELOG,
    et nouvelle migration si la structure change (tests/test-migrations.php à étendre).
+
+### Vérification avec le fichier Excel réel du client (19/10/2026) — `docs/verif-excel/`
+9 problèmes listés au client (non corrigés, il a demandé la liste d'abord) : 01 date d'envoi = date du jour au lieu
+de تاريخ إرسال العرض du projet (bug) ; 02 champs date au format du navigateur ; 03 flèche verte pour المرفوضة ↑ ;
+04 tableaux Recap coupés sur mobile ; 05 fond du menu coupé ; 06 menu « إدخال مشروع » surligné sur une fiche ;
+07 lecture seule peu visible ; 08 numéro de projet coupé ; 09 numérotation P176… non conservée.
+Questions au client : champs obligatoires, téléphones multiples, الأهمية « M », sens des colonnes حالة العرض/المتابعة.
 
 ### Points ouverts (attente client ou blocage)
 - **Envoi GitHub bloqué** : `git push` → 403 (application Claude GitHub sans droit d'écriture sur
@@ -211,3 +219,14 @@ chaque décision prise seul.
 - **E-mail du matin** : interrupteur général (désactivé par défaut) + case par compte ; rien n'est envoyé à un
   employé sans tâche ; une seule fois par jour ; الإدارة reçoit le résumé de toute l'équipe + indicateurs de l'année.
 - **Cron** : URL secrète `?ps_cron=<jeton>` (wget dans cPanel) ou `php …/cron.php` ; mauvais jeton → 403.
+
+### Version 1.0.1 — décisions prises
+- **Tâches libres** liées à un EMPLOYÉ de la liste (comme les أصناف), pas à un compte : visibles dans مهامي de tout
+  compte lié à cet employé. Créer : مسؤول مشروع + الإدارة (capacité `ps_assign_tasks`), vers n'importe quel employé.
+  Voir : الإدارة tout ; les autres leurs tâches + celles qu'ils ont envoyées (sinon 404). « تمت »/rouvrir : employé
+  concerné, auteur, الإدارة. Modifier/annuler : auteur ou الإدارة. Jamais supprimée (statut cancelled).
+  Retard = ouverte et أجل < aujourd'hui (`ps_calc_task_late`). Projet lié facultatif (bouton dans Fiche Projet).
+  E-mail immédiat à l'employé (pas à l'auteur lui-même) ; échec d'envoi non bloquant.
+- **E-mail** : SMTP intégré via `phpmailer_init` (aucune extension). Mot de passe dans l'option `ps_smtp_pass`,
+  hors `ps_settings`, jamais renvoyé ni sauvegardé dans le JSON (à ressaisir après une restauration).
+  Expéditeur : réglage, sinon utilisateur SMTP, sinon celui de WordPress.

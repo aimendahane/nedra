@@ -27,6 +27,7 @@ defined( 'ABSPATH' ) || exit;
 function ps_migrations(): array {
 	$migrations = array(
 		1 => 'ps_migration_001_initial',
+		2 => 'ps_migration_002_tasks',
 	);
 	return apply_filters( 'ps_migrations', $migrations );
 }
@@ -54,6 +55,16 @@ function ps_migration_001_initial(): void {
 	if ( ! get_option( 'timezone_string' ) && ! (float) get_option( 'gmt_offset' ) ) {
 		update_option( 'timezone_string', 'Africa/Tripoli' );
 	}
+}
+
+/**
+ * Migration 2 (1.0.1) : tâches libres « مهمة جديدة ».
+ *   - CREATE TABLE {prefix}ps_tasks (dbDelta : ajoute seulement) ;
+ *   - nouvelle capacité ps_assign_tasks (مسؤول مشروع et الإدارة) ajoutée aux rôles existants.
+ */
+function ps_migration_002_tasks(): void {
+	ps_apply_schema();
+	ps_register_roles();
 }
 
 /**

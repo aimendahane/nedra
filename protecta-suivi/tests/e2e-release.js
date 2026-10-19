@@ -29,7 +29,7 @@ async function go(page, url) { await page.goto(url); await page.waitForLoadState
 	const U = process.env.UPGRADE;
 
 	if (F) {
-		console.log('Installation vierge (zip 1.0.0) — ' + F);
+		console.log('Installation vierge (zip final) — ' + F);
 		const r = await fetch(F + '/');
 		const html = await r.text();
 		check('page de connexion personnalisée (pas WordPress)', html.includes('ps-login__form') && !html.includes('wp-login'));
@@ -66,7 +66,7 @@ async function go(page, url) { await page.goto(url); await page.waitForLoadState
 	}
 
 	if (U) {
-		console.log('Mise à jour 0.1.0 → 1.0.0 avec données — ' + U);
+		console.log('Mise à jour (ancienne version → zip final) avec données — ' + U);
 		const { ctx, page } = await login(browser, U, 'wafa', 'Wafa-pass-2026');
 		check('compte créé en 0.1.0 : connexion OK après mise à jour', await page.isVisible('.ps-header'));
 		await go(page, U + '/#/projets');

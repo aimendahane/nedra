@@ -103,7 +103,7 @@ function ps_counters( int $user_id ): array {
 		'needDecisionMine' => $mine,
 		'offres'           => $team ? $late : $mine,
 		'livraison'        => $dl,
-		'taches'           => $me || user_can( $user_id, 'ps_edit_all_projects' ) ? count( $tasks['lateOffers'] ) + count( $tasks['followupsDue'] ) + count( $tasks['deliveries'] ) : 0,
+		'taches'           => $me || user_can( $user_id, 'ps_edit_all_projects' ) ? count( $tasks['lateOffers'] ) + count( $tasks['followupsDue'] ) + count( $tasks['deliveries'] ) + count( $tasks['assigned'] ) : 0,
 	);
 }
 
@@ -112,12 +112,13 @@ function ps_counters( int $user_id ): array {
  *   lateOffers   : أصناف en retard = « لازم قرار » (قيد الإعداد, أجل dépassé, hors L) — dont il est responsable ;
  *   followupsDue : projets dont la prochaine date de suivi est aujourd'hui ou dépassée (المتابع ou المسؤول) ;
  *   noFollowup   : projets sans suivi depuis plus de 7 jours (alerte de suivi) ;
- *   deliveries   : livraisons de la semaine (non livrées, أجل التسليم ≤ aujourd'hui + 7 j, retards compris).
+ *   deliveries   : livraisons de la semaine (non livrées, أجل التسليم ≤ aujourd'hui + 7 j, retards compris) ;
+ *   assigned     : tâches libres ouvertes confiées à l'employé (« مهمة جديدة », 1.0.1).
  */
 function ps_tasks( array $facts, ?int $employee_id, ?string $today = null ): array {
 	$today = $today ?? ps_today();
 	$week  = gmdate( 'Y-m-d', strtotime( $today . ' 00:00:00 UTC' ) + 7 * DAY_IN_SECONDS );
-	$out   = array( 'lateOffers' => array(), 'followupsDue' => array(), 'noFollowup' => array(), 'deliveries' => array() );
+	$out   = array( 'lateOffers' => array(), 'followupsDue' => array(), 'noFollowup' => array(), 'deliveries' => array(), 'assigned' => array() );
 	$mine  = fn( $emp ) => null === $employee_id || (int) $emp === $employee_id;
 	foreach ( $facts as $f ) {
 		$base = array( 'projectId' => $f['id'], 'projectNo' => $f['project_no'], 'projectName' => $f['name'], 'companyName' => $f['company_name'], 'urgencyId' => $f['urgency'] );
@@ -139,6 +140,9 @@ function ps_tasks( array $facts, ?int $employee_id, ?string $today = null ): arr
 	usort( $out['lateOffers'], fn( $a, $b ) => strcmp( $a['dueDate'], $b['dueDate'] ) );
 	usort( $out['followupsDue'], fn( $a, $b ) => strcmp( $a['nextDate'], $b['nextDate'] ) );
 	usort( $out['deliveries'], fn( $a, $b ) => strcmp( $a['deliveryDueDate'], $b['deliveryDueDate'] ) );
+	if ( null === $employee_id || $employee_id > 0 ) {
+		$out['assigned'] = ps_task_list( array( 'status' => 'open', 'employeeId' => $employee_id ) );
+	}
 	return $out;
 }
 
@@ -152,8 +156,10 @@ function ps_rest_tasks( WP_REST_Request $r ) {
 		$p   = $r->get_param( 'employeeId' );
 		$emp = ( null === $p || '' === $p || 'all' === $p ) ? null : (int) $p;
 	}
+	// Tâches libres envoyées par moi (ouvertes + « تمت » depuis 14 jours) : pour suivre ce que j'ai demandé.
+	$sent = user_can( $uid, 'ps_assign_tasks' ) ? ps_task_list( array( 'status' => 'open', 'createdBy' => $uid, 'doneSince' => gmdate( 'Y-m-d', strtotime( ps_today() . ' 00:00:00 UTC' ) - 14 * DAY_IN_SECONDS ) ) ) : array();
 	if ( ! $admin && ! $me ) {
-		return rest_ensure_response( array( 'linked' => false, 'employeeId' => null ) + ps_tasks( array(), -1 ) );
+		return rest_ensure_response( array( 'linked' => false, 'employeeId' => null, 'today' => ps_today(), 'sent' => $sent ) + ps_tasks( array(), -1 ) );
 	}
-	return rest_ensure_response( array( 'linked' => true, 'employeeId' => $emp, 'today' => ps_today() ) + ps_tasks( ps_stats_facts(), $emp ) );
+	return rest_ensure_response( array( 'linked' => true, 'employeeId' => $emp, 'today' => ps_today(), 'sent' => $sent ) + ps_tasks( ps_stats_facts(), $emp ) );
 }

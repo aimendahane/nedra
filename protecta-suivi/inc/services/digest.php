@@ -44,10 +44,12 @@ function ps_digest_run( bool $force = false ): array {
 /**
  * Prépare et envoie l'e-mail d'un utilisateur. Renvoie true si un e-mail est parti.
  *
- * @param bool $force Envoyer même s'il n'y a aucune tâche (bouton « بريد تجريبي »).
+ * @param bool        $force Envoyer même s'il n'y a aucune tâche (bouton « بريد تجريبي »).
+ * @param string|null $to    Autre adresse de destination (bouton d'essai) ; défaut : l'e-mail du compte.
  */
-function ps_digest_send_to_user( WP_User $u, bool $force = false, ?array $facts = null ): bool {
-	if ( ! is_email( $u->user_email ) ) {
+function ps_digest_send_to_user( WP_User $u, bool $force = false, ?array $facts = null, ?string $to = null ): bool {
+	$to = $to ?? $u->user_email;
+	if ( ! is_email( $to ) ) {
 		return false;
 	}
 	$facts = $facts ?? ps_stats_facts();
@@ -57,13 +59,13 @@ function ps_digest_send_to_user( WP_User $u, bool $force = false, ?array $facts 
 		return false;
 	}
 	$tasks = ps_tasks( $facts, $admin ? null : $emp );
-	$total = count( $tasks['lateOffers'] ) + count( $tasks['followupsDue'] ) + count( $tasks['deliveries'] ) + count( $tasks['noFollowup'] );
+	$total = count( $tasks['lateOffers'] ) + count( $tasks['followupsDue'] ) + count( $tasks['deliveries'] ) + count( $tasks['noFollowup'] ) + count( $tasks['assigned'] );
 	if ( ! $total && ! $force ) {
 		return false;
 	}
 	$subject = ( $admin ? 'ملخص الفريق' : 'مهامك اليوم' ) . ' — ' . wp_date( 'd/m/Y' ) . ' — متابعة المشاريع';
 	$body    = ps_digest_html( $u, $tasks, $admin, $admin ? ps_stats_kpis( array_values( array_filter( $facts, fn( $f ) => (int) current_time( 'Y' ) === $f['year'] ) ) ) : null );
-	return (bool) wp_mail( $u->user_email, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+	return true === ps_mail_send( $to, $subject, $body ); // erreur détaillée : ps_mail_last_error()
 }
 
 /**
@@ -95,12 +97,13 @@ function ps_digest_html( WP_User $u, array $tasks, bool $admin, ?array $kpis ): 
 		$h .= '</tr></table><p style="color:#5D6878;font-size:12px;margin:0">مؤشرات سنة ' . esc_html( current_time( 'Y' ) ) . '</p>';
 	}
 
+	$h .= $block( 'مهام مُسندة', $tasks['assigned'], fn( $r ) => $row( esc_html( $r['title'] ), ( $r['dueDate'] ? 'الأجل ' . esc_html( $r['dueDate'] ) . ( $r['late'] ? ' · متأخرة' : '' ) : 'بدون أجل' ) . ( $r['createdByName'] ? ' · من ' . esc_html( $r['createdByName'] ) : '' ) . $who( $r ), '#/taches' ) );
 	$h .= $block( 'عروض متأخرة — لازم قرار', $tasks['lateOffers'], fn( $r ) => $row( esc_html( $r['projectNo'] . ' — ' . ps_list_label( $r['itemTypeId'] ) . ' — ' . $r['projectName'] ), 'الأجل ' . esc_html( $r['dueDate'] ) . ' · متأخر ' . (int) $r['daysLate'] . ' يوم' . $who( $r ), '#/projet?id=' . (int) $r['projectId'] ) );
 	$h .= $block( 'متابعات مبرمجة اليوم أو فائتة', $tasks['followupsDue'], fn( $r ) => $row( esc_html( $r['projectNo'] . ' — ' . $r['projectName'] ), 'التاريخ ' . esc_html( $r['nextDate'] ) . $who( $r ), '#/projet?id=' . (int) $r['projectId'] . '&tab=followups' ) );
 	$h .= $block( 'تسليمات هذا الأسبوع', $tasks['deliveries'], fn( $r ) => $row( esc_html( $r['projectNo'] . ' — ' . ps_list_label( $r['itemTypeId'] ) ), 'أجل التسليم ' . esc_html( $r['deliveryDueDate'] ) . ( $r['late'] ? ' · متأخر ' . (int) $r['delayDays'] . ' يوم' : '' ) . $who( $r ), '#/livraison' ) );
 	$h .= $block( 'مشاريع بدون متابعة منذ أكثر من ' . (int) ps_setting( 'followup_alert_days' ) . ' أيام', $tasks['noFollowup'], fn( $r ) => $row( esc_html( $r['projectNo'] . ' — ' . $r['projectName'] ), $r['lastDate'] ? 'آخر متابعة ' . esc_html( $r['lastDate'] ) : 'لا توجد متابعة' . $who( $r ), '#/projet?id=' . (int) $r['projectId'] . '&tab=followups' ) );
 
-	if ( ! $tasks['lateOffers'] && ! $tasks['followupsDue'] && ! $tasks['deliveries'] && ! $tasks['noFollowup'] ) {
+	if ( ! array_sum( array_map( 'count', $tasks ) ) ) {
 		$h .= '<p style="color:#2B8A3E">✔ لا توجد مهام متأخرة اليوم.</p>';
 	}
 	$h .= '<p style="margin-top:24px"><a href="' . $app . '" style="background:#385B9A;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">فتح التطبيق</a></p>';

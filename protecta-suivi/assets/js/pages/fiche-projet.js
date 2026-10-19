@@ -265,6 +265,7 @@
 			<h1><span class="ps-mono">${p.projectNo}</span> — ${p.name}</h1>
 			<div class="ps-page-head__badges">${L.offerBadge(p.computed.offerStatus)} ${L.badge(p.followupStatusId, L.label(p.followupStatusId))} ${p.computed.priority ? html`<span class="ps-badge ps-prio ps-prio--${p.computed.priority}">${p.computed.priority}</span>` : ''}</div>
 			<div class="ps-page-head__actions">
+				${PS.router.can('ps_assign_tasks') && !p.deletedAt ? html`<button type="button" class="ps-btn" data-action="new-task">📌 مهمة</button>` : ''}
 				${perm.canDelete && !p.deletedAt ? html`<button type="button" class="ps-btn ps-btn--danger" data-action="delete">🗑 حذف</button>` : ''}
 				${perm.canDelete && p.deletedAt ? html`<button type="button" class="ps-btn" data-action="restore">↩ استرجاع</button>` : ''}
 				<a class="ps-btn" href="#/projets">→ المشاريع</a>
@@ -376,6 +377,7 @@
 		else if (a === 'save') save(false);
 		else if (a === 'reset') { clearDraftLocal(); state.draft = emptyDraft(); state.restored = false; state.lastSaved = null; render(); }
 		else if (a === 'cancel') { state.draft = projectToDraft(state.project); state.dirty = false; render(); }
+		else if (a === 'new-task') { PS.taskModal({ projectId: state.project.id, projectLabel: state.project.projectNo + ' — ' + state.project.name }); return; }
 		else if (a === 'delete') removeProject();
 		else if (a === 'restore') restoreProject();
 		else return;

@@ -41,5 +41,5 @@ sh tests/run-all.sh                                   # PHP + navigateur (étape
 sh tests/release-check.sh <zip final> <zip 0.1.0>     # installation vierge + mise à jour avec données
 ```
 Fichiers ajoutés : `test-projects.php`, `test-calculs.php` (jeu de démo, `fixtures/demo-expected.md`), `test-items.php`,
-`test-recap.php`, `test-admin.php`, `e2e-app.js`, `e2e-setup.php` (site de test 8081), `release-check.php|.sh`,
+`test-recap.php`, `test-admin.php`, `test-tasks.php` (1.0.1), `e2e-app.js`, `e2e-setup.php` (site de test 8081), `release-check.php|.sh`,
 `e2e-release.js` (sites vierges 8082 et 8083).

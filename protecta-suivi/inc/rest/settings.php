@@ -51,11 +51,7 @@ function ps_register_settings_routes(): void {
 		array(
 			'methods'             => 'POST',
 			'permission_callback' => ps_rest_permission( 'ps_manage_settings' ),
-			'callback'            => static function () {
-				$ok = ps_digest_send_to_user( wp_get_current_user(), true );
-				return $ok ? rest_ensure_response( array( 'ok' => true, 'to' => wp_get_current_user()->user_email ) )
-					: new WP_Error( 'ps_mail', 'تعذّر إرسال البريد. تحقق من بريد حسابك وإعدادات البريد في الاستضافة.', array( 'status' => 500 ) );
-			},
+			'callback'            => 'ps_rest_test_email',
 		)
 	);
 	register_rest_route(
@@ -138,6 +134,23 @@ function ps_rest_list_reorder( WP_REST_Request $r ) {
 	return rest_ensure_response( ps_list_values( $key ) );
 }
 
+/**
+ * Bouton « إرسال بريد تجريبي » : envoie le résumé du matin (même vide) à l'adresse choisie
+ * (défaut : celle du compte) et renvoie la VRAIE raison d'un échec.
+ */
+function ps_rest_test_email( WP_REST_Request $r ) {
+	$u  = wp_get_current_user();
+	$to = trim( (string) ( $r->get_param( 'to' ) ?: $u->user_email ) );
+	if ( ! is_email( $to ) ) {
+		return new WP_Error( 'ps_mail_to', 'عنوان البريد غير صالح: «' . $to . '». صحّح بريد حسابك (الإعدادات ← المستخدمون) أو اكتب عنوانًا آخر.', array( 'status' => 422 ) );
+	}
+	if ( ps_digest_send_to_user( $u, true, null, $to ) ) {
+		return rest_ensure_response( array( 'ok' => true, 'to' => $to, 'smtp' => (bool) ps_setting( 'smtp_enabled' ) ) );
+	}
+	$why = ps_mail_last_error() ?: 'سبب غير معروف';
+	return new WP_Error( 'ps_mail', 'تعذّر الإرسال: ' . $why . ' — فعّل «الإرسال عبر SMTP» بحساب بريد حقيقي من cPanel.', array( 'status' => 500, 'detail' => $why ) );
+}
+
 /* ---------------------------------------------------------------------- */
 /* Réglages                                                                */
 /* ---------------------------------------------------------------------- */
@@ -169,6 +182,8 @@ function ps_rest_settings_get() {
 			'cronCli'        => 'php ' . PS_DIR . '/cron.php',
 			'digestLastRun'  => get_option( 'ps_digest_last_run' ),
 			'mailFrom'       => get_option( 'admin_email' ),
+			'smtpPassSet'    => '' !== (string) get_option( 'ps_smtp_pass', '' ),
+			'myEmail'        => wp_get_current_user()->user_email,
 		)
 	);
 }
@@ -191,6 +206,43 @@ function ps_rest_settings_put( WP_REST_Request $r ) {
 	if ( array_key_exists( 'digest_enabled', $b ) ) {
 		$set['digest_enabled'] = (bool) $b['digest_enabled'];
 	}
+	// Expéditeur et SMTP (inc/mail.php).
+	if ( array_key_exists( 'mail_from_email', $b ) ) {
+		$v = trim( (string) $b['mail_from_email'] );
+		if ( '' === $v || is_email( $v ) ) {
+			$set['mail_from_email'] = $v;
+		} else {
+			$errors['mail_from_email'] = 'بريد المرسل غير صالح';
+		}
+	}
+	foreach ( array( 'mail_from_name', 'smtp_host', 'smtp_user' ) as $k ) {
+		if ( array_key_exists( $k, $b ) ) {
+			$set[ $k ] = sanitize_text_field( (string) $b[ $k ] );
+		}
+	}
+	if ( array_key_exists( 'smtp_enabled', $b ) ) {
+		$set['smtp_enabled'] = (bool) $b['smtp_enabled'];
+	}
+	if ( array_key_exists( 'smtp_port', $b ) ) {
+		$p = $b['smtp_port'];
+		if ( is_numeric( $p ) && (int) $p >= 1 && (int) $p <= 65535 ) {
+			$set['smtp_port'] = (int) $p;
+		} else {
+			$errors['smtp_port'] = 'المنفذ بين 1 و 65535';
+		}
+	}
+	if ( array_key_exists( 'smtp_secure', $b ) ) {
+		if ( in_array( $b['smtp_secure'], array( 'ssl', 'tls', 'none' ), true ) ) {
+			$set['smtp_secure'] = $b['smtp_secure'];
+		} else {
+			$errors['smtp_secure'] = 'نوع التشفير غير صالح';
+		}
+	}
+	if ( ! empty( $set['smtp_enabled'] ) && '' === trim( (string) ( $set['smtp_host'] ?? ps_setting( 'smtp_host' ) ) ) ) {
+		$errors['smtp_host'] = 'اكتب خادم SMTP (مثلًا mail.موقعك.com)';
+	}
+	// Mot de passe : jamais renvoyé ; champ vide = garder l'ancien.
+	$new_pass = isset( $b['smtp_pass'] ) ? (string) $b['smtp_pass'] : '';
 	if ( isset( $b['validation'] ) && is_array( $b['validation'] ) ) {
 		$v   = $b['validation'];
 		$cur = ps_validation_rules();
@@ -209,6 +261,10 @@ function ps_rest_settings_put( WP_REST_Request $r ) {
 	}
 	$old = ps_settings();
 	ps_update_settings( $set );
+	if ( '' !== $new_pass ) {
+		update_option( 'ps_smtp_pass', $new_pass, false );
+		ps_log( null, 'update', 'settings', null, 'smtp_pass', null, '(تم تغيير كلمة السر)' );
+	}
 	foreach ( $set as $k => $v ) {
 		if ( wp_json_encode( $old[ $k ] ?? null ) !== wp_json_encode( $v ) ) {
 			ps_log( null, 'update', 'settings', null, $k, is_array( $old[ $k ] ?? null ) ? wp_json_encode( $old[ $k ], JSON_UNESCAPED_UNICODE ) : (string) ( $old[ $k ] ?? '' ), is_array( $v ) ? wp_json_encode( $v, JSON_UNESCAPED_UNICODE ) : (string) $v );

@@ -29,6 +29,16 @@ function ps_default_settings(): array {
 		// E-mail récapitulatif du matin (étape 5).
 		'digest_enabled' => false,
 
+		// Expéditeur et serveur SMTP (1.0.1, voir inc/mail.php). Vide = envoi par défaut de l'hébergeur.
+		// Le mot de passe SMTP est gardé à part (option ps_smtp_pass), jamais dans la sauvegarde JSON.
+		'mail_from_email' => '',
+		'mail_from_name'  => 'متابعة المشاريع',
+		'smtp_enabled'    => false,
+		'smtp_host'       => '',
+		'smtp_port'       => 465,
+		'smtp_secure'     => 'ssl', // ssl | tls | none
+		'smtp_user'       => '',
+
 		// Jeton secret de l'URL Cron (généré à l'installation, régénérable).
 		'cron_token' => '',
 

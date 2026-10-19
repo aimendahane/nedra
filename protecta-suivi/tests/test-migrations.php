@@ -3,14 +3,23 @@
  * Étape 1 — Mise à jour sans perte de données (brief §8).
  *
  * Scénario : on remplit la base comme le ferait l'équipe (projet, société, صنف, suivi,
- * listes modifiées par la الإدارة, réglages personnalisés), puis on simule l'installation
- * d'une nouvelle version du thème qui contient une migration n°2 (ajout d'une colonne).
- * Tout doit être conservé à l'identique, et une sauvegarde doit avoir été faite avant.
+ * listes modifiées par la الإدارة, réglages personnalisés) sur une base remise à l'état de
+ * la version 1.0.0 (base v1 : sans la table ps_tasks), puis on installe la version actuelle
+ * (vraie migration n°2 : tâches libres) + une migration simulée n°PS_DB_VERSION+1 (ajout d'une
+ * colonne). Tout doit être conservé à l'identique, et une sauvegarde doit avoir été faite avant.
  */
 
 global $wpdb;
 
 ps_test_section( 'Mise à jour : préparation de données réelles' );
+
+// Base remise à l'état 1.0.0 (base de TEST uniquement) : pas de table ps_tasks ni de capacité ps_assign_tasks.
+$wpdb->query( 'DROP TABLE IF EXISTS ' . ps_table( 'tasks' ) );
+foreach ( array( 'ps_manager', 'ps_admin', 'administrator' ) as $role_slug ) {
+	get_role( $role_slug )->remove_cap( 'ps_assign_tasks' );
+}
+update_option( 'ps_db_version', 1 );
+$sim = PS_DB_VERSION + 1; // numéro de la migration simulée
 
 $now   = ps_now();
 $lists = ps_lists_all();
@@ -54,7 +63,7 @@ function ps_test_snapshot( array $ignore_cols = array() ): array {
 	global $wpdb;
 	$snap = array();
 	foreach ( ps_table_names() as $name ) {
-		$rows = $wpdb->get_results( 'SELECT * FROM ' . ps_table( $name ) . ' ORDER BY id', ARRAY_A );
+		$rows = $wpdb->get_results( 'SELECT * FROM ' . ps_table( $name ) . ' ORDER BY id', ARRAY_A ) ?: array(); // table absente en v1 → vide
 		foreach ( $rows as &$r ) {
 			foreach ( $ignore_cols as $c ) {
 				unset( $r[ $c ] );
@@ -67,12 +76,14 @@ function ps_test_snapshot( array $ignore_cols = array() ): array {
 	return $snap;
 }
 
+$wpdb->suppress_errors( true );
 $before = ps_test_snapshot();
+$wpdb->suppress_errors( false );
 ps_assert( count( $before['projects'] ) === 1 && count( $before['items'] ) === 1 && count( $before['followups'] ) === 1, 'données de test en place' );
 
-ps_test_section( 'Mise à jour : nouvelle version avec migration n°2' );
+ps_test_section( 'Mise à jour : version actuelle (migration 2) + migration simulée' );
 
-$migration_2 = static function (): void {
+$migration_sim = static function (): void {
 	global $wpdb;
 	$t = ps_table( 'projects' );
 	if ( ! $wpdb->get_var( "SHOW COLUMNS FROM $t LIKE 'test_new_col'" ) ) {
@@ -83,13 +94,13 @@ $migration_2 = static function (): void {
 	ps_register_roles();
 	ps_init_settings();
 };
-add_filter( 'ps_migrations', fn( $m ) => $m + array( 2 => $migration_2 ) );
+add_filter( 'ps_migrations', fn( $m ) => $m + array( $sim => $migration_sim ) );
 
 $backups_before = glob( ps_storage_dir( 'backups' ) . '/auto-*.json' ) ?: array();
 ps_check_version(); // ce que fait WordPress au premier chargement après le remplacement du zip
 $report = ps_maybe_upgrade(); // déjà à jour : ne doit rien refaire
 
-ps_assert_same( 2, (int) get_option( 'ps_db_version' ), 'ps_db_version passe à 2' );
+ps_assert_same( $sim, (int) get_option( 'ps_db_version' ), "ps_db_version passe à $sim" );
 ps_assert_same( array(), $report['ran'], 'deuxième passage : aucune migration rejouée' );
 ps_assert( false === get_option( 'ps_migration_lock' ), 'verrou de migration libéré' );
 
@@ -101,7 +112,7 @@ if ( $new_backups ) {
 	ps_assert( 'protecta-suivi-backup' === ( $b['format'] ?? '' ) && 1 === (int) $b['db_version'], 'sauvegarde au bon format, version 1 (avant migration)' );
 	ps_assert( 'PRJ-2026-001' === ( $b['tables']['projects'][0]['project_no'] ?? '' ) && 1 === count( $b['tables']['items'] ), 'la sauvegarde contient les projets et les أصناف' );
 	ps_assert( ! isset( $b['tables']['projects'][0]['test_new_col'] ), 'la sauvegarde reflète l\'état avant migration' );
-	ps_assert( (bool) preg_match( '/auto-\d{8}-\d{6}-before-migration-1-to-2-[0-9a-f]{12}\.json$/', $new_backups[0] ), 'nom de sauvegarde non devinable (suffixe aléatoire)', basename( $new_backups[0] ) );
+	ps_assert( (bool) preg_match( '/auto-\d{8}-\d{6}-before-migration-1-to-' . $sim . '-[0-9a-f]{12}\.json$/', $new_backups[0] ), 'nom de sauvegarde non devinable (suffixe aléatoire)', basename( $new_backups[0] ) );
 }
 
 $after = ps_test_snapshot( array( 'test_new_col' ) );
@@ -109,6 +120,13 @@ foreach ( array_keys( $before ) as $k ) {
 	ps_assert( $before[ $k ] == $after[ $k ], "« $k » identique après la mise à jour" );
 }
 ps_assert( (bool) $wpdb->get_var( 'SHOW COLUMNS FROM ' . ps_table( 'projects' ) . " LIKE 'test_new_col'" ), 'la nouvelle colonne est ajoutée' );
+
+ps_test_section( 'Migration 2 (1.0.1) : tâches libres' );
+ps_assert( ps_table( 'tasks' ) === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', ps_table( 'tasks' ) ) ), 'table ps_tasks créée' );
+ps_assert_same( 0, (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'tasks' ) ), 'table ps_tasks vide (rien inventé)' );
+ps_assert( get_role( 'ps_manager' )->has_cap( 'ps_assign_tasks' ) && get_role( 'ps_admin' )->has_cap( 'ps_assign_tasks' ), 'capacité ps_assign_tasks ajoutée à مسؤول مشروع et الإدارة' );
+ps_assert( ! get_role( 'ps_employee' )->has_cap( 'ps_assign_tasks' ), 'موظف : pas de capacité ps_assign_tasks' );
+ps_assert( in_array( 'tasks', array_keys( ps_backup_build()['tables'] ), true ), 'les tâches sont incluses dans la sauvegarde JSON' );
 
 ps_test_section( 'Mise à jour : listes et réglages de la الإدارة conservés' );
 
@@ -135,7 +153,7 @@ $r = ps_maybe_upgrade();
 ps_assert_same( 'locked', $r['error'], 'migration déjà en cours ailleurs → pas d\'exécution simultanée' );
 update_option( 'ps_migration_lock', time() - 3600 );
 $r = ps_maybe_upgrade();
-ps_assert( null === $r['error'] && array( 2 ) === $r['ran'], 'verrou périmé (> 10 min) → migration reprise' );
+ps_assert( null === $r['error'] && array( 2, $sim ) === $r['ran'], 'verrou périmé (> 10 min) → migrations reprises' );
 
 // Retour à l'état normal pour la suite des tests.
 remove_all_filters( 'ps_migrations' );

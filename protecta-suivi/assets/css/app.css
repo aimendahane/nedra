@@ -335,6 +335,10 @@ h2 { font-size: 1.15rem; }
 .ps-task__item a:hover { color: var(--ps-primary); }
 .ps-task__item.is-danger { border-inline-start-color: var(--ps-danger); }
 .ps-task__item.is-warning { border-inline-start-color: var(--ps-warning); }
+.ps-task__item.is-done { border-inline-start-color: var(--ps-success); opacity: .75; }
+.ps-task__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.ps-task__note { white-space: pre-line; color: var(--ps-text-muted); }
+.ps-row--tight { margin-top: 0; gap: 4px; }
 
 /* ============ 8. Recap (étape 4) ============ */
 .ps-filters--inline { margin: 0; padding: 0; border: 0; }

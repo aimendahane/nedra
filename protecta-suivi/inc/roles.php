@@ -3,7 +3,7 @@
  * Rôles et capacités (cahier des charges §1).
  *
  *   ps_employee : موظف        — saisit des projets, met à jour SES أصناف, سجل المتابعة, fichiers.
- *   ps_manager  : مسؤول مشروع — modifie toutes les données de SES projets.
+ *   ps_manager  : مسؤول مشروع — modifie toutes les données de SES projets ; envoie des tâches libres.
  *   ps_admin    : الإدارة     — tous les droits (Recap, الإعدادات, export, suppression…).
  *
  * L'administrateur WordPress reçoit aussi toutes les capacités ps_*.
@@ -32,6 +32,7 @@ function ps_role_definitions(): array {
 		$employee,
 		array(
 			'ps_edit_own_projects' => true, // Toutes les données des projets dont il est المسؤول.
+			'ps_assign_tasks'      => true, // Envoyer une tâche libre (« مهمة جديدة ») à un employé (1.0.1).
 		)
 	);
 

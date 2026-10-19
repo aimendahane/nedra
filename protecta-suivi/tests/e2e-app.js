@@ -225,8 +225,9 @@ async function step3(browser) {
 	const { ctx, page } = await newPage(browser, 'mowadhaf2');
 	await go(page, '#/taches');
 	await page.waitForSelector('.ps-task');
+	// 1.0.1 : le 1er bloc est « مهام مُسندة » (vide ici) ; les blocs §7 suivent.
 	const counts = await page.$$eval('.ps-task__count', (e) => e.map((x) => Number(x.textContent)));
-	check('مهامي : 3 عروض متأخرة, 2 متابعات, 2 تسليمات (tableau §7)', counts[0] === 3 && counts[1] === 2 && counts[3] === 2, counts.join(','));
+	check('مهامي : 0 مهام مُسندة, 3 عروض متأخرة, 2 متابعات, 2 تسليمات (tableau §7)', counts[0] === 0 && counts[1] === 3 && counts[2] === 2 && counts[4] === 2, counts.join(','));
 	await page.waitForTimeout(600);
 	const menuCount = await page.$eval('a[href="#/offres"] .ps-nav__count', (e) => e.textContent).catch(() => '');
 	check('compteur « لازم قرار » sur le menu : 3', menuCount === '3', menuCount);
@@ -514,7 +515,75 @@ async function step5(browser) {
 	await ctx.close();
 }
 
-const STEPS = { step2, step3, step4, step5 };
+/* Version 1.0.1 : tâches libres « مهمة جديدة » + réglages d'envoi des e-mails. */
+async function step6(browser) {
+	console.log('1.0.1 — مهمة جديدة (مسؤول مشروع → موظف) et e-mail');
+	{
+		const { ctx, page } = await newPage(browser, 'mowadhaf');
+		await go(page, '#/taches');
+		check('موظف : pas de bouton « مهمة جديدة »', !(await page.$('[data-new-task]')));
+		await ctx.close();
+	}
+	{
+		const { ctx, page } = await newPage(browser, 'masoul');
+		await go(page, '#/taches');
+		await page.click('[data-new-task]');
+		await page.waitForSelector('[data-task-form]');
+		await page.click('[data-btn=save]');
+		await page.waitForSelector('[data-task-form] .ps-field__error');
+		check('fenêtre « مهمة جديدة » : champs obligatoires signalés', (await page.$$('[data-task-form] .ps-field__error')).length >= 2);
+		await page.selectOption('[data-task-form] [name=employeeId]', { label: 'وفاء حامدي' });
+		await page.fill('[data-task-form] [name=title]', 'اتصل بشركة النور لتأكيد الطلبية');
+		await page.fill('[data-task-form] [name=note]', 'اسأل عن موعد الدفع');
+		await page.screenshot({ path: SHOTS + '/s6-01-nouvelle-tache.png' });
+		await page.click('[data-btn=save]');
+		await page.waitForSelector('.ps-modal', { state: 'detached' });
+		await page.waitForTimeout(500);
+		check('مسؤول مشروع : tâche envoyée → visible dans « مهام أرسلتها »', (await page.textContent('.ps-main')).includes('مهام أرسلتها') && (await page.textContent('.ps-main')).includes('اتصل بشركة النور'));
+		// Depuis Fiche Projet : la tâche est liée au projet.
+		await go(page, '#/projet?id=1');
+		await page.click('[data-action=new-task]');
+		await page.waitForSelector('[data-task-form]');
+		check('Fiche Projet : bouton « 📌 مهمة » avec le projet affiché', (await page.textContent('.ps-modal')).includes('المشروع'));
+		await page.selectOption('[data-task-form] [name=employeeId]', { label: 'وفاء حامدي' });
+		await page.fill('[data-task-form] [name=title]', 'أرسل الكتالوج');
+		await page.click('[data-btn=save]');
+		await page.waitForSelector('.ps-modal', { state: 'detached' });
+		await ctx.close();
+	}
+	{
+		const { ctx, page } = await newPage(browser, 'mowadhaf');
+		await go(page, '#/taches');
+		const txt = await page.textContent('.ps-main');
+		check('موظف : bloc « مهام مُسندة » avec les 2 tâches', txt.includes('مهام مُسندة') && txt.includes('اتصل بشركة النور') && txt.includes('أرسل الكتالوج'));
+		check('موظف : tâche liée au projet → lien vers la fiche', !!(await page.$('[data-task] a[href^="#/projet?id=1"]')));
+		await page.screenshot({ path: SHOTS + '/s6-02-mes-taches-employe.png', fullPage: true });
+		await page.click('[data-task-done]');
+		await page.waitForTimeout(800);
+		check('« ✔ تمت » : la tâche disparaît de la liste', (await page.$$('[data-task-done]')).length === 1);
+		await ctx.close();
+	}
+	{
+		const { ctx, page } = await newPage(browser, 'masoul');
+		await go(page, '#/taches');
+		check('مسؤول مشروع : voit que la tâche est « تمت »', !!(await page.$('.ps-task__item.is-done')));
+		await page.screenshot({ path: SHOTS + '/s6-03-taches-envoyees.png', fullPage: true });
+		await ctx.close();
+	}
+	{
+		const { ctx, page } = await newPage(browser, 'idara');
+		await go(page, '#/parametres?tab=general');
+		check('الإعدادات ← عام : réglages SMTP présents', !!(await page.$('[name=smtp_host]')) && !!(await page.$('[name=smtp_pass][type=password]')));
+		await page.click('[data-test-mail]');
+		await page.waitForSelector('[data-test-result] .ps-alert', { timeout: 30000 });
+		const res = (await page.textContent('[data-test-result]')).trim();
+		check('بريد تجريبي : résultat clair affiché (succès ou vraie raison de l\'échec)', res.length > 10, res);
+		await page.screenshot({ path: SHOTS + '/s6-04-reglages-mail.png', fullPage: true });
+		await ctx.close();
+	}
+}
+
+const STEPS = { step2, step3, step4, step5, step6 };
 
 (async () => {
 	const browser = await chromium.launch();

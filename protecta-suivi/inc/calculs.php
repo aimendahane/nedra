@@ -30,6 +30,7 @@
  *   5. هامش الربح
  *   6. Retards : عرض متأخر / لازم قرار, تسليم متأخر, تأخير (أيام), حالة التسليم automatique, couleur des lignes
  *   7. Alerte de suivi (7 jours)
+ *   8. Tâche libre en retard (1.0.1)
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -294,4 +295,16 @@ function ps_calc_needs_followup( ?string $followup_type, ?string $urgency_code, 
 		return true;
 	}
 	return ! empty( $next_date ) && $next_date < $today;
+}
+
+/* ---------------------------------------------------------------------------
+ * Tâches libres (« مهمة جديدة », version 1.0.1)
+ * ------------------------------------------------------------------------ */
+
+/**
+ * Tâche « متأخرة » : encore ouverte ET أجل dépassé (< aujourd'hui).
+ * Comme pour les أصناف, le jour même du أجل n'est pas un retard ; sans أجل, jamais en retard.
+ */
+function ps_calc_task_late( string $status, ?string $due_date, string $today ): bool {
+	return 'open' === $status && ! empty( $due_date ) && $due_date < $today;
 }

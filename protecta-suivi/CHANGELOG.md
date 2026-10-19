@@ -3,6 +3,21 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.0.1 — 2026-10-19 · base v2 — Tâches libres et e-mail
+
+- **Tâches libres « مهمة جديدة »** : الإدارة et مسؤول مشروع envoient une tâche à un employé (موظف, المهمة,
+  الأجل, ملاحظة, projet lié facultatif). Elle apparaît dans مهامي (bloc « مهام مُسندة », bouton « ✔ تمت »),
+  dans le compteur du menu et dans l'e-mail du matin ; l'employé reçoit aussi un e-mail immédiat.
+  L'auteur suit ses demandes (bloc « مهام أرسلتها » : ouvertes + faites depuis 14 jours), peut les modifier,
+  rouvrir ou annuler. Bouton « 📌 مهمة » dans Fiche Projet. Rien n'est supprimé (annulée = statut « ملغاة »).
+- **Base v2 (migration 2, additive)** : nouvelle table `ps_tasks` + capacité `ps_assign_tasks`
+  (مسؤول مشروع, الإدارة). Les tâches sont incluses dans la sauvegarde / restauration JSON.
+- **E-mail** : réglages « إعدادات إرسال البريد » (adresse et nom de l'expéditeur, envoi SMTP avec un vrai compte
+  e-mail cPanel, sans extension). Le bouton d'essai accepte une autre adresse et affiche la **vraie raison**
+  d'un échec (message du serveur) au lieu d'un message général. Mot de passe SMTP jamais renvoyé au
+  navigateur ni écrit dans la sauvegarde JSON.
+- Tests : 545 tests PHP (+ tâches, e-mail, migration 2) ; parcours navigateur étape « 1.0.1 ».
+
 ## 1.0.0 — 2026-10-19 · base v1 — Étape 6 : version livrée
 
 - Version complète (étapes 1 à 5) testée : 492 tests automatiques + parcours navigateur, installation sur

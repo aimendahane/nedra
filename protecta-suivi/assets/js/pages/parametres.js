@@ -171,12 +171,36 @@ PS.settingsTabs = PS.settingsTabs || {};
 				<h2 class="ps-card__title ps-mt">البريد الصباحي</h2>
 				<label class="ps-check"><input type="checkbox" name="digest_enabled" ${s.digest_enabled ? ui.raw('checked') : ''}> تفعيل إرسال ملخص المهام كل صباح (للحسابات التي فعّلت «البريد الصباحي»)</label>
 				<p class="ps-muted ps-small">آخر إرسال: ${d.digestLastRun || '—'}</p>
-				<div class="ps-row"><button type="submit" class="ps-btn ps-btn--primary">💾 حفظ</button><button type="button" class="ps-btn" data-test-mail>✉ إرسال بريد تجريبي لي</button></div>
+				<h2 class="ps-card__title ps-mt">إعدادات إرسال البريد</h2>
+				<p class="ps-small">إذا لم يصل البريد التجريبي: أنشئ حساب بريد في cPanel ← <strong>Email Accounts</strong> (مثلًا <span dir="ltr">app@موقعك.com</span>)، ثم فعّل SMTP بهذه المعطيات: الخادم <span dir="ltr">mail.موقعك.com</span>، المنفذ 465، التشفير SSL، اسم المستخدم = البريد كاملًا، وكلمة سره.</p>
+				<div class="ps-grid">
+					<label class="ps-field" data-key="mail_from_email"><span class="ps-field__label">بريد المرسل</span><input class="ps-input" type="email" dir="ltr" name="mail_from_email" value="${s.mail_from_email}" placeholder="${d.mailFrom}"></label>
+					<label class="ps-field"><span class="ps-field__label">اسم المرسل</span><input class="ps-input" name="mail_from_name" value="${s.mail_from_name}"></label>
+				</div>
+				<label class="ps-check"><input type="checkbox" name="smtp_enabled" ${s.smtp_enabled ? ui.raw('checked') : ''}> الإرسال عبر SMTP (حساب بريد حقيقي — أنصح به على HostGator)</label>
+				<div class="ps-grid">
+					<label class="ps-field" data-key="smtp_host"><span class="ps-field__label">خادم SMTP</span><input class="ps-input" dir="ltr" name="smtp_host" value="${s.smtp_host}" placeholder="mail.example.com"></label>
+					<label class="ps-field" data-key="smtp_port"><span class="ps-field__label">المنفذ</span><input class="ps-input" type="number" dir="ltr" name="smtp_port" value="${s.smtp_port}"></label>
+					<label class="ps-field" data-key="smtp_secure"><span class="ps-field__label">التشفير</span><select class="ps-input" name="smtp_secure">${[['ssl', 'SSL (465)'], ['tls', 'TLS (587)'], ['none', 'بدون']].map(function (o) {
+						return html`<option value="${o[0]}" ${s.smtp_secure === o[0] ? ui.raw('selected') : ''}>${o[1]}</option>`;
+					})}</select></label>
+					<label class="ps-field"><span class="ps-field__label">اسم المستخدم (البريد كاملًا)</span><input class="ps-input" dir="ltr" name="smtp_user" value="${s.smtp_user}" autocomplete="off"></label>
+					<label class="ps-field"><span class="ps-field__label">كلمة السر</span><input class="ps-input" type="password" dir="ltr" name="smtp_pass" autocomplete="new-password" placeholder="${d.smtpPassSet ? 'محفوظة — اتركها فارغة للإبقاء عليها' : ''}"></label>
+				</div>
+				<div class="ps-row"><button type="submit" class="ps-btn ps-btn--primary">💾 حفظ</button></div>
+				<h2 class="ps-card__title ps-mt">تجربة الإرسال</h2>
+				<div class="ps-row">
+					<input class="ps-input" type="email" dir="ltr" data-test-to value="${d.myEmail || ''}" placeholder="البريد الذي يصله الاختبار" style="max-width:320px">
+					<button type="button" class="ps-btn" data-test-mail>✉ إرسال بريد تجريبي</button>
+				</div>
+				<p class="ps-muted ps-small">احفظ أولًا ثم جرّب. إذا وصل البريد إلى «Spam»، استعمل SMTP.</p>
+				<div data-test-result></div>
 			</form>
 			<section class="ps-card">
 				<h2 class="ps-card__title">المهمة اليومية (Cron Job في cPanel)</h2>
-				<p>أنشئ مهمة يومية (مثلًا 07:00) في cPanel ← Cron Jobs بهذا الأمر:</p>
+				<p>منبّه في الاستضافة يفتح هذا الرابط السري مرة في اليوم، فيُرسل البريد الصباحي حتى لو لم يدخل أحد. في cPanel ← <strong>Cron Jobs</strong> ← Once Per Day ← اختر الساعة ← الصق الأمر في «Command» (التفاصيل في README):</p>
 				<pre class="ps-code" dir="ltr">wget -q -O /dev/null "${d.cronUrl}"</pre>
+				<p class="ps-small"><a href="${d.cronUrl}" target="_blank" rel="noopener">▶ تجربة الرابط الآن</a> — يجب أن تظهر كلمة «OK».</p>
 				<p class="ps-muted ps-small">أو (بديل): <code dir="ltr">${d.cronCli}</code></p>
 				<p class="ps-small">الرمز السري (64 حرفًا) جزء من الرابط. إذا تسرّب، جدّده ثم حدّث أمر الـ Cron.</p>
 				<button type="button" class="ps-btn ps-btn--danger" data-regen>🔄 تجديد الرمز السري</button>
@@ -184,7 +208,8 @@ PS.settingsTabs = PS.settingsTabs || {};
 			const form = box.querySelector('[data-general]');
 			form.onsubmit = function (e) {
 				e.preventDefault();
-				const body = { digest_enabled: form.digest_enabled.checked };
+				const body = { digest_enabled: form.digest_enabled.checked, smtp_enabled: form.smtp_enabled.checked, smtp_secure: form.smtp_secure.value, smtp_pass: form.smtp_pass.value };
+				['mail_from_email', 'mail_from_name', 'smtp_host', 'smtp_port', 'smtp_user'].forEach(function (k) { body[k] = form[k].value; });
 				Object.keys(d.numeric).forEach(function (k) { body[k] = Number(form[k].value); });
 				PS.api.put('settings', body).then(function (r) {
 					PS.config.settings.inactivityMinutes = r.settings.inactivity_minutes;
@@ -196,9 +221,16 @@ PS.settingsTabs = PS.settingsTabs || {};
 					ui.toast(errMsg(er), 'error');
 				});
 			};
-			box.querySelector('[data-test-mail]').onclick = function () {
-				PS.api.post('settings/test-email').then(function (r) { ui.toast('أُرسل بريد تجريبي إلى ' + r.to, 'success'); })
-					.catch(function (er) { ui.toast(errMsg(er), 'error'); });
+			box.querySelector('[data-test-mail]').onclick = function (e) {
+				const out = box.querySelector('[data-test-result]');
+				const btn = e.currentTarget;
+				btn.disabled = true;
+				out.innerHTML = html`<p class="ps-muted">جاري الإرسال…</p>`.html;
+				PS.api.post('settings/test-email', { to: box.querySelector('[data-test-to]').value }).then(function (r) {
+					out.innerHTML = html`<div class="ps-alert ps-alert--success">✔ قَبِل الخادم الرسالة وأُرسلت إلى <span dir="ltr">${r.to}</span>${r.smtp ? ' (عبر SMTP)' : ''}. إذا لم تجدها خلال دقائق، انظر في «Spam».</div>`.html;
+				}).catch(function (er) {
+					out.innerHTML = html`<div class="ps-alert ps-alert--error">${errMsg(er)}</div>`.html;
+				}).then(function () { btn.disabled = false; });
 			};
 			box.querySelector('[data-regen]').onclick = function () {
 				ui.confirm('تجديد الرمز؟ الرابط القديم يتوقف عن العمل، ويجب تحديث أمر الـ Cron في cPanel.', 'تجديد', 'danger').then(function (ok) {

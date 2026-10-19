@@ -1,9 +1,13 @@
-Protecta Suivi 1.0.0 — résultats complets des tests (2026-10-19 — WordPress 6.7, PHP 8.3, MariaDB 10.11, Apache)
+RÉSULTATS DES TESTS — Protecta Suivi 1.0.1 (base v2) — 19/10/2026
 
-================ A. Tests automatiques + navigateur (tests/run-all.sh) ================
+1) sh protecta-suivi/tests/run-all.sh : 545 tests PHP réussis / 0 échoué + navigateur étapes 1 à 5 et 1.0.1 : tout passé
+2) release-check.sh : installation vierge du zip 1.0.1 OK ; mise à jour 1.0.0 → 1.0.1 et 0.1.0 → 1.0.1 avec données : AUCUNE PERTE
+3) Restauration du fichier projets-test-excel.json (6 projets du client) sur 1.0.1 : OK
+
+=========================== Détail run-all.sh ===========================
 ######## Tests PHP ########
 Site de test installé (thème : protecta-suivi)
-Thème v1.0.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
+Thème v1.0.1 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 
 == Activation : base de données ==
   ✔ ps_db_version = dernière migration
@@ -17,6 +21,7 @@ Thème v1.0.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ table wptest_ps_followups créée
   ✔ table wptest_ps_files créée
   ✔ table wptest_ps_changelog créée
+  ✔ table wptest_ps_tasks créée
   ✔ colonne projects.project_no
   ✔ colonne projects.offer_no
   ✔ colonne projects.received_date
@@ -86,8 +91,8 @@ Thème v1.0.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 == Mise à jour : préparation de données réelles ==
   ✔ données de test en place
 
-== Mise à jour : nouvelle version avec migration n°2 ==
-  ✔ ps_db_version passe à 2
+== Mise à jour : version actuelle (migration 2) + migration simulée ==
+  ✔ ps_db_version passe à 3
   ✔ deuxième passage : aucune migration rejouée
   ✔ verrou de migration libéré
   ✔ une sauvegarde automatique créée AVANT la migration
@@ -105,9 +110,17 @@ Thème v1.0.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ « followups » identique après la mise à jour
   ✔ « files » identique après la mise à jour
   ✔ « changelog » identique après la mise à jour
+  ✔ « tasks » identique après la mise à jour
   ✔ « ps_settings » identique après la mise à jour
   ✔ « ps_seeded_lists » identique après la mise à jour
   ✔ la nouvelle colonne est ajoutée
+
+== Migration 2 (1.0.1) : tâches libres ==
+  ✔ table ps_tasks créée
+  ✔ table ps_tasks vide (rien inventé)
+  ✔ capacité ps_assign_tasks ajoutée à مسؤول مشروع et الإدارة
+  ✔ موظف : pas de capacité ps_assign_tasks
+  ✔ les tâches sont incluses dans la sauvegarde JSON
 
 == Mise à jour : listes et réglages de la الإدارة conservés ==
   ✔ valeur renommée : nom conservé
@@ -123,7 +136,7 @@ Thème v1.0.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 
 == Mise à jour : sécurité de la procédure ==
   ✔ migration déjà en cours ailleurs → pas d'exécution simultanée
-  ✔ verrou périmé (> 10 min) → migration reprise
+  ✔ verrou périmé (> 10 min) → migrations reprises
 
 == Dossiers protégés (fichiers des projets + sauvegardes) ==
   ✔ accès web interdit : racine/.htaccess (Apache 2.2 et 2.4)
@@ -595,8 +608,64 @@ Thème v1.0.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ Cron (HTTP) : bon jeton → « OK … »
   ✔ Cron : exécution renvoie un compte rendu
 
+== Tâches libres : création (droits et règles) ==
+  ✔ موظف : ne peut pas envoyer de tâche (403)
+  ✔ sans موظف ni عنوان → refusé avec les deux erreurs
+  ✔ موظف pris dans une autre liste → refusé
+  ✔ date impossible → refusée
+  ✔ projet inexistant → refusé
+  ✔ مسؤول مشروع : tâche créée (ouverte, liée au projet)
+  ✔ أجل dépassé → « متأخرة » ; auteur enregistré
+  ✔ e-mail immédiat à l'employé concerné
+  ✔ création inscrite au journal
+  ✔ الإدارة : tâche créée ; أجل futur → pas en retard
+
+== Tâches libres : qui voit quoi ==
+  ✔ موظف : voit ses tâches, pas celles des autres
+  ✔ مهامي : bloc « مهام مُسندة » avec sa tâche
+  ✔ compteur du menu مهامي inclut la tâche
+  ✔ auteur : la tâche apparaît dans « مهام أرسلتها »
+  ✔ مسؤول مشروع : ne voit pas les tâches envoyées par d'autres à d'autres
+  ✔ الإدارة : voit toutes les tâches
+  ✔ الإدارة : مهامي de l'équipe inclut toutes les tâches ouvertes
+
+== Tâches libres : تمت / rouvrir / modifier / annuler ==
+  ✔ autre employé : ne peut pas toucher la tâche (404)
+  ✔ employé concerné : ne peut pas annuler (403)
+  ✔ employé concerné : ne peut pas modifier (403)
+  ✔ employé concerné : « تمت » (qui et quand enregistrés ; plus en retard)
+  ✔ déjà faite → 409
+  ✔ tâche faite : disparaît de مهامي
+  ✔ auteur : voit qu'elle est « تمت » (14 derniers jours)
+  ✔ auteur : peut la rouvrir
+  ✔ auteur : modifie l'employé et retire le أجل
+  ✔ auteur : annule
+  ✔ tâche annulée : gardée en base (statut « cancelled »), jamais supprimée
+  ✔ tâche annulée : plus modifiable
+  ✔ مسؤول مشروع : la tâche d'un autre (pour un autre) lui est invisible (404)
+  ✔ action inconnue refusée
+
+== Tâches libres : e-mail du matin et sauvegarde ==
+  ✔ e-mail du matin : bloc « مهام مُسندة » avec la tâche
+  ✔ sauvegarde JSON : contient les tâches
+
+== E-mail : expéditeur, SMTP et vraie raison d'un échec ==
+  ✔ réglages invalides refusés (e-mail, port, chiffrement)
+  ✔ SMTP activé sans serveur → refusé
+  ✔ réglages SMTP enregistrés
+  ✔ mot de passe SMTP jamais renvoyé au navigateur
+  ✔ mot de passe SMTP absent de la sauvegarde JSON
+  ✔ champ mot de passe vide → l'ancien est gardé
+  ✔ expéditeur = adresse des réglages
+  ✔ nom de l'expéditeur = réglages
+  ✔ PHPMailer configuré en SMTP (serveur, port, SSL, compte)
+  ✔ échec d'envoi → message avec la vraie raison
+  ✔ adresse d'essai invalide → 422
+  ✔ envoi d'essai vers une autre adresse : OK
+  ✔ bouton d'essai réservé à la الإدارة
+
 ----------------------------------------
-Résultat : 492 réussis, 0 échoués
+Résultat : 545 réussis, 0 échoués
 
 ######## Navigateur : fondations (étape 1) ########
 Page de connexion
@@ -669,7 +738,7 @@ Tous les contrôles navigateur sont passés.
 
 ######## Navigateur : step3 (jeu de démonstration) ########
 Étape 3 — مهامي (محمد حسين, jeu de démonstration)
-  ✔ مهامي : 3 عروض متأخرة, 2 متابعات, 2 تسليمات (tableau §7)
+  ✔ مهامي : 0 مهام مُسندة, 3 عروض متأخرة, 2 متابعات, 2 تسليمات (tableau §7)
   ✔ compteur « لازم قرار » sur le menu : 3
 Étape 3 — Suivi Offres
   ✔ lignes rouges (en retard) : 7, vertes (مقبول) ≥ 7
@@ -738,36 +807,19 @@ Tous les contrôles navigateur sont passés.
 
 Tous les contrôles navigateur sont passés.
 
+######## Navigateur : step6 (jeu de démonstration) ########
+1.0.1 — مهمة جديدة (مسؤول مشروع → موظف) et e-mail
+  ✔ موظف : pas de bouton « مهمة جديدة »
+  ✔ fenêtre « مهمة جديدة » : champs obligatoires signalés
+  ✔ مسؤول مشروع : tâche envoyée → visible dans « مهام أرسلتها »
+  ✔ Fiche Projet : bouton « 📌 مهمة » avec le projet affiché
+  ✔ موظف : bloc « مهام مُسندة » avec les 2 tâches
+  ✔ موظف : tâche liée au projet → lien vers la fiche
+  ✔ « ✔ تمت » : la tâche disparaît de la liste
+  ✔ مسؤول مشروع : voit que la tâche est « تمت »
+  ✔ الإعدادات ← عام : réglages SMTP présents
+  ✔ بريد تجريبي : résultat clair affiché (succès ou vraie raison de l'échec)
+
+Tous les contrôles navigateur sont passés.
+
 === TOUS LES TESTS SONT PASSÉS ===
-
-================ B. Contrôles de livraison : installation vierge + mise à jour depuis 0.1.0 (tests/release-check.sh) ================
-######## 1. Installation vierge : /srv/protecta-suivi-1.0.0.zip ########
-Téléverser le thème : OK
-Thème actif : protecta-suivi 1.0.0
-######## 2. Mise à jour depuis 0.1.0 avec données ########
-Téléverser le thème : OK
-Thème actif : protecta-suivi 0.1.0
-Données de test insérées (projet PRJ-2026-001, comptes wafa et idara, fichier, listes personnalisées)
-Photographie : 1 projet(s), 106 valeurs de listes
-Mise à jour (remplacer le thème) : OK
-Thème après mise à jour : 1.0.0 · base v1
-AUCUNE PERTE : projets, أصناف, intervenants, sociétés, suivis, fichiers, journal, listes, réglages et comptes identiques
-######## Navigateur ########
-Installation vierge (zip 1.0.0) — http://localhost:8082
-  ✔ page de connexion personnalisée (pas WordPress)
-  ✔ connexion (administrateur du site) → application
-  ✔ saisie d'un projet : PRJ-2026-001 enregistré
-  ✔ Recap : 1 projet
-  ✔ Recap : graphique mensuel dessiné
-  ✔ dossier des sauvegardes inaccessible par URL
-Mise à jour 0.1.0 → 1.0.0 avec données — http://localhost:8083
-  ✔ compte créé en 0.1.0 : connexion OK après mise à jour
-  ✔ projet d'avant la mise à jour présent dans Base Projets
-  ✔ سجل المتابعة conservé
-  ✔ fichier joint conservé et téléchargeable
-  ✔ Suivi Livraison : le صنف مقبول d'avant est suivi
-  ✔ Recap après mise à jour : 1 projet, 1 مؤكدة, 12 500 LYD
-  ✔ listes personnalisées conservées (« كهرباء عامة »)
-
-Contrôles de livraison : tout est passé.
-=== LIVRAISON VÉRIFIÉE ===
