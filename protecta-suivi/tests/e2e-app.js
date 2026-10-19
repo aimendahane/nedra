@@ -302,7 +302,78 @@ async function step3(browser) {
 	await mob.ctx.close();
 }
 
-const STEPS = { step2, step3 };
+async function step4(browser) {
+	console.log('Étape 4 — Recap (الإدارة, jeu de démonstration)');
+	const { ctx, page } = await newPage(browser, 'idara');
+	await go(page, '#/recap?year=2026');
+	await page.waitForSelector('#ch-month');
+	await page.waitForTimeout(500);
+	const kpis = await page.$$eval('.ps-kpi', (e) => e.map((x) => x.textContent.replace(/\s+/g, ' ').trim()));
+	check('عدد المشاريع 23 (ملغى: 1) avec comparaison 2025', kpis[0].includes('23') && kpis[0].includes('ملغى: 1') && kpis[0].includes('2025'), kpis[0]);
+	check('نسبة النجاح 63.6 % ↑ 13.6 نقطة', kpis.some((k) => k.includes('63.6') && k.includes('13.6')));
+	check('montants séparés par devise (LYD, USD, EUR, TND)', kpis.some((k) => k.includes('75,000') && k.includes('LYD') && k.includes('TND')));
+	const drawn = await page.evaluate(() => Array.from(document.querySelectorAll('.ps-chart canvas')).map((c) => {
+		const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0;
+		for (let i = 3; i < d.length; i += 4 * 50) if (d[i] > 0) n++; return n > 20;
+	}));
+	check('5 graphiques dessinés (mois, تصنيف, أصناف, مكان, أسباب…)', drawn.length >= 5 && drawn.every(Boolean), drawn.join(','));
+	await page.screenshot({ path: SHOTS + '/s4-01-recap.png', fullPage: true });
+
+	// Clic sur la barre « أكتوبر » (mois 10) → Base Projets filtrée.
+	const box = await page.$eval('#ch-month', (c) => { const ch = Chart.getChart(c); const m = ch.getDatasetMeta(0).data[9]; const r = c.getBoundingClientRect(); return { x: r.left + m.x, y: r.top + m.y + 4 }; });
+	await page.mouse.click(box.x, box.y);
+	await page.waitForTimeout(900);
+	check('clic sur une barre du mois → Base Projets filtrée (année + mois)', page.url().includes('#/projets') && page.url().includes('month=10') && page.url().includes('year=2026'), page.url());
+	const n = (await page.textContent('[data-results] [role=status]')).trim();
+	check('أكتوبر 2026 / جارية : 3 projets', n.startsWith('3'), n);
+
+	await go(page, '#/recap?year=2026');
+	await page.waitForSelector('tr.ps-drill');
+	await page.click('text=السعر غير منافس');
+	await page.waitForTimeout(900);
+	check('clic sur une raison de non-envoi → Suivi Offres filtrée', page.url().includes('#/offres') && page.url().includes('notSentReasonId'));
+	check('2 أصناف « السعر غير منافس »', (await page.$$('.ps-table--edit tbody tr')).length === 2);
+
+	await go(page, '#/recap?year=2026&month=10');
+	await page.waitForSelector('.ps-kpi');
+	check('filtre الشهر : أكتوبر → 4 projets', (await page.textContent('.ps-kpi')).includes('4'));
+	await go(page, '#/recap?year=2030');
+	await page.waitForTimeout(500);
+	check('année sans projet : état vide clair', (await page.textContent('.ps-empty')).includes('لا توجد مشاريع'));
+
+	await go(page, '#/recap?year=2026');
+	await page.waitForSelector('#ch-month');
+	await page.click('#ps-theme-toggle'); // nuit
+	await page.waitForTimeout(500);
+	const tickColor = await page.$eval('#ch-month', (c) => Chart.getChart(c).options.scales.x.ticks.color);
+	check('mode nuit : graphiques redessinés avec les couleurs du thème', /rgb\(230|#E6EAF0|#e6eaf0/i.test(tickColor), tickColor);
+	await page.screenshot({ path: SHOTS + '/s4-02-recap-nuit.png', fullPage: true });
+	await page.click('#ps-theme-toggle');
+	await page.click('#ps-theme-toggle'); // retour auto
+	await page.waitForTimeout(300);
+
+	await page.emulateMedia({ media: 'print' });
+	await page.screenshot({ path: SHOTS + '/s4-03-impression.png', fullPage: true });
+	check('impression : menu et filtres masqués', !(await page.isVisible('.ps-nav')) && !(await page.isVisible('.ps-recap-filters')));
+	await page.pdf({ path: SHOTS + '/recap-2026.pdf', format: 'A4', printBackground: true });
+	await page.emulateMedia({ media: 'screen' });
+	await ctx.close();
+
+	const mob = await newPage(browser, 'idara', true);
+	await go(mob.page, '#/recap?year=2026');
+	await mob.page.waitForSelector('#ch-month');
+	await mob.page.waitForTimeout(500);
+	check('téléphone : Recap sans défilement horizontal', !(await mob.page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)));
+	await mob.page.screenshot({ path: SHOTS + '/s4-04-recap-mobile.png', fullPage: true });
+	await mob.ctx.close();
+
+	const emp = await newPage(browser, 'mowadhaf2');
+	await go(emp.page, '#/recap');
+	check('موظف : pas d\'accès au Recap (redirigé)', !(await emp.page.$('#ch-month')) && !(await emp.page.$('a[href="#/recap"]')));
+	await emp.ctx.close();
+}
+
+const STEPS = { step2, step3, step4 };
 
 (async () => {
 	const browser = await chromium.launch();

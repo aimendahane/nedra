@@ -47,8 +47,10 @@ function ps_enqueue_assets(): void {
 		$prev = array( $handle );
 	}
 	$router = $prev;
+	// Chart.js (fichier inclus dans le thème, aucun CDN) : nécessaire à la page Recap.
+	wp_enqueue_script( 'ps-chartjs', PS_URL . '/assets/vendor/chart.umd.min.js', array(), '4.5.1', true );
 	foreach ( ps_page_scripts() as $name ) {
-		wp_enqueue_script( 'ps-page-' . $name, PS_URL . '/assets/js/pages/' . $name . '.js', $router, $v, true );
+		wp_enqueue_script( 'ps-page-' . $name, PS_URL . '/assets/js/pages/' . $name . '.js', 'recap' === $name ? array_merge( $router, array( 'ps-chartjs' ) ) : $router, $v, true );
 	}
 
 	wp_add_inline_script( 'ps-core-format', 'window.PS = window.PS || {}; PS.config = ' . wp_json_encode( ps_client_config(), JSON_UNESCAPED_UNICODE ) . ';', 'before' );

@@ -335,3 +335,35 @@ h2 { font-size: 1.15rem; }
 .ps-task__item a:hover { color: var(--ps-primary); }
 .ps-task__item.is-danger { border-inline-start-color: var(--ps-danger); }
 .ps-task__item.is-warning { border-inline-start-color: var(--ps-warning); }
+
+/* ============ 8. Recap (étape 4) ============ */
+.ps-filters--inline { margin: 0; padding: 0; border: 0; }
+.ps-kpis { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); margin-bottom: 16px; }
+.ps-kpi { background: var(--ps-surface); border: 1px solid var(--ps-border); border-radius: var(--ps-radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; border-top: 3px solid var(--ps-primary); }
+.ps-kpi[data-drill] { cursor: pointer; }
+.ps-kpi[data-drill]:hover { box-shadow: var(--ps-shadow); }
+.ps-kpi--good { border-top-color: var(--ps-success); }
+.ps-kpi--bad { border-top-color: var(--ps-danger); }
+.ps-kpi--hero { border-top-color: var(--ps-accent); }
+.ps-kpi--wide { grid-column: span 2; }
+.ps-kpi__label { color: var(--ps-text-muted); font-size: var(--ps-font-size-sm); font-weight: 600; }
+.ps-kpi__value { font-size: 2rem; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.ps-kpi--hero .ps-kpi__value { color: var(--ps-accent); }
+.ps-kpi__sub { font-size: 12px; color: var(--ps-text-muted); }
+.ps-kpi__money { font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.ps-kpi__cmp { font-size: 12px; font-weight: 600; }
+.ps-kpi__cmp--up { color: var(--ps-success); }
+.ps-kpi__cmp--down { color: var(--ps-danger); }
+.ps-recap-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr)); }
+.ps-recap-card { margin: 0; min-width: 0; }
+.ps-recap-card--wide { grid-column: 1 / -1; }
+.ps-chart { position: relative; width: 100%; }
+.ps-chart canvas { cursor: pointer; }
+.ps-chart-table { margin-top: 8px; font-size: var(--ps-font-size-sm); }
+.ps-chart-table summary { cursor: pointer; color: var(--ps-primary); }
+.ps-table--compact th, .ps-table--compact td { padding: 6px 8px; }
+tr.ps-drill { cursor: pointer; }
+tr.ps-drill:hover td { background: var(--ps-primary-soft); }
+.ps-row-muted td { color: var(--ps-text-muted); font-style: italic; }
+.ps-print-only { display: none; }
+@media (max-width: 560px) { .ps-kpi--wide { grid-column: auto; } .ps-kpi__value { font-size: 1.6rem; } }

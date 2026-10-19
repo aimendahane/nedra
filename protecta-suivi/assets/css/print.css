@@ -25,3 +25,15 @@ body { background: #fff !important; }
 .ps-card { break-inside: avoid; box-shadow: none; }
 .ps-table th { position: static; }
 .ps-table-wrap { overflow: visible; }
+
+/* Recap : mise en page d'impression */
+.ps-print-only { display: block !important; }
+.ps-recap-filters, .ps-chart-table, .ps-footer { display: none !important; }
+.ps-kpis { grid-template-columns: repeat(4, 1fr) !important; gap: 6px !important; }
+.ps-kpi { padding: 6px 8px !important; break-inside: avoid; }
+.ps-kpi__value { font-size: 1.3rem !important; }
+.ps-kpi--wide { grid-column: span 2 !important; }
+.ps-recap-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+.ps-recap-card { break-inside: avoid; page-break-inside: avoid; }
+.ps-chart { max-height: 260px; }
+.ps-header { border-bottom-width: 2px; }

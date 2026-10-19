@@ -3,6 +3,15 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 0.4.0 — 2026-10-19 · base v1 — Étape 4 : Recap
+
+- Page Recap (الإدارة) : filtres السنة / الشهر / الموظف / المكان / المصدر ; 12 indicateurs avec comparaison
+  à la même période de l'année précédente (↑/↓).
+- Graphiques Chart.js 4.5.1 (inclus, sans CDN) : mois (barres empilées + total), تصنيف (anneau), أصناف,
+  أماكن, أسباب عدم الإرسال, لم تُرسل حسب الصنف — valeurs affichées, RTL, mode nuit, téléphone.
+- Tableaux : حالة المتابعة, الاستعجال, الموظف (triable), المصدر (« غير محدد » à part), أهم 10 شركات, المنافسون.
+- Clic sur une barre / part / ligne → page filtrée ; bouton « طباعة / PDF ».
+
 ## 0.3.0 — 2026-10-19 · base v1 — Étape 3 : suivi des offres et des livraisons
 
 - Tous les calculs du brief §6 dans `inc/calculs.php` (statut d'offre du projet, المرسلة، لم تُرسل، نسبة النجاح،

@@ -132,3 +132,16 @@ chaque décision prise seul.
 - **« متأخر »** (livraison) n'est jamais choisi à la main : il s'affiche automatiquement ; le statut choisi
   (في الانتظار / جاهز / تم التسليم) est conservé dessous.
 - Retirer « لم يُرسل » d'un صنف ne supprime pas le motif saisi (il reste en mémoire, ignoré dans les calculs).
+
+### Étape 4 — Recap
+- **Comparaison N-1** : variation en % pour les nombres et les montants (par devise) ; pour les taux
+  (نسبة النجاح، نسبة الإرسال) l'écart est donné en **points**. Si l'année précédente vaut 0 : « جديد ».
+- **Répartitions** (mois, تصنيف, حالة, استعجال, موظف, مكان, مصدر) : projets ملغى exclus (comptés à part).
+- **حسب الموظف** = الموظف المتابع ; « مسلّمة » = suivi de type مسلّم.
+- **حسب الصنف** : un projet compte une fois par صنف demandé (y compris un صنف annulé).
+- **أسباب عدم الإرسال** : comptées par صنف « لم يُرسل » (un projet peut avoir plusieurs motifs).
+- **Couleurs des barres mensuelles** reprises des réglages : جارية = couleur de la 1re حالة de type جارية,
+  مرفوضة = celle de « رفض العرض », مؤكدة = celle de la حالة de type مسلّم.
+- **Anneau التصنيف** : 7 parts + « أخرى » au-delà de 8 ; palette de 8 couleurs testée pour le daltonisme.
+- **Top sociétés** : classées par nombre de projets puis par nombre de مؤكدة ; **concurrents** : 15 premiers.
+- Chaque graphique a une vue « عرض كجدول » (accessibilité) ; impression A4 via le bouton « طباعة / PDF ».

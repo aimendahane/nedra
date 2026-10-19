@@ -729,7 +729,7 @@ function ps_project_list_filters(): array {
  * au plus) : cela permet de filtrer aussi sur les valeurs calculées (حالة العرض، الأولوية)
  * et de chercher en arabe normalisé.
  *
- * @param array $args q, year, month, offerStatus, priority, itemTypeId, companyId, trash,
+ * @param array $args q, year, month, offerStatus, followupType, priority, itemTypeId, companyId, trash,
  *                    sort, dir (asc|desc), page, perPage + ps_project_list_filters().
  */
 function ps_projects_list( array $args ): array {
@@ -791,6 +791,14 @@ function ps_projects_list( array $args ): array {
 		}
 		if ( $skip ) {
 			continue;
+		}
+		// Type de حالة المتابعة (clic sur le graphique mensuel du Recap) : ongoing | confirmed | rejected.
+		if ( ! empty( $args['followupType'] ) ) {
+			$ft = $lists[ (int) $r['followup_status_id'] ]['type'] ?? 'ongoing';
+			$ft = 'delivered' === $ft ? 'confirmed' : $ft;
+			if ( $ft !== $args['followupType'] || 'cancelled' === $comp['offerStatus'] ) {
+				continue;
+			}
 		}
 		if ( ! empty( $args['offerStatus'] ) && $comp['offerStatus'] !== $args['offerStatus'] ) {
 			continue;

@@ -64,6 +64,7 @@ PS.session = (function () {
 		document.documentElement.setAttribute('data-theme', theme);
 		PS.config.user.prefs.theme = theme;
 		showThemeIcon(theme);
+		window.dispatchEvent(new CustomEvent('ps:theme', { detail: theme })); // ex. Recap : redessiner les graphiques
 		PS.api.post('me/prefs', { theme: theme }).catch(function () {});
 		PS.ui.toast(THEME_LABELS[theme]);
 	}
