@@ -30,7 +30,8 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 
 ### Prochaines actions
 1. Dès que l'accès GitHub est rétabli : `git push -u origin claude/sweet-hopper-le9393` puis
-   `git push origin --tags` (tags v1.0.0, v1.0.1, v1.0.2 déjà créés) → le workflow publie les zips.
+   (FAIT : branche poussée ; les tags sont refusés par le proxy → le workflow crée lui-même la release
+   quand style.css change, ou via Actions → Release → Run workflow).
 2. Retours du client sur les points ouverts ci-dessous ; toute évolution = nouvelle version (1.0.1…), CHANGELOG,
    et nouvelle migration si la structure change (tests/test-migrations.php à étendre).
 

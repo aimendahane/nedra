@@ -1,5 +1,9 @@
 # Publie le thème installable dans les « Releases » du dépôt.
-# Déclenchement : pousser un tag de version, ex. `git tag v1.0.0 && git push origin v1.0.0`.
+# Déclenchement :
+#   - automatiquement quand la version du thème (protecta-suivi/style.css) change sur une branche :
+#     la release vX.Y.Z est créée si elle n'existe pas encore (le tag est créé par GitHub) ;
+#   - en poussant un tag de version, ex. `git tag v1.0.2 && git push origin v1.0.2` ;
+#   - à la main : onglet Actions → Release → Run workflow.
 # Le zip est construit par tools/build-zip.sh (sans le dossier tests) ; le numéro du tag doit
 # correspondre à la version du thème (style.css et inc/config.php).
 name: Release
@@ -7,6 +11,9 @@ name: Release
 on:
   push:
     tags: ['v*']
+    branches: ['**']
+    paths: ['protecta-suivi/style.css']
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -22,19 +29,26 @@ jobs:
         run: |
           ZIP="$(sh tools/build-zip.sh)"
           VERSION="$(sed -n 's/^Version: *//p' protecta-suivi/style.css | tr -d '\r')"
-          if [ "v$VERSION" != "${GITHUB_REF_NAME}" ]; then
+          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "v$VERSION" != "${GITHUB_REF_NAME}" ]; then
             echo "Le tag ${GITHUB_REF_NAME} ne correspond pas à la version du thème ($VERSION)" >&2
             exit 1
           fi
           echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Publier la release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.build.outputs.tag }}
         run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "La release $TAG existe déjà : rien à faire."
+            exit 0
+          fi
           NOTES="$(awk '/^## /{n++} n==1' protecta-suivi/CHANGELOG.md)"
-          gh release create "${GITHUB_REF_NAME}" "${{ steps.build.outputs.zip }}" \
-            --title "Protecta Suivi ${GITHUB_REF_NAME}" \
+          gh release create "$TAG" "${{ steps.build.outputs.zip }}" \
+            --target "${GITHUB_SHA}" \
+            --title "Protecta Suivi $TAG" \
             --notes "$NOTES
 
           Installation : Apparence > Thèmes > Ajouter > Téléverser un thème (voir README.md, en arabe)."
