@@ -383,3 +383,19 @@ tr.ps-drill:hover td { background: var(--ps-primary-soft); }
 .ps-report { margin: 8px 0; padding-inline-start: 18px; display: grid; gap: 4px; }
 .ps-add-value input[type=color], .ps-table input[type=color] { width: 44px; height: 34px; padding: 2px; border: 1px solid var(--ps-border); border-radius: var(--ps-radius-sm); background: var(--ps-surface); }
 @media (max-width: 760px) { .ps-settings-lists { grid-template-columns: 1fr; } }
+
+/* ---------- Notifications 🔔 (1.0.2) ---------- */
+.ps-bell { position: relative; }
+.ps-bell__btn { position: relative; }
+.ps-bell__count { position: absolute; top: -6px; inset-inline-end: -6px; background: var(--ps-danger); color: #fff; border-radius: 999px; font-size: 11px; min-width: 18px; height: 18px; line-height: 18px; padding: 0 4px; text-align: center; }
+.ps-bell__panel { position: absolute; top: calc(100% + 8px); inset-inline-end: -60px; width: min(400px, calc(100vw - 24px)); max-height: 70vh; overflow-y: auto; background: var(--ps-surface); border: 1px solid var(--ps-border); border-radius: var(--ps-radius); box-shadow: var(--ps-shadow); z-index: 60; }
+.ps-bell__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--ps-border); position: sticky; top: 0; background: var(--ps-surface); }
+.ps-bell__list { list-style: none; margin: 0; padding: 0; }
+.ps-bell__item { display: block; width: 100%; text-align: start; padding: 10px 12px; border: 0; border-bottom: 1px solid var(--ps-border); background: none; color: var(--ps-text); cursor: pointer; font: inherit; }
+.ps-bell__item:hover { background: var(--ps-surface-2); }
+.ps-bell__item.is-unread { background: var(--ps-primary-soft); border-inline-start: 3px solid var(--ps-accent); }
+.ps-bell__title { font-weight: 600; display: block; }
+.ps-bell__body { white-space: pre-line; font-size: 13px; color: var(--ps-text-muted); display: block; margin-top: 2px; }
+.ps-bell__meta { font-size: 12px; color: var(--ps-text-muted); display: block; margin-top: 4px; }
+.ps-bell__foot { padding: 10px 12px; font-size: 13px; }
+@media (max-width: 640px) { .ps-bell__panel { position: fixed; top: 60px; inset-inline: 12px; width: auto; } }

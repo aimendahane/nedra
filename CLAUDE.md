@@ -19,17 +19,18 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 4 | Recap (Chart.js 4.5.1 inclus), comparaison N-1, clics filtrants, impression | ✅ terminée, tests verts | 0.4.0 · `6fb1871` + `Tests: fresh demo site…` |
 | 5 | الإعدادات, comptes, fusion annuaire, import prototype, export, sauvegarde/restauration, e-mail du matin, Cron | ✅ terminée, tests verts | 0.5.0 |
 | 6 | Zip final, test installation vierge + mise à jour depuis 0.1.0, docs, release GitHub | ✅ terminée (sauf publication GitHub, bloquée) | 1.0.0 |
-| 1.0.1 | Demande client : tâches libres « مهمة جديدة » + e-mail (SMTP, vraie erreur) + explication Cron | ✅ terminée, tests verts | **1.0.1** · base v2 |
+| 1.0.1 | Demande client : tâches libres « مهمة جديدة » + e-mail (SMTP, vraie erreur) + explication Cron | ✅ terminée, tests verts | 1.0.1 · base v2 |
+| 1.0.2 | Demande client : notifications 🔔 (cloche + e-mail immédiat facultatif) | ✅ terminée, tests verts | **1.0.2** · base v3 |
 
-### Tests (dernier passage complet, version 1.0.1) — détail : `docs/TEST-RESULTS.txt`
-- `sh protecta-suivi/tests/run-all.sh` → **545 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
-  (étapes 1 à 5 + step6 = 1.0.1) passés.
+### Tests (dernier passage complet, version 1.0.2) — détail : `docs/TEST-RESULTS.txt`
+- `sh protecta-suivi/tests/run-all.sh` → **580 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
+  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2) passés.
 - `sh protecta-suivi/tests/release-check.sh dist/protecta-suivi-1.0.0.zip dist/protecta-suivi-0.1.0.zip` →
   installation vierge (connexion, saisie, Recap) OK ; mise à jour 0.1.0 → 1.0.0 avec données : **aucune perte**.
 
 ### Prochaines actions
 1. Dès que l'accès GitHub est rétabli : `git push -u origin claude/sweet-hopper-le9393` puis
-   `git tag v1.0.0 && git push origin v1.0.0` → le workflow `.github/workflows/release.yml` publie le zip.
+   `git push origin --tags` (tags v1.0.0, v1.0.1, v1.0.2 déjà créés) → le workflow publie les zips.
 2. Retours du client sur les points ouverts ci-dessous ; toute évolution = nouvelle version (1.0.1…), CHANGELOG,
    et nouvelle migration si la structure change (tests/test-migrations.php à étendre).
 
@@ -230,3 +231,12 @@ chaque décision prise seul.
 - **E-mail** : SMTP intégré via `phpmailer_init` (aucune extension). Mot de passe dans l'option `ps_smtp_pass`,
   hors `ps_settings`, jamais renvoyé ni sauvegardé dans le JSON (à ressaisir après une restauration).
   Expéditeur : réglage, sinon utilisateur SMTP, sinon celui de WordPress.
+
+### Version 1.0.2 — décisions prises (notifications)
+- Source unique : le journal `ps_log` (+ `ps_followup_add`, non journalisé) alimente un tampon PAR REQUÊTE,
+  vidé au `shutdown` (`ps_notify_flush`) → une notification par personne et par projet et par sauvegarde.
+- Destinataires = comptes actifs liés à : المسؤول + المتابع (+ employés des أصناف pour un nouveau projet,
+  + nouvel employé d'un صنف). Jamais l'auteur. Ignorés : import du prototype, fusion annuaire, tâches libres.
+  Le الوسيط n'est pas notifié (non demandé).
+- E-mail immédiat : préférence par compte `ps_instant_email` (désactivée par défaut), réglable dans la cloche.
+- Table `ps_notifications` jamais vidée (règle n°1) ; la cloche montre les 30 dernières.

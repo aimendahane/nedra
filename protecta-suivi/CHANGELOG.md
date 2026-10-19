@@ -3,6 +3,18 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.0.2 — 2026-10-19 · base v3 — Notifications 🔔
+
+- **Cloche 🔔** dans l'en-tête : nombre de nouveautés (rafraîchi chaque minute), liste des dernières
+  notifications, clic → fiche du projet (notification marquée lue), « تعليم الكل كمقروء ».
+- **Qui est prévenu** : nouveau projet → المسؤول + المتابع + employés des أصناف ; صنف ajouté / confié à un autre
+  employé → cet employé ; tout autre changement (حالة العرض, حالة المتابعة, dates, montants, أطراف, سجل المتابعة,
+  fichiers, suppression) → المسؤول + المتابع. Jamais l'auteur de la modification. Pas pour l'import ni la restauration.
+- **Une sauvegarde = une notification** par personne et par projet, avec le détail des changements.
+- **E-mail immédiat** facultatif, par compte (case « بريد فوري عند كل تغيير » dans la cloche), désactivé par défaut.
+- **Base v3 (migration 3, additive)** : table `ps_notifications` (jamais vidée), incluse dans la sauvegarde JSON.
+- Tests : 580 tests PHP (+ notifications, migration 3) ; parcours navigateur « 1.0.2 » (PC et mobile).
+
 ## 1.0.1 — 2026-10-19 · base v2 — Tâches libres et e-mail
 
 - **Tâches libres « مهمة جديدة »** : الإدارة et مسؤول مشروع envoient une tâche à un employé (موظف, المهمة,

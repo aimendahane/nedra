@@ -165,6 +165,7 @@ PS.router = (function () {
 	function refresh() {
 		route();
 		refreshCounts();
+		if (PS.notifications) PS.notifications.refresh();
 	}
 
 	return { register, go, setParams, setCount, refreshCounts, refresh, can, lists, route, params: function () { return parseHash().params; } };

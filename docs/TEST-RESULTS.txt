@@ -1,13 +1,12 @@
-RÉSULTATS DES TESTS — Protecta Suivi 1.0.1 (base v2) — 19/10/2026
+RÉSULTATS DES TESTS — Protecta Suivi 1.0.2 (base v3) — 19/10/2026
 
-1) sh protecta-suivi/tests/run-all.sh : 545 tests PHP réussis / 0 échoué + navigateur étapes 1 à 5 et 1.0.1 : tout passé
-2) release-check.sh : installation vierge du zip 1.0.1 OK ; mise à jour 1.0.0 → 1.0.1 et 0.1.0 → 1.0.1 avec données : AUCUNE PERTE
-3) Restauration du fichier projets-test-excel.json (6 projets du client) sur 1.0.1 : OK
+1) sh protecta-suivi/tests/run-all.sh : 580 tests PHP réussis / 0 échoué + navigateur étapes 1 à 5, 1.0.1 et 1.0.2 : tout passé
+2) release-check.sh : installation vierge du zip 1.0.2 OK ; mise à jour 1.0.1 → 1.0.2 et 0.1.0 → 1.0.2 avec données : AUCUNE PERTE
 
 =========================== Détail run-all.sh ===========================
 ######## Tests PHP ########
 Site de test installé (thème : protecta-suivi)
-Thème v1.0.1 — WordPress 6.7-alpha-58716 — PHP 8.3.6
+Thème v1.0.2 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 
 == Activation : base de données ==
   ✔ ps_db_version = dernière migration
@@ -22,6 +21,7 @@ Thème v1.0.1 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ table wptest_ps_files créée
   ✔ table wptest_ps_changelog créée
   ✔ table wptest_ps_tasks créée
+  ✔ table wptest_ps_notifications créée
   ✔ colonne projects.project_no
   ✔ colonne projects.offer_no
   ✔ colonne projects.received_date
@@ -92,7 +92,7 @@ Thème v1.0.1 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ données de test en place
 
 == Mise à jour : version actuelle (migration 2) + migration simulée ==
-  ✔ ps_db_version passe à 3
+  ✔ ps_db_version passe à 4
   ✔ deuxième passage : aucune migration rejouée
   ✔ verrou de migration libéré
   ✔ une sauvegarde automatique créée AVANT la migration
@@ -111,6 +111,7 @@ Thème v1.0.1 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ « files » identique après la mise à jour
   ✔ « changelog » identique après la mise à jour
   ✔ « tasks » identique après la mise à jour
+  ✔ « notifications » identique après la mise à jour
   ✔ « ps_settings » identique après la mise à jour
   ✔ « ps_seeded_lists » identique après la mise à jour
   ✔ la nouvelle colonne est ajoutée
@@ -121,6 +122,10 @@ Thème v1.0.1 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ capacité ps_assign_tasks ajoutée à مسؤول مشروع et الإدارة
   ✔ موظف : pas de capacité ps_assign_tasks
   ✔ les tâches sont incluses dans la sauvegarde JSON
+
+== Migration 3 (1.0.2) : notifications ==
+  ✔ table ps_notifications créée
+  ✔ table ps_notifications vide (aucune notification inventée pour les anciennes données)
 
 == Mise à jour : listes et réglages de la الإدارة conservés ==
   ✔ valeur renommée : nom conservé
@@ -664,8 +669,51 @@ Thème v1.0.1 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ envoi d'essai vers une autre adresse : OK
   ✔ bouton d'essai réservé à la الإدارة
 
+== Notifications : nouveau projet ==
+  ✔ projet créé par la الإدارة
+  ✔ المسؤول, المتابع et l'employé du صنف : 1 notification chacun
+  ✔ employés non concernés : rien
+  ✔ l'auteur (الإدارة) n'est pas notifié de sa propre action
+  ✔ notification « مشروع جديد » : numéro, nom, auteur
+
+== Notifications : changement de statut, suivi, fichier ==
+  ✔ l'employé passe son صنف à « مرسل »
+  ✔ المسؤول + المتابع prévenus ; pas l'employé lui-même
+  ✔ message : « حالة العرض (UPS): … ← مرسل »
+  ✔ المتابع ajoute au سجل المتابعة
+  ✔ المسؤول prévenu, pas l'auteur du suivi
+  ✔ le texte du suivi figure dans la notification
+
+== Notifications : une sauvegarde = une seule notification par personne ==
+  ✔ الإدارة modifie plusieurs champs + change l'employé du صنف
+  ✔ plusieurs changements → 1 seule notification pour المسؤول et المتابع
+  ✔ nouvel employé du صنف prévenu
+  ✔ employé non concerné : toujours rien
+  ✔ le détail des changements est listé
+  ✔ type principal = changement de حالة المتابعة
+
+== Notifications : cloche (API) et « lu » ==
+  ✔ المسؤول : 4 notifications non lues (projet, statut, suivi, modification), la plus récente d'abord
+  ✔ nom de l'auteur affiché
+  ✔ limit=0 → seulement le nombre (pour la cloche)
+  ✔ un autre compte ne peut pas marquer les notifications d'autrui
+  ✔ un compte ne voit que SES notifications
+  ✔ marquer une notification lue → 3 non lues
+  ✔ « تعليم الكل كمقروء » → 0
+  ✔ les notifications lues restent enregistrées (jamais supprimées)
+
+== Notifications : e-mail immédiat (préférence du compte) ==
+  ✔ المتابع active « بريد فوري عند كل تغيير »
+  ✔ المتابع reçoit l'e-mail immédiat
+  ✔ المسؤول (sans la préférence) : pas d'e-mail, seulement la cloche
+  ✔ e-mail : projet, changement, RTL
+
+== Notifications : rien pour l'import, ni pour un compte désactivé ==
+  ✔ import ignoré ; compte désactivé (المتابع) non notifié
+  ✔ notifications incluses dans la sauvegarde JSON
+
 ----------------------------------------
-Résultat : 545 réussis, 0 échoués
+Résultat : 580 réussis, 0 échoués
 
 ######## Navigateur : fondations (étape 1) ########
 Page de connexion
@@ -819,6 +867,19 @@ Tous les contrôles navigateur sont passés.
   ✔ مسؤول مشروع : voit que la tâche est « تمت »
   ✔ الإعدادات ← عام : réglages SMTP présents
   ✔ بريد تجريبي : résultat clair affiché (succès ou vraie raison de l'échec)
+
+Tous les contrôles navigateur sont passés.
+
+######## Navigateur : step7 (jeu de démonstration) ########
+1.0.2 — notifications 🔔 (الإدارة crée un projet → المسؤول et المتابع prévenus)
+  ✔ الإدارة : projet créé (API de la fiche)
+  ✔ الإدارة : pas de notification pour sa propre action
+  ✔ مسؤول المشروع : 🔔 affiche 1 nouvelle notification
+  ✔ liste : « مشروع جديد » + nom du projet + auteur
+  ✔ clic → la fiche du projet s'ouvre
+  ✔ notification lue → compteur à 0
+  ✔ « بريد فوري عند كل تغيير » mémorisé
+  ✔ mobile (المتابع) : la liste s'affiche sans défilement horizontal
 
 Tous les contrôles navigateur sont passés.
 

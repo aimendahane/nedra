@@ -28,6 +28,7 @@ function ps_migrations(): array {
 	$migrations = array(
 		1 => 'ps_migration_001_initial',
 		2 => 'ps_migration_002_tasks',
+		3 => 'ps_migration_003_notifications',
 	);
 	return apply_filters( 'ps_migrations', $migrations );
 }
@@ -65,6 +66,13 @@ function ps_migration_001_initial(): void {
 function ps_migration_002_tasks(): void {
 	ps_apply_schema();
 	ps_register_roles();
+}
+
+/**
+ * Migration 3 (1.0.2) : notifications 🔔 — CREATE TABLE {prefix}ps_notifications (dbDelta : ajoute seulement).
+ */
+function ps_migration_003_notifications(): void {
+	ps_apply_schema();
 }
 
 /**

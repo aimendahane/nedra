@@ -45,6 +45,10 @@ endif;
 		<span class="ps-header__title">متابعة المشاريع والعروض</span>
 	</a>
 	<div class="ps-header__user">
+		<div class="ps-bell">
+			<button type="button" class="ps-icon-btn ps-bell__btn" id="ps-bell" aria-haspopup="true" aria-expanded="false" aria-controls="ps-bell-panel" aria-label="الإشعارات" title="الإشعارات"><span aria-hidden="true">🔔</span><span class="ps-bell__count" id="ps-bell-count" hidden></span></button>
+			<div class="ps-bell__panel" id="ps-bell-panel" hidden></div>
+		</div>
 		<button type="button" class="ps-icon-btn" id="ps-theme-toggle" aria-label="الوضع الليلي" title="الوضع الليلي / النهاري"><span aria-hidden="true" id="ps-theme-icon">🌓</span></button>
 		<span class="ps-user">
 			<span class="ps-user__name"><?php echo esc_html( $ps_user['name'] ); ?></span>

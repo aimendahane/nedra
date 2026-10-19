@@ -583,7 +583,65 @@ async function step6(browser) {
 	}
 }
 
-const STEPS = { step2, step3, step4, step5, step6 };
+/* Version 1.0.2 : notifications 🔔. */
+async function step7(browser) {
+	console.log('1.0.2 — notifications 🔔 (الإدارة crée un projet → المسؤول et المتابع prévenus)');
+	{
+		const { ctx, page } = await newPage(browser, 'idara');
+		const st = await page.evaluate(async () => {
+			const L = (await PS.api.get('lists')).lists;
+			const id = (k, v) => (L[k].find((x) => x.label === v || x.code === v) || {}).id;
+			const body = {
+				offerNo: 'OFR-BELL-1', name: 'مشروع الجرس', receivedDate: '2026-10-10',
+				responsibleEmpId: id('employee', 'وليد جدير'), followerEmpId: id('employee', 'وفاء حامدي'),
+				placeId: id('place', 'T'), categoryId: id('category', 'إنارة'), urgencyId: id('urgency', 'U'), sourceId: id('source', 'direct'),
+				parties: { owner: { companyName: 'شركة الجرس', person: 'سالم', phone: '0912345678' }, executor: { companyName: 'شركة التنفيذ' }, direct: { person: 'خالد', phone: '0921112233' } },
+				items: [{ itemTypeId: id('item_type', 'UPS'), quantity: '1', employeeId: id('employee', 'محمد حسين'), dueDate: '2026-10-25' }],
+			};
+			try { const r = await PS.api.post('projects', body); return r.id; } catch (e) { return 'ERR ' + e.message; }
+		});
+		check('الإدارة : projet créé (API de la fiche)', Number.isInteger(st), String(st));
+		await page.reload();
+		await page.waitForSelector('#ps-bell');
+		await page.waitForTimeout(800);
+		check('الإدارة : pas de notification pour sa propre action', await page.$eval('#ps-bell-count', (e) => e.hidden));
+		await ctx.close();
+	}
+	{
+		const { ctx, page } = await newPage(browser, 'masoul');
+		await page.waitForFunction(() => !document.getElementById('ps-bell-count').hidden, null, { timeout: 8000 }).catch(() => {});
+		const n = await page.$eval('#ps-bell-count', (e) => (e.hidden ? 0 : Number(e.textContent)));
+		check('مسؤول المشروع : 🔔 affiche 1 nouvelle notification', n === 1, String(n));
+		await page.click('#ps-bell');
+		await page.waitForSelector('.ps-bell__item');
+		const txt = await page.textContent('#ps-bell-panel');
+		check('liste : « مشروع جديد » + nom du projet + auteur', txt.includes('مشروع الجرس') && txt.includes('مشروع جديد') && txt.includes('سارة الإدارة'));
+		await page.screenshot({ path: SHOTS + '/s7-01-cloche.png' });
+		await page.click('.ps-bell__item');
+		await page.waitForTimeout(900);
+		check('clic → la fiche du projet s\'ouvre', page.url().includes('#/projet?id=') && (await page.textContent('.ps-main h1')).includes('مشروع الجرس'));
+		check('notification lue → compteur à 0', await page.$eval('#ps-bell-count', (e) => e.hidden));
+		await page.click('#ps-bell');
+		await page.waitForSelector('[data-bell-mail]');
+		await page.check('[data-bell-mail]');
+		await page.waitForTimeout(600);
+		await page.reload();
+		await page.waitForSelector('#ps-bell');
+		check('« بريد فوري عند كل تغيير » mémorisé', await page.evaluate(() => PS.config.user.prefs.instantEmail === true));
+		await ctx.close();
+	}
+	{
+		const { ctx, page } = await newPage(browser, 'mowadhaf', true);
+		await page.waitForTimeout(1200);
+		await page.click('#ps-bell');
+		await page.waitForSelector('.ps-bell__item');
+		check('mobile (المتابع) : la liste s\'affiche sans défilement horizontal', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
+		await page.screenshot({ path: SHOTS + '/s7-02-cloche-mobile.png' });
+		await ctx.close();
+	}
+}
+
+const STEPS = { step2, step3, step4, step5, step6, step7 };
 
 (async () => {
 	const browser = await chromium.launch();

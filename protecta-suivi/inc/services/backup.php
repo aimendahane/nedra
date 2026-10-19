@@ -179,7 +179,7 @@ function ps_backup_restore( array $data, int $user_id ) {
 		}
 		$map[ (int) $u['ID'] ] = (int) $local->ID;
 	}
-	$user_cols = array( 'created_by', 'updated_by', 'deleted_by', 'author_id', 'uploaded_by', 'user_id', 'done_by' );
+	$user_cols = array( 'created_by', 'updated_by', 'deleted_by', 'author_id', 'uploaded_by', 'user_id', 'done_by', 'actor_id' );
 
 	$report = array( 'tables' => array(), 'users_created' => $created, 'backup' => basename( $backup ) );
 	$wpdb->query( 'START TRANSACTION' );

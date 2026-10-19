@@ -271,6 +271,22 @@ function ps_schema_sql(): array {
   KEY project_id (project_id)
 ) $c;";
 
+	// Notifications 🔔 (1.0.2, migration 3) : une ligne par personne prévenue. Jamais supprimées.
+	$sql['notifications'] = "CREATE TABLE {$t('notifications')} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  user_id bigint(20) unsigned NOT NULL,
+  project_id bigint(20) unsigned DEFAULT NULL,
+  actor_id bigint(20) unsigned DEFAULT NULL,
+  kind varchar(20) NOT NULL DEFAULT 'update',
+  title varchar(255) NOT NULL,
+  body text DEFAULT NULL,
+  created_at datetime NOT NULL,
+  read_at datetime DEFAULT NULL,
+  PRIMARY KEY  (id),
+  KEY user_read (user_id,read_at),
+  KEY project_id (project_id)
+) $c;";
+
 	return $sql;
 }
 

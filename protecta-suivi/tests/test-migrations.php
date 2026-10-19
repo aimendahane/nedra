@@ -13,8 +13,11 @@ global $wpdb;
 
 ps_test_section( 'Mise à jour : préparation de données réelles' );
 
-// Base remise à l'état 1.0.0 (base de TEST uniquement) : pas de table ps_tasks ni de capacité ps_assign_tasks.
-$wpdb->query( 'DROP TABLE IF EXISTS ' . ps_table( 'tasks' ) );
+// Base remise à l'état 1.0.0 (base de TEST uniquement) : sans les tables ajoutées depuis (ps_tasks 1.0.1,
+// ps_notifications 1.0.2) ni la capacité ps_assign_tasks.
+foreach ( array( 'tasks', 'notifications' ) as $added_table ) {
+	$wpdb->query( 'DROP TABLE IF EXISTS ' . ps_table( $added_table ) );
+}
 foreach ( array( 'ps_manager', 'ps_admin', 'administrator' ) as $role_slug ) {
 	get_role( $role_slug )->remove_cap( 'ps_assign_tasks' );
 }
@@ -128,6 +131,10 @@ ps_assert( get_role( 'ps_manager' )->has_cap( 'ps_assign_tasks' ) && get_role( '
 ps_assert( ! get_role( 'ps_employee' )->has_cap( 'ps_assign_tasks' ), 'موظف : pas de capacité ps_assign_tasks' );
 ps_assert( in_array( 'tasks', array_keys( ps_backup_build()['tables'] ), true ), 'les tâches sont incluses dans la sauvegarde JSON' );
 
+ps_test_section( 'Migration 3 (1.0.2) : notifications' );
+ps_assert( ps_table( 'notifications' ) === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', ps_table( 'notifications' ) ) ), 'table ps_notifications créée' );
+ps_assert_same( 0, (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'notifications' ) ), 'table ps_notifications vide (aucune notification inventée pour les anciennes données)' );
+
 ps_test_section( 'Mise à jour : listes et réglages de la الإدارة conservés' );
 
 ps_assert_same( 'صفاء بن علي', $wpdb->get_var( "SELECT label FROM $lt WHERE id=$safa" ), 'valeur renommée : nom conservé' );
@@ -153,7 +160,7 @@ $r = ps_maybe_upgrade();
 ps_assert_same( 'locked', $r['error'], 'migration déjà en cours ailleurs → pas d\'exécution simultanée' );
 update_option( 'ps_migration_lock', time() - 3600 );
 $r = ps_maybe_upgrade();
-ps_assert( null === $r['error'] && array( 2, $sim ) === $r['ran'], 'verrou périmé (> 10 min) → migrations reprises' );
+ps_assert( null === $r['error'] && array_merge( range( 2, PS_DB_VERSION ), array( $sim ) ) === $r['ran'], 'verrou périmé (> 10 min) → migrations reprises' );
 
 // Retour à l'état normal pour la suite des tests.
 remove_all_filters( 'ps_migrations' );

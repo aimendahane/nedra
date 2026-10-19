@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
  * Fichiers JS du cœur, dans l'ordre de chargement.
  */
 function ps_core_scripts(): array {
-	return array( 'format', 'ui', 'api', 'lists', 'session', 'router' );
+	return array( 'format', 'ui', 'api', 'lists', 'session', 'router', 'notifications' );
 }
 
 /**
@@ -97,8 +97,9 @@ function ps_current_user_payload(): array {
 		'employeeId' => (int) get_user_meta( $u->ID, 'ps_employee_id', true ) ?: null,
 		'caps'       => $caps,
 		'prefs'      => array(
-			'theme'      => in_array( $theme, array( 'light', 'dark' ), true ) ? $theme : 'auto',
-			'dailyEmail' => (bool) get_user_meta( $u->ID, 'ps_daily_email', true ),
+			'theme'        => in_array( $theme, array( 'light', 'dark' ), true ) ? $theme : 'auto',
+			'dailyEmail'   => (bool) get_user_meta( $u->ID, 'ps_daily_email', true ),
+			'instantEmail' => (bool) get_user_meta( $u->ID, 'ps_instant_email', true ), // 1.0.2
 		),
 	);
 }

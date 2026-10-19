@@ -42,6 +42,7 @@ function ps_followup_add( int $project_id, string $entry_date, string $text, ?st
 			'updated_at' => $now,
 		)
 	);
+	ps_notify_collect( $project_id, 'followup', 'متابعة جديدة: ' . mb_substr( $text, 0, 120 ) . ( $next_date ? ' (المتابعة القادمة ' . $next_date . ')' : '' ), $user_id );
 	return (int) $wpdb->insert_id;
 }
 

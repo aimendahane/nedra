@@ -28,6 +28,8 @@ function ps_log( ?int $project_id, string $action, string $entity, ?int $entity_
 			'created_at' => ps_now(),
 		)
 	);
+	// Notifications 🔔 (1.0.2) : le changement est aussi signalé aux personnes concernées.
+	ps_notify_from_log( $project_id, $action, $entity, $entity_id, $field, $old, $new, $user_id ?? get_current_user_id() );
 }
 
 /**

@@ -3,7 +3,7 @@
  * API session et préférences de l'utilisateur connecté.
  *
  *   GET  /ps/v1/me               → utilisateur, rôle, capacités, préférences
- *   POST /ps/v1/me/prefs         → { theme: auto|light|dark, dailyEmail: bool }
+ *   POST /ps/v1/me/prefs         → { theme: auto|light|dark, dailyEmail: bool, instantEmail: bool (1.0.2) }
  *   POST /ps/v1/session/ping     → signale une activité réelle (prolonge la session)
  *   POST /ps/v1/session/logout   → déconnexion
  */
@@ -67,6 +67,9 @@ function ps_rest_save_prefs( WP_REST_Request $req ) {
 	}
 	if ( null !== $req->get_param( 'dailyEmail' ) ) {
 		update_user_meta( $uid, 'ps_daily_email', $req->get_param( 'dailyEmail' ) ? 1 : 0 );
+	}
+	if ( null !== $req->get_param( 'instantEmail' ) ) {
+		update_user_meta( $uid, 'ps_instant_email', $req->get_param( 'instantEmail' ) ? 1 : 0 );
 	}
 	return rest_ensure_response( ps_current_user_payload() );
 }
