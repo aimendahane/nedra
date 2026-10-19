@@ -1,0 +1,150 @@
+/*
+ * ============================================================
+ *  VARIABLES DE L'APPARENCE — c'est ICI qu'on change les couleurs et la police.
+ * ============================================================
+ *  --ps-orange / --ps-blue : couleurs du logo (AMC Group).
+ *  Mode nuit : mêmes noms de variables, redéfinies plus bas.
+ *  Les couleurs des statuts (urgences, حالات…) se règlent dans الإعدادات,
+ *  pas ici.
+ */
+
+/* ---------- Police arabe : Cairo (licence OFL, fichiers dans assets/fonts) ---------- */
+@font-face { font-family: "Cairo"; font-style: normal; font-weight: 400; font-display: swap;
+	src: url("../fonts/cairo-arabic-400-normal.woff2") format("woff2");
+	unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0898-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC; }
+@font-face { font-family: "Cairo"; font-style: normal; font-weight: 600; font-display: swap;
+	src: url("../fonts/cairo-arabic-600-normal.woff2") format("woff2");
+	unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0898-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC; }
+@font-face { font-family: "Cairo"; font-style: normal; font-weight: 700; font-display: swap;
+	src: url("../fonts/cairo-arabic-700-normal.woff2") format("woff2");
+	unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0898-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC; }
+@font-face { font-family: "Cairo"; font-style: normal; font-weight: 400; font-display: swap;
+	src: url("../fonts/cairo-latin-400-normal.woff2") format("woff2");
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Cairo"; font-style: normal; font-weight: 600; font-display: swap;
+	src: url("../fonts/cairo-latin-600-normal.woff2") format("woff2");
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Cairo"; font-style: normal; font-weight: 700; font-display: swap;
+	src: url("../fonts/cairo-latin-700-normal.woff2") format("woff2");
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
+/* ---------- Mode clair (par défaut) ---------- */
+:root {
+	/* Couleurs de la marque (logo AMC Group) */
+	--ps-orange: #E8571F;
+	--ps-orange-strong: #C9450F;
+	--ps-orange-soft: #FDEDE5;
+	--ps-blue: #385B9A;
+	--ps-blue-strong: #2A4677;
+	--ps-blue-soft: #E8EEF8;
+
+	/* Rôles des couleurs */
+	--ps-primary: var(--ps-blue);
+	--ps-primary-strong: var(--ps-blue-strong);
+	--ps-primary-soft: var(--ps-blue-soft);
+	--ps-accent: var(--ps-orange);
+	--ps-accent-soft: var(--ps-orange-soft);
+	--ps-on-primary: #FFFFFF;
+
+	/* Surfaces et texte */
+	--ps-bg: #F4F6FA;
+	--ps-surface: #FFFFFF;
+	--ps-surface-2: #F8F9FC;
+	--ps-border: #DDE2EC;
+	--ps-text: #1F2733;
+	--ps-text-muted: #5D6878;
+	--ps-focus: #E8571F;
+
+	/* États */
+	--ps-danger: #D93025;
+	--ps-danger-soft: #FDECEA;
+	--ps-success: #2B8A3E;
+	--ps-success-soft: #E6F4EA;
+	--ps-warning: #E67700;
+	--ps-warning-soft: #FFF4E0;
+	--ps-required: #FFF6CC; /* Fond jaune des champs obligatoires (cahier §3) */
+	--ps-row-late: #FDECEA;  /* Ligne rouge : offre en retard */
+	--ps-row-done: #E6F4EA;  /* Ligne verte : مقبول */
+
+	/* Typographie */
+	--ps-font: "Cairo", "Segoe UI", Tahoma, "Noto Sans Arabic", Arial, sans-serif;
+	--ps-font-size: 15px;
+	--ps-font-size-sm: 13px;
+	--ps-line-height: 1.6;
+
+	/* Formes */
+	--ps-radius: 10px;
+	--ps-radius-sm: 6px;
+	--ps-shadow: 0 1px 2px rgba(20, 30, 50, .06), 0 2px 8px rgba(20, 30, 50, .06);
+	--ps-header-h: 60px;
+	--ps-nav-w: 230px;
+	--ps-logo-plate: #FFFFFF; /* Fond derrière le logo (noir) pour qu'il reste lisible en mode nuit */
+
+	color-scheme: light;
+}
+
+/* ---------- Mode nuit ---------- */
+/* Choix manuel « dark », ou réglage du système quand le choix est « auto » */
+:root[data-theme="dark"] {
+	--ps-primary: #6E93D6;
+	--ps-primary-strong: #8DABE3;
+	--ps-primary-soft: #22304A;
+	--ps-accent: #F27A4A;
+	--ps-accent-soft: #3A2419;
+	--ps-on-primary: #0E1420;
+
+	--ps-bg: #0F141C;
+	--ps-surface: #18202B;
+	--ps-surface-2: #1E2734;
+	--ps-border: #2E3A4B;
+	--ps-text: #E6EAF0;
+	--ps-text-muted: #9AA6B6;
+	--ps-focus: #F27A4A;
+
+	--ps-danger: #FF6B60;
+	--ps-danger-soft: #3B1D1B;
+	--ps-success: #5CC27A;
+	--ps-success-soft: #1A3324;
+	--ps-warning: #FFA94D;
+	--ps-warning-soft: #3A2B12;
+	--ps-required: #3A3418;
+	--ps-row-late: #3B1D1B;
+	--ps-row-done: #1A3324;
+
+	--ps-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 2px 8px rgba(0, 0, 0, .3);
+	--ps-logo-plate: #F4F6FA;
+	color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root[data-theme="auto"] {
+		--ps-primary: #6E93D6;
+		--ps-primary-strong: #8DABE3;
+		--ps-primary-soft: #22304A;
+		--ps-accent: #F27A4A;
+		--ps-accent-soft: #3A2419;
+		--ps-on-primary: #0E1420;
+
+		--ps-bg: #0F141C;
+		--ps-surface: #18202B;
+		--ps-surface-2: #1E2734;
+		--ps-border: #2E3A4B;
+		--ps-text: #E6EAF0;
+		--ps-text-muted: #9AA6B6;
+		--ps-focus: #F27A4A;
+
+		--ps-danger: #FF6B60;
+		--ps-danger-soft: #3B1D1B;
+		--ps-success: #5CC27A;
+		--ps-success-soft: #1A3324;
+		--ps-warning: #FFA94D;
+		--ps-warning-soft: #3A2B12;
+		--ps-required: #3A3418;
+		--ps-row-late: #3B1D1B;
+		--ps-row-done: #1A3324;
+
+		--ps-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 2px 8px rgba(0, 0, 0, .3);
+		--ps-logo-plate: #F4F6FA;
+		color-scheme: dark;
+	}
+}

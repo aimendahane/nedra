@@ -1,0 +1,27 @@
+/*
+ * Impression / « طباعة / PDF ».
+ * Masque l'interface (menu, boutons) et garde le contenu de la page sur fond blanc.
+ * La mise en page détaillée du Recap est complétée à l'étape 4.
+ */
+@page { size: A4; margin: 12mm; }
+
+:root, :root[data-theme] {
+	--ps-bg: #fff;
+	--ps-surface: #fff;
+	--ps-surface-2: #f3f4f6;
+	--ps-text: #000;
+	--ps-text-muted: #444;
+	--ps-border: #bbb;
+	--ps-shadow: none;
+	color-scheme: light;
+}
+
+body { background: #fff !important; }
+.ps-header__menu, .ps-header__user, .ps-nav, .ps-nav-backdrop, .ps-toasts,
+.ps-page-head__actions, .ps-no-print, .ps-btn, .ps-skip { display: none !important; }
+.ps-header { position: static; box-shadow: none; }
+.ps-layout { display: block; }
+.ps-main { padding: 0; }
+.ps-card { break-inside: avoid; box-shadow: none; }
+.ps-table th { position: static; }
+.ps-table-wrap { overflow: visible; }

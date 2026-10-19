@@ -1,6 +1,6 @@
 # Plan de réalisation — Thème WordPress « Protecta Suivi »
 
-> Statut : **proposition à valider**. Aucun code ne sera écrit avant validation.
+> Statut : **validé le 19/10/2026** (avec les réponses du client, voir §10 et CLAUDE.md). Étapes 0 et 1 réalisées (v0.1.0).
 > Sources : cahier des charges (17/10/2026), prototype HTML (18/10/2026), brief complémentaire (prime en cas de différence).
 
 ---
@@ -205,7 +205,7 @@ Fichiers stockés dans `wp-content/uploads/protecta-suivi/` protégé (`.htacces
 ### 3.10 Réglages (table `wp_options`, préfixe `ps_`)
 
 - `ps_db_version` — version du schéma appliqué.
-- `ps_settings` — JSON : règles de validation (champs obligatoires activables, règle des dates, formats e-mail/téléphone), seuil d'alerte suivi (7 j), fenêtre doublons (60 j), inactivité (30 min), tentatives de connexion (5 / 15 min), heure et activation du récapitulatif e-mail, jeton Cron.
+- `ps_settings` — JSON : règles de validation (champs obligatoires activables, règle des dates, formats e-mail/téléphone), seuil d'alerte suivi (7 j), fenêtre doublons (60 j), inactivité (**120 min** par défaut, décision client), tentatives de connexion (5 / 15 min), heure et activation du récapitulatif e-mail, jeton Cron.
 - Méta utilisateur : `ps_employee_id`, `ps_daily_email`, `ps_dark_mode`, `ps_last_activity`.
 
 ---
@@ -272,7 +272,7 @@ Format du prototype : `{ p: [ { no, offno, year, seq, name, resp, emp, mid, recv
 - **Doublons** : à l'enregistrement, si même société (المالك) + nom normalisé similaire (similarité ≥ 80 %) + reçu dans les 60 j → avertissement avec liens, bouton « حفظ رغم ذلك ».
 - **Compteurs** « لازم قرار » sur le menu et en haut de Suivi Offres.
 - **E-mail du matin** : `wp_mail`, HTML RTL ; par employé (ses tâches) + résumé global pour الإدارة ; activable par utilisateur. Déclenché par Cron cPanel (`wget -q -O- "https://site/?ps_cron=JETON"`), instructions détaillées dans le README.
-- **Sécurité** : 5 tentatives / 15 min par IP+identifiant, déconnexion après 30 min d'inactivité (contrôlée aussi côté serveur), nonces, requêtes préparées, échappement, uploads protégés. README : HTTPS + sauvegarde quotidienne (JetBackup / cPanel).
+- **Sécurité** : 5 tentatives / 15 min par IP+identifiant, déconnexion après **2 h** d'inactivité par défaut, réglable (contrôlée aussi côté serveur), nonces, requêtes préparées, échappement, uploads protégés. README : HTTPS + sauvegarde quotidienne (JetBackup / cPanel).
 - **Export** : CSV (UTF-8 BOM, ouvrable dans Excel) + XLSX natif. **Sauvegarde/restauration JSON** (restauration = sauvegarde automatique préalable).
 - **Mode nuit** : bascule manuelle mémorisée + `prefers-color-scheme`.
 - **Prêt pour v2** (non développé) : dates centralisées (calendrier), `meta.rate_to_lyd` sur les devises (conversion LYD), emplacement prévu pour `manifest.json` / service worker (PWA).
@@ -295,18 +295,9 @@ Jeu de démonstration : ~30 projets couvrant plusieurs devises (LYD, USD, EUR, T
 
 ---
 
-## 10. Questions à valider
+## 10. Décisions du client (19/10/2026)
 
-Ma proposition par défaut est indiquée entre crochets ; si elle vous convient, il suffit de répondre « OK ».
-
-1. **Droits du موظف** : voit-il tous les projets ou seulement les siens ? Peut-il modifier les infos générales d'un projet qu'il a créé ?
-   [Il voit tout en lecture ; il modifie seulement ses أصناف (offre/livraison), ajoute au سجل المتابعة et joint des fichiers. Les infos générales : مسؤول المشروع + الإدارة.]
-2. **Recap** : réservé à la الإدارة (cahier) ou aussi au مسؤول مشروع ? [الإدارة seulement.]
-3. **Import** : pour les projets dont l'employé est « موقع العطاءات », qui devient الموظف المتابع ? Et quel مصدر pour les autres anciens projets ?
-   [المتابع = المسؤول عن المشروع ; autres projets : مصدر = « مباشر ».]
-4. **Devises** : liste et devise par défaut ? [LYD (défaut), USD, EUR, TND. Les montants du prototype sans devise → LYD.]
-5. **تاريخ إرسال العرض** : obligatoire aussi quand un صنف passe directement à مقبول ou مرفوض (une offre acceptée a forcément été envoyée) ? [Oui. Et quand un صنف passe à مرسل, si la date du projet est vide, elle est pré-remplie avec la date du jour, modifiable.]
-6. **Conversion « عاجل »** : VU ou U ? [U, modifiable dans l'aperçu d'import.]
-7. **Couleurs / logos** : le logo PROTECTA GROUP est noir ; je reprends l'orange `#E8571F` et le bleu `#385B9A` du logo AMC Group (extraits du prototype). Page de connexion : bannière complète Protecta + AMC (celle du prototype) ? [Oui ; logos des marques (RELLI, inim, VDS, legrand, ELAN, FADINI) dans le pied de page.]
-8. **Fichiers manquants** : `backup.json` n'a pas été fourni. Pouvez-vous l'envoyer ? Sinon je teste l'import avec un exemple construit au format du prototype. (Les fichiers joints du prototype étaient stockés hors du backup et ne peuvent pas être importés.)
-9. **التصنيف** (point ouvert §14 du cahier) : avez-vous la liste réelle ? [Par défaut : كهرباء، إنارة، شبكات، أنظمة أمان وإنذار، تجهيزات، أخرى — modifiable dans الإعدادات.]
+Toutes les réponses aux questions Q1–Q9 et les remarques complémentaires (24 h de modification
+pour le créateur, « غير محدد » pour les anciens projets, inactivité 2 h, dossier des sauvegardes
+protégé, jeton Cron régénérable…) sont consignées dans **`CLAUDE.md` › « Décisions validées »**,
+qui fait foi pour les prochaines sessions.
