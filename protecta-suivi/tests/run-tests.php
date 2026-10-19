@@ -35,13 +35,14 @@ $GLOBALS['wp_filter']['upload_dir'][10][] = array(
 $_SERVER['HTTP_HOST']   = 'localhost:8080';
 $_SERVER['REQUEST_URI'] = '/';
 $_SERVER['REMOTE_ADDR'] = '203.0.113.10';
+define( 'PS_TESTING', true ); // fichiers de test : copie au lieu de move_uploaded_file
 require rtrim( getenv( 'PS_WP_PATH' ) ?: '/srv/wp', '/' ) . '/wp-load.php';
 
 require __DIR__ . '/lib.php';
 
 echo 'Thème v' . PS_VERSION . ' — WordPress ' . get_bloginfo( 'version' ) . ' — PHP ' . PHP_VERSION . "\n";
 
-foreach ( array( 'test-install.php', 'test-migrations.php', 'test-security.php', 'test-rest.php' ) as $file ) {
+foreach ( array( 'test-install.php', 'test-migrations.php', 'test-security.php', 'test-rest.php', 'test-projects.php' ) as $file ) {
 	require __DIR__ . '/' . $file;
 }
 

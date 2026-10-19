@@ -31,7 +31,48 @@ function ps_default_settings(): array {
 
 		// Jeton secret de l'URL Cron (généré à l'installation, régénérable).
 		'cron_token' => '',
+
+		// Règles de validation (cahier §11) — modifiables dans الإعدادات (étape 5).
+		// Voir inc/validation.php pour la liste des champs possibles.
+		'validation' => array(
+			'required'            => ps_default_required_fields(),
+			'sent_after_received' => true, // تاريخ الإرسال ≥ تاريخ الاستلام
+			'email_format'        => true, // الإيميل بصيغة صحيحة
+			'phone_format'        => true, // الهاتف أرقام فقط (+ espaces / tirets tolérés)
+		),
 	);
+}
+
+/**
+ * Champs obligatoires par défaut (cahier §3 + brief : مصدر الطلب obligatoire,
+ * تاريخ إرسال العرض optionnel à la saisie).
+ */
+function ps_default_required_fields(): array {
+	return array(
+		'offer_no', 'responsible_emp_id', 'follower_emp_id', 'name', 'received_date',
+		'place_id', 'category_id', 'urgency_id', 'source_id',
+		'owner.company', 'owner.person', 'owner.phone',
+		'executor.company',
+		'direct.person', 'direct.phone',
+		'items.min_one', 'item.item_type_id', 'item.employee_id', 'item.due_date',
+	);
+}
+
+/**
+ * Fusion « défauts + valeurs enregistrées » : les tableaux associatifs sont fusionnés
+ * récursivement (un nouveau sous-réglage apparaît sans écraser les autres) ; les listes
+ * simples (ex. champs obligatoires) enregistrées remplacent celles par défaut.
+ */
+function ps_merge_settings( array $defaults, array $stored ): array {
+	foreach ( $stored as $key => $value ) {
+		if ( is_array( $value ) && isset( $defaults[ $key ] ) && is_array( $defaults[ $key ] )
+			&& ! array_is_list( $defaults[ $key ] ) && ! array_is_list( $value ) ) {
+			$defaults[ $key ] = ps_merge_settings( $defaults[ $key ], $value );
+		} else {
+			$defaults[ $key ] = $value;
+		}
+	}
+	return $defaults;
 }
 
 /**
@@ -42,7 +83,7 @@ function ps_settings(): array {
 	if ( ! is_array( $stored ) ) {
 		$stored = array();
 	}
-	return array_merge( ps_default_settings(), $stored );
+	return ps_merge_settings( ps_default_settings(), $stored );
 }
 
 /**
@@ -92,5 +133,5 @@ function ps_init_settings(): void {
 	if ( empty( $stored['cron_token'] ) ) {
 		$stored['cron_token'] = ps_generate_cron_token();
 	}
-	update_option( 'ps_settings', array_merge( ps_default_settings(), $stored ), false );
+	update_option( 'ps_settings', ps_merge_settings( ps_default_settings(), $stored ), false );
 }

@@ -13,14 +13,14 @@ defined( 'ABSPATH' ) || exit;
  * Fichiers JS du cœur, dans l'ordre de chargement.
  */
 function ps_core_scripts(): array {
-	return array( 'format', 'ui', 'api', 'session', 'router' );
+	return array( 'format', 'ui', 'api', 'lists', 'session', 'router' );
 }
 
 /**
  * Un fichier JS par page (assets/js/pages/<nom>.js), dans l'ordre du menu.
  */
 function ps_page_scripts(): array {
-	return array( 'mes-taches', 'fiche-projet', 'base-projets', 'suivi-offres', 'suivi-livraison', 'recap', 'annuaire', 'parametres' );
+	return array( 'mes-taches', 'fiche-projet', 'fiche-projet-onglets', 'base-projets', 'suivi-offres', 'suivi-livraison', 'recap', 'annuaire', 'parametres' );
 }
 
 add_action( 'wp_enqueue_scripts', 'ps_enqueue_assets' );
@@ -68,7 +68,12 @@ function ps_client_config(): array {
 		'user'     => ps_current_user_payload(),
 		'settings' => array(
 			'inactivityMinutes' => (int) ps_setting( 'inactivity_minutes' ),
+			'creatorEditHours'  => (int) ps_setting( 'creator_edit_hours' ),
+			'validation'        => ps_validation_rules(),
+			'maxUpload'         => (int) wp_max_upload_size(),
 		),
+		'partyRoles' => ps_party_roles(),
+		'today'      => ps_today(),
 	);
 }
 

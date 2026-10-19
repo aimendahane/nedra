@@ -12,7 +12,12 @@
  *     render: function (main, params) { ... }   // params : ce qui suit « ? » dans l'adresse
  *   });
  *
+ * Options facultatives d'une page :
+ *   capCheck(params) → bool : accès selon l'adresse (ex. un projet existant est lisible par tous)
+ *   leave() → bool          : false pour rester sur la page (modifications non enregistrées)
+ *
  * PS.router.go('offres', { statut: 'late' }) ouvre une page avec des filtres.
+ * PS.router.setParams({...}) met à jour les filtres dans l'adresse sans recharger la page.
  * PS.router.setCount('offres', 3) affiche un compteur rouge dans le menu.
  */
 window.PS = window.PS || {};
@@ -23,6 +28,8 @@ PS.router = (function () {
 	const pages = [];
 	const counts = {};
 	const DEFAULT_PAGE = 'taches';
+	let current = null;     // page affichée
+	let currentHash = '';   // adresse affichée (pour annuler une sortie refusée)
 
 	function register(page) { pages.push(page); pages.sort(function (a, b) { return a.order - b.order; }); }
 
@@ -65,14 +72,31 @@ PS.router = (function () {
 		document.getElementById('ps-menu-toggle').setAttribute('aria-expanded', 'false');
 	}
 
+	/** Change les paramètres de l'adresse sans recharger la page (filtres). */
+	function setParams(params) {
+		const clean = {};
+		Object.keys(params || {}).forEach(function (k) {
+			if (params[k] !== '' && params[k] !== null && params[k] !== undefined && params[k] !== false) clean[k] = params[k];
+		});
+		const qs = new URLSearchParams(clean).toString();
+		currentHash = '#/' + parseHash().id + (qs ? '?' + qs : '');
+		history.replaceState(null, '', currentHash);
+	}
+
 	function route() {
 		const r = parseHash();
-		let page = visiblePages().find(function (p) { return p.id === r.id; });
+		if (current && current.leave && window.location.hash !== currentHash && !current.leave()) {
+			history.replaceState(null, '', currentHash);
+			return;
+		}
+		let page = pages.find(function (p) { return p.id === r.id && (p.capCheck ? p.capCheck(r.params) : can(p.cap)); });
 		if (!page) {
 			page = visiblePages()[0];
 			if (!page) return;
 			if (r.id !== page.id) { go(page.id); return; }
 		}
+		current = page;
+		currentHash = window.location.hash;
 		renderNav(page.id);
 		closeMobileNav();
 		document.title = page.title + ' — متابعة المشاريع';
@@ -117,5 +141,5 @@ PS.router = (function () {
 
 	document.addEventListener('DOMContentLoaded', boot);
 
-	return { register, go, setCount, can, lists, route };
+	return { register, go, setParams, setCount, can, lists, route, params: function () { return parseHash().params; } };
 })();

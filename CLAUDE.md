@@ -85,3 +85,32 @@ Voir `protecta-suivi/tests/README.md`. En bref :
 - `PS_TEST=1 php protecta-suivi/tests/run-tests.php` (base de test séparée `wptest_`, réinstallée à chaque fois) ;
 - `node protecta-suivi/tests/e2e-smoke.js` (navigateur, Playwright) ;
 - `./tools/build-zip.sh` → `dist/protecta-suivi-<version>.zip` (sans le dossier tests).
+
+## Décisions prises par Claude (à valider par le client ; modifiables)
+
+Le client a demandé d'enchaîner les étapes 2 à 6 sans attendre son accord et de noter ici
+chaque décision prise seul.
+
+### Étape 2 — Fiche Projet / Base Projets
+- **« Ses projets » du مسؤول مشروع** = projets dont il est « المسؤول عن المشروع » (lien compte ↔ employé :
+  méta `ps_employee_id`, réglé dans la gestion des utilisateurs).
+- **Ajouter au سجل المتابعة / joindre un fichier** : الإدارة, le créateur, ou un employé qui intervient
+  (المسؤول، المتابع، الوسيط، موظف d'un صنف). Modifier une entrée de suivi / retirer un fichier : son auteur
+  pendant 24 h (même réglage que la fenêtre du créateur), ou الإدارة. Rien n'est effacé (fichier retiré = corbeille).
+- **Numéro de projet** : attribué à la création selon l'année de تاريخ استلام الطلب, jamais modifié ensuite
+  (même si la date est corrigée). Les colonnes السنة/الشهر affichées suivent toujours la date de réception.
+- **رقم العرض** : saisi à la main (obligatoire par défaut), bouton « اقتراح رقم » (OFR-AAAA-NNN libre).
+- **Intervenants** : coordonnées gardées par projet ; la fiche de l'annuaire n'est que COMPLÉTÉE (champs vides),
+  jamais écrasée. Un nom saisi sans choisir dans la liste réutilise la fiche au nom identique (après
+  normalisation arabe) au lieu de créer un doublon.
+- **Doublons** : même société المالك + similarité de nom ≥ 75 % + تاريخ الاستلام à ±60 jours (réglage).
+  En modification, l'avertissement ne revient que si le nom, la société ou la date changent.
+- **أصناف** : un صنف ne peut être retiré de la fiche que s'il est encore « قيد الإعداد » ; sinon le passer à « ملغى ».
+- **Montant sans devise** → devise par défaut (LYD).
+- **Ajout rapide pendant la saisie** limité aux listes المكان et الأصناف (cahier §8.4-8.5) ; doublons évités
+  (même nom normalisé ou même code).
+- **Fichiers acceptés** : PDF, Excel (xls/xlsx/csv), Word (doc/docx), images (jpg/png/gif/webp) ; type vérifié
+  sur le contenu ; taille max = limite PHP de l'hébergeur.
+- **Règle حالة العرض appliquée à la lettre** (brief §6) : un mélange « مرفوض + لم يُرسل » sans مرسل/مقبول donne
+  « قيد الإعداد » (« sinon »). Point à confirmer avec le client.
+- Le brouillon d'un nouveau projet est gardé dans le navigateur jusqu'à l'enregistrement.

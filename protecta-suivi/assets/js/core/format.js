@@ -17,6 +17,21 @@ PS.format = (function () {
 		return m ? m[3] + '/' + m[2] + '/' + m[1] : iso;
 	}
 
+	/** « 2026-10-19 14:05:00 » → « 19/10/2026 14:05 ». */
+	function dateTime(mysql) {
+		if (!mysql) return '';
+		const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/.exec(mysql);
+		return m ? m[3] + '/' + m[2] + '/' + m[1] + ' ' + m[4] + ':' + m[5] : mysql;
+	}
+
+	/** Taille de fichier lisible. */
+	function size(bytes) {
+		const b = Number(bytes) || 0;
+		if (b < 1024) return b + ' B';
+		if (b < 1048576) return (b / 1024).toFixed(0) + ' KB';
+		return (b / 1048576).toFixed(1) + ' MB';
+	}
+
 	/** Numéro de mois (1-12) → nom arabe. */
 	function month(n) {
 		return MONTHS[(Number(n) || 0) - 1] || '';
@@ -42,5 +57,5 @@ PS.format = (function () {
 		return p === null || p === undefined ? '—' : Number(p).toFixed(1) + ' %';
 	}
 
-	return { MONTHS, date, month, number, money, percent };
+	return { MONTHS, date, dateTime, size, month, number, money, percent };
 })();

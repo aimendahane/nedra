@@ -40,3 +40,17 @@ function ps_test_summary(): int {
 	}
 	return $s['fail'] ? 1 : 0;
 }
+
+/**
+ * Vide les données métier de la base de TEST (refuse de tourner sur une autre base).
+ * Les listes, réglages et rôles sont conservés.
+ */
+function ps_test_reset_data(): void {
+	global $wpdb;
+	if ( 'wptest_' !== $wpdb->prefix ) {
+		throw new RuntimeException( 'ps_test_reset_data : base de test uniquement' );
+	}
+	foreach ( array( 'projects', 'project_parties', 'companies', 'competitors', 'project_competitors', 'items', 'followups', 'files', 'changelog' ) as $t ) {
+		$wpdb->query( 'DELETE FROM ' . ps_table( $t ) );
+	}
+}
