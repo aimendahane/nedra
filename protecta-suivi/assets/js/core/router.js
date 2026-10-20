@@ -29,6 +29,7 @@ PS.router = (function () {
 	const counts = {};
 	const DEFAULT_PAGE = 'taches';
 	let current = null;     // page affichée
+	let currentNav = null; // élément du menu surligné
 	let currentHash = '';   // adresse affichée (pour annuler une sortie refusée)
 
 	function register(page) { pages.push(page); pages.sort(function (a, b) { return a.order - b.order; }); }
@@ -57,13 +58,13 @@ PS.router = (function () {
 		nav.innerHTML = list.map(function (p, i) {
 			const sep = i > 0 && p.group !== list[i - 1].group ? '<div class="ps-nav__sep"></div>' : '';
 			const count = counts[p.id] ? html`<span class="ps-nav__count">${counts[p.id]}</span>` : '';
-			return sep + html`<a class="ps-nav__link" href="#/${p.id}" ${PS.ui.raw(p.id === currentId ? 'aria-current="page"' : '')}><span class="ps-nav__icon" aria-hidden="true">${p.icon}</span><span>${p.title}</span>${count}</a>`.html;
+			return sep + html`<a class="ps-nav__link" href="#/${p.id}" ${PS.ui.raw(p.id === currentId ? 'aria-current="page"' : '')}><span class="ps-nav__icon" aria-hidden="true">${PS.ui.raw(PS.icons.page(p.id) || PS.ui.esc(p.icon))}</span><span>${p.title}</span>${count}</a>`.html;
 		}).join('');
 	}
 
 	function setCount(id, n) {
 		counts[id] = n > 0 ? n : 0;
-		renderNav(parseHash().id);
+		renderNav(currentNav);
 	}
 
 	/**
@@ -75,7 +76,7 @@ PS.router = (function () {
 			counts.offres = c.offres || 0;
 			counts.livraison = c.livraison || 0;
 			counts.taches = c.taches || 0;
-			renderNav(parseHash().id);
+			renderNav(currentNav);
 		}).catch(function () {});
 	}
 
@@ -110,7 +111,9 @@ PS.router = (function () {
 		}
 		current = page;
 		currentHash = window.location.hash;
-		renderNav(page.id);
+		// Fiche d'un projet existant → « المشاريع » surligné (« إدخال مشروع » = nouveau projet seulement).
+		currentNav = page.id === 'projet' && r.params.id ? 'projets' : page.id;
+		renderNav(currentNav);
 		closeMobileNav();
 		document.title = page.title + ' — متابعة المشاريع';
 		const main = document.getElementById('ps-main');

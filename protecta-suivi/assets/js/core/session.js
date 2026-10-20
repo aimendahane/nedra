@@ -51,11 +51,11 @@ PS.session = (function () {
 	/* ---- Mode nuit ---- */
 	const THEMES = ['auto', 'dark', 'light'];
 	const THEME_LABELS = { auto: 'تلقائي (حسب الجهاز)', dark: 'الوضع الليلي', light: 'الوضع النهاري' };
-	const THEME_ICONS = { auto: '🌓', dark: '🌙', light: '☀️' };
+	const THEME_ICONS = { auto: 'auto', dark: 'moon', light: 'sun' };
 
 	function showThemeIcon(theme) {
 		const icon = document.getElementById('ps-theme-icon');
-		if (icon) icon.textContent = THEME_ICONS[theme] || THEME_ICONS.auto;
+		if (icon) icon.innerHTML = PS.icons.svg(THEME_ICONS[theme] || THEME_ICONS.auto);
 		const btn = document.getElementById('ps-theme-toggle');
 		if (btn) btn.title = THEME_LABELS[theme] + ' — اضغط للتغيير';
 	}

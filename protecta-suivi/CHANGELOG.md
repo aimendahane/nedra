@@ -3,6 +3,22 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.1.0 — 2026-10-20 · base v3 — Nouveau design
+
+- **Nouvelle identité visuelle** (aucun changement de données ni de base) : palette « ardoise » + bleu/orange
+  du logo, ombres et rayons doux, police Cairo plus aérée, mode nuit retravaillé (couleurs dans variables.css).
+- **Menu latéral sombre** (bleu nuit) avec icônes dessinées (SVG intégrés, plus d'émojis), indicateur orange
+  de la page active, compteurs en pastilles ; fond sur toute la hauteur ; plein écran sur téléphone.
+- **En-tête en verre dépoli** avec liseré orange → bleu, avatar avec l'initiale, boutons ronds (🔔, mode nuit, sortie).
+- **Page de connexion** en deux parties : panneau de marque animé + carte de connexion.
+- **Animations** discrètes : apparition des pages, cartes et indicateurs en cascade, fenêtres et menus,
+  graphiques Recap animés (barres arrondies, infobulles). Désactivées si l'appareil demande « moins d'animations ».
+- Tableaux : en-têtes collants, ombre sur le côté quand on peut faire défiler (téléphone), bande de couleur
+  pour les lignes en retard / مقبول ; champs avec halo de focus ; champs en lecture seule bien visibles.
+- Corrections d'affichage de la vérification Excel : **03** flèche de comparaison colorée selon le sens
+  (plus de المرفوضة = rouge), **05** fond du menu coupé, **06** « المشاريع » surligné sur une fiche,
+  **07** lecture seule visible, **08** numéro de projet sur une ligne, **04** repère de défilement des tableaux.
+
 ## 1.0.2 — 2026-10-19 · base v3 — Notifications 🔔
 
 - **Cloche 🔔** dans l'en-tête : nombre de nouveautés (rafraîchi chaque minute), liste des dernières

@@ -92,7 +92,7 @@ async function navTitles(page) {
 		await page.waitForTimeout(300);
 		check('mode nuit activé', (await page.getAttribute('html', 'data-theme')) === 'dark');
 		const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-		check('fond sombre en mode nuit', bg === 'rgb(15, 20, 28)', bg);
+		check('fond sombre en mode nuit', bg === 'rgb(10, 15, 26)', bg); // --ps-bg du mode nuit (variables.css)
 		await page.screenshot({ path: SHOTS + '/04-parametres-nuit.png', fullPage: true });
 		await page.reload();
 		await page.waitForSelector('.ps-nav__link');

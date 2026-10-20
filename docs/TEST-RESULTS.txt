@@ -1,12 +1,12 @@
-RÉSULTATS DES TESTS — Protecta Suivi 1.0.2 (base v3) — 19/10/2026
+RÉSULTATS DES TESTS — Protecta Suivi 1.1.0 (base v3) — 20/10/2026
 
-1) sh protecta-suivi/tests/run-all.sh : 580 tests PHP réussis / 0 échoué + navigateur étapes 1 à 5, 1.0.1 et 1.0.2 : tout passé
-2) release-check.sh : installation vierge du zip 1.0.2 OK ; mise à jour 1.0.1 → 1.0.2 et 0.1.0 → 1.0.2 avec données : AUCUNE PERTE
+1) sh protecta-suivi/tests/run-all.sh : 580 tests PHP réussis / 0 échoué + navigateur (étapes 1 à 5, 1.0.1, 1.0.2) : tout passé
+2) release-check.sh : installation vierge du zip 1.1.0 OK ; mise à jour 1.0.2 → 1.1.0 avec données : AUCUNE PERTE
 
 =========================== Détail run-all.sh ===========================
 ######## Tests PHP ########
 Site de test installé (thème : protecta-suivi)
-Thème v1.0.2 — WordPress 6.7-alpha-58716 — PHP 8.3.6
+Thème v1.1.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 
 == Activation : base de données ==
   ✔ ps_db_version = dernière migration
@@ -724,17 +724,17 @@ Page de connexion
   ✔ mauvais mot de passe → message d'erreur
 Employé (موظف)
   ✔ application affichée après connexion
-  ✔ menu sans Recap ni الإعدادات  [✅مهامي | ➕إدخال مشروع | 📁المشاريع | 📨متابعة العروض | 🚚متابعة التسليم | 🏢الشركات والمنافسون]
+  ✔ menu sans Recap ni الإعدادات  [مهامي | إدخال مشروع | المشاريع | متابعة العروض | متابعة التسليم | الشركات والمنافسون]
   ✔ page d'accueil = مهامي
   ✔ #/parametres interdit → renvoi vers مهامي
   ✔ wp-admin interdit → renvoi vers l'application  [http://localhost:8081/]
   ✔ pas de barre admin WordPress
 الإدارة
-  ✔ menu complet (8 pages)  [✅مهامي | ➕إدخال مشروع | 📁المشاريع | 📨متابعة العروض | 🚚متابعة التسليم | 📊Recap | 🏢الشركات والمنافسون | ⚙️الإعدادات]
+  ✔ menu complet (8 pages)  [مهامي | إدخال مشروع | المشاريع | متابعة العروض | متابعة التسليم | Recap | الشركات والمنافسون | الإعدادات]
   ✔ الإعدادات : 14 listes  [14]
   ✔ مصدر « غير محدد » présent et réservé à l'import
   ✔ mode nuit activé
-  ✔ fond sombre en mode nuit  [rgb(15, 20, 28)]
+  ✔ fond sombre en mode nuit  [rgb(10, 15, 26)]
   ✔ mode nuit mémorisé après rechargement
   ✔ déconnexion → page de connexion
 Mobile

@@ -37,7 +37,7 @@
 	function taskModal(o) {
 		o = o || {};
 		const t = o.task || {};
-		const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+		const tomorrow = new Date(Date.parse(PS.config.today + 'T12:00:00Z') + 86400000).toISOString().slice(0, 10);
 		return L.load().then(function () {
 			let created = null;
 			return ui.modal({

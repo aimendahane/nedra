@@ -114,12 +114,13 @@
 		return Object.assign({
 			responsive: true,
 			maintainAspectRatio: false,
-			animation: false,
+			// Courte animation d'apparition (aucune si l'utilisateur préfère moins d'animations).
+			animation: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? false : { duration: 650, easing: 'easeOutQuart' },
 			locale: 'ar',
 			layout: { padding: { top: 22, left: 8, right: 8 } },
 			plugins: {
-				legend: { rtl: true, labels: { color: t.text, font: { family: t.font, size: 13 }, boxWidth: 14, boxHeight: 14 } },
-				tooltip: { rtl: true, textDirection: 'rtl', titleFont: { family: t.font }, bodyFont: { family: t.font } },
+				legend: { rtl: true, labels: { color: t.text, font: { family: t.font, size: 13 }, boxWidth: 12, boxHeight: 12, usePointStyle: true, pointStyle: 'rectRounded', padding: 16 } },
+				tooltip: { rtl: true, textDirection: 'rtl', titleFont: { family: t.font, weight: '700' }, bodyFont: { family: t.font }, padding: 12, cornerRadius: 10, boxPadding: 6, usePointStyle: true },
 			},
 		}, extra || {});
 	}
@@ -159,15 +160,20 @@
 	/* Indicateurs                                                         */
 	/* ------------------------------------------------------------------ */
 
-	function delta(c, isRate) {
+	/**
+	 * Comparaison N-1. `inverse` : indicateur où une hausse est MAUVAISE (المرفوضة، لم تُرسل، retards)
+	 * → la flèche reste ↑/↓ mais la couleur suit le sens (vert = bon, rouge = mauvais).
+	 */
+	function delta(c, isRate, inverse) {
 		if (!c || c.diff === null || c.diff === undefined) return html`<span class="ps-kpi__cmp ps-muted">— لا مقارنة</span>`;
 		const prevYear = st.data.previousYear;
 		const arrow = c.dir === 'up' ? '↑' : c.dir === 'down' ? '↓' : '=';
 		let txt;
 		if (isRate) txt = (c.diff > 0 ? '+' : '') + c.diff.toFixed(1) + ' نقطة';
-		else if (c.pct === null) txt = c.diff ? 'جديد (لا شيء في ' + prevYear + ')' : '';
+		else if (c.pct === null) txt = c.diff ? 'جديد' : '';
 		else txt = (c.pct > 0 ? '+' : '') + c.pct.toFixed(1) + ' %';
-		return html`<span class="ps-kpi__cmp ps-kpi__cmp--${c.dir}" title="${prevYear}: ${c.prev === null ? '—' : c.prev}">${arrow} ${txt} <span class="ps-muted">مقارنة بـ ${prevYear}</span></span>`;
+		const tone = c.dir === 'up' ? (inverse ? 'bad' : 'good') : c.dir === 'down' ? (inverse ? 'good' : 'bad') : '';
+		return html`<span class="ps-kpi__cmp ps-kpi__cmp--${c.dir} ${tone ? 'ps-kpi__cmp--' + tone : ''}" title="${prevYear}: ${c.prev === null ? '—' : c.prev}">${arrow} ${txt} <span class="ps-muted">مقارنة بـ ${prevYear}</span></span>`;
 	}
 
 	function kpi(label, value, cmp, opts) {
@@ -176,7 +182,7 @@
 			<span class="ps-kpi__label">${label}</span>
 			<span class="ps-kpi__value">${value}</span>
 			${o.sub ? html`<span class="ps-kpi__sub">${o.sub}</span>` : ''}
-			${delta(cmp, o.rate)}
+			${delta(cmp, o.rate, o.inverse)}
 		</div>`;
 	}
 
@@ -185,7 +191,7 @@
 		const lines = keys.length ? keys.map(function (cur) {
 			const c = cmp[cur];
 			const arrow = c && c.dir === 'up' ? '↑' : c && c.dir === 'down' ? '↓' : '';
-			return html`<div class="ps-kpi__money"><strong>${F.number(amounts[cur], 0)}</strong> ${L.code(Number(cur))} <span class="ps-kpi__cmp ps-kpi__cmp--${c ? c.dir : ''}">${arrow}${c && c.pct !== null ? ' ' + Math.abs(c.pct).toFixed(1) + ' %' : ''}</span></div>`;
+			return html`<div class="ps-kpi__money"><strong>${F.number(amounts[cur], 0)}</strong> ${L.code(Number(cur))} <span class="ps-kpi__cmp ps-kpi__cmp--${c ? c.dir : ''} ${c && c.dir === 'up' ? 'ps-kpi__cmp--good' : c && c.dir === 'down' ? 'ps-kpi__cmp--bad' : ''}">${arrow}${c && c.pct !== null ? ' ' + Math.abs(c.pct).toFixed(1) + ' %' : ''}</span></div>`;
 		}) : html`<span class="ps-muted">—</span>`;
 		return html`<div class="ps-kpi ps-kpi--wide"><span class="ps-kpi__label">${label} <span class="ps-muted ps-small">(كل عملة على حدة)</span></span>${lines}</div>`;
 	}
@@ -196,14 +202,14 @@
 		return html`<div class="ps-kpis">
 			${kpi('عدد المشاريع', k.projects, c.projects, { sub: k.cancelled ? 'ملغى: ' + k.cancelled + ' (غير محسوبة)' : 'ملغى: 0', link: 'projets' })}
 			${kpi('المؤكدة', k.confirmed, c.confirmed, { cls: 'ps-kpi--good', link: 'projets|followupType=confirmed' })}
-			${kpi('المرفوضة', k.rejected, c.rejected, { cls: 'ps-kpi--bad', link: 'projets|followupType=rejected' })}
+			${kpi('المرفوضة', k.rejected, c.rejected, { inverse: true, cls: 'ps-kpi--bad', link: 'projets|followupType=rejected' })}
 			${kpi('قيد الدراسة', k.ongoing, c.ongoing, { link: 'projets|followupType=ongoing' })}
 			${kpi('العروض المرسلة', k.sent, c.sent)}
-			${kpi('لم تُرسل', k.notSent, c.notSent, { link: 'projets|offerStatus=not_sent' })}
+			${kpi('لم تُرسل', k.notSent, c.notSent, { inverse: true, link: 'projets|offerStatus=not_sent' })}
 			${kpi('نسبة النجاح', F.percent(k.successRate), c.successRate, { rate: true, cls: 'ps-kpi--hero', sub: 'المؤكدة ÷ المرسلة' })}
 			${kpi('نسبة الإرسال', F.percent(k.sendRate), c.sendRate, { rate: true, sub: 'المرسلة ÷ (المرسلة + لم تُرسل)' })}
-			${kpi('العروض المتأخرة', k.lateOffers, c.lateOffers, { cls: k.lateOffers ? 'ps-kpi--bad' : '', link: 'offres|late=1' })}
-			${kpi('التسليمات المتأخرة', k.lateDeliveries, c.lateDeliveries, { cls: k.lateDeliveries ? 'ps-kpi--bad' : '', link: 'livraison|deliveryLate=1' })}
+			${kpi('العروض المتأخرة', k.lateOffers, c.lateOffers, { inverse: true, cls: k.lateOffers ? 'ps-kpi--bad' : '', link: 'offres|late=1' })}
+			${kpi('التسليمات المتأخرة', k.lateDeliveries, c.lateDeliveries, { inverse: true, cls: k.lateDeliveries ? 'ps-kpi--bad' : '', link: 'livraison|deliveryLate=1' })}
 			${amountsKpi('مبالغ العروض', k.amounts, c.amounts)}
 			${amountsKpi('مبالغ المشاريع المؤكدة', k.confirmedAmounts, c.confirmedAmounts)}
 		</div>`;
@@ -302,7 +308,7 @@
 						label: s[1], key: s[0],
 						data: d.byMonth.map(function (m) { return m[s[0]]; }),
 						backgroundColor: tc[s[0]], borderColor: t.surface, borderWidth: { top: 2 },
-						borderRadius: i === series.length - 1 ? { topLeft: 4, topRight: 4 } : 0, borderSkipped: false, maxBarThickness: 38,
+						borderRadius: i === series.length - 1 ? { topLeft: 7, topRight: 7 } : 0, borderSkipped: false, maxBarThickness: 38,
 					};
 				}),
 			},
@@ -324,7 +330,7 @@
 				type: 'doughnut',
 				data: {
 					labels: d.byCategory.map(function (c) { return c.label + ' (' + c.pct.toFixed(1) + '%)'; }),
-					datasets: [{ data: d.byCategory.map(function (c) { return c.count; }), backgroundColor: d.byCategory.map(function (c, i) { return c.other ? OTHER_GRAY : categorical(i); }), borderColor: t.surface, borderWidth: 2 }],
+					datasets: [{ data: d.byCategory.map(function (c) { return c.count; }), backgroundColor: d.byCategory.map(function (c, i) { return c.other ? OTHER_GRAY : categorical(i); }), borderColor: t.surface, borderWidth: 3, hoverOffset: 8 }],
 				},
 				options: baseOptions({
 					cutout: '58%',
@@ -347,7 +353,7 @@
 		if (d.byPlace.length) {
 			makeChart(document.getElementById('ch-places'), {
 				type: 'bar',
-				data: { labels: d.byPlace.map(function (p) { return p.code; }), datasets: [{ label: 'المشاريع', data: d.byPlace.map(function (p) { return p.count; }), backgroundColor: t.primary, borderRadius: { topLeft: 4, topRight: 4 }, borderSkipped: false, maxBarThickness: 42 }] },
+				data: { labels: d.byPlace.map(function (p) { return p.code; }), datasets: [{ label: 'المشاريع', data: d.byPlace.map(function (p) { return p.count; }), backgroundColor: t.primary, borderRadius: { topLeft: 7, topRight: 7 }, borderSkipped: false, maxBarThickness: 42 }] },
 				options: baseOptions({
 					scales: axes(false, false),
 					plugins: Object.assign(baseOptions().plugins, {
@@ -368,7 +374,7 @@
 		const t = theme();
 		makeChart(canvas, {
 			type: 'bar',
-			data: { labels: rows.map(labelFn), datasets: [{ label: 'العدد', data: rows.map(function (r) { return r.count; }), backgroundColor: t.primary, borderRadius: { topLeft: 4, bottomLeft: 4 }, borderSkipped: false, maxBarThickness: 22 }] },
+			data: { labels: rows.map(labelFn), datasets: [{ label: 'العدد', data: rows.map(function (r) { return r.count; }), backgroundColor: t.primary, borderRadius: { topLeft: 6, bottomLeft: 6 }, borderSkipped: false, maxBarThickness: 22 }] },
 			options: baseOptions({
 				indexAxis: 'y',
 				layout: { padding: { left: 28, top: 4 } },

@@ -38,7 +38,7 @@ endif;
 
 <header class="ps-header">
 	<button type="button" class="ps-header__menu" id="ps-menu-toggle" aria-controls="ps-nav" aria-expanded="false" aria-label="القائمة">
-		<span aria-hidden="true">☰</span>
+		<svg class="ps-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
 	</button>
 	<a class="ps-header__brand" href="#/taches">
 		<span class="ps-logo-plate"><img src="<?php echo esc_url( PS_URL . '/assets/img/logo.png' ); ?>" alt="Protecta Group" class="ps-logo"></span>
@@ -46,15 +46,18 @@ endif;
 	</a>
 	<div class="ps-header__user">
 		<div class="ps-bell">
-			<button type="button" class="ps-icon-btn ps-bell__btn" id="ps-bell" aria-haspopup="true" aria-expanded="false" aria-controls="ps-bell-panel" aria-label="الإشعارات" title="الإشعارات"><span aria-hidden="true">🔔</span><span class="ps-bell__count" id="ps-bell-count" hidden></span></button>
+			<button type="button" class="ps-icon-btn ps-bell__btn" id="ps-bell" aria-haspopup="true" aria-expanded="false" aria-controls="ps-bell-panel" aria-label="الإشعارات" title="الإشعارات"><svg class="ps-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="ps-bell__count" id="ps-bell-count" hidden></span></button>
 			<div class="ps-bell__panel" id="ps-bell-panel" hidden></div>
 		</div>
-		<button type="button" class="ps-icon-btn" id="ps-theme-toggle" aria-label="الوضع الليلي" title="الوضع الليلي / النهاري"><span aria-hidden="true" id="ps-theme-icon">🌓</span></button>
+		<button type="button" class="ps-icon-btn" id="ps-theme-toggle" aria-label="الوضع الليلي" title="الوضع الليلي / النهاري"><span aria-hidden="true" id="ps-theme-icon" class="ps-icon-slot"></span></button>
 		<span class="ps-user">
-			<span class="ps-user__name"><?php echo esc_html( $ps_user['name'] ); ?></span>
-			<span class="ps-user__role"><?php echo esc_html( $ps_user['role'] ); ?></span>
+			<span class="ps-avatar" aria-hidden="true"><?php echo esc_html( mb_substr( trim( $ps_user['name'] ), 0, 1 ) ); ?></span>
+			<span class="ps-user__text">
+				<span class="ps-user__name"><?php echo esc_html( $ps_user['name'] ); ?></span>
+				<span class="ps-user__role"><?php echo esc_html( $ps_user['role'] ); ?></span>
+			</span>
 		</span>
-		<button type="button" class="ps-btn ps-btn--ghost" id="ps-logout">خروج</button>
+		<button type="button" class="ps-btn ps-btn--ghost ps-logout" id="ps-logout" title="تسجيل الخروج"><svg class="ps-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg><span class="ps-logout__label">خروج</span></button>
 	</div>
 </header>
 

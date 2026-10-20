@@ -10,7 +10,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PS_VERSION', '1.0.2' );
+define( 'PS_VERSION', '1.1.0' );
 define( 'PS_DB_VERSION', 3 );
 
 define( 'PS_DIR', get_template_directory() );
@@ -59,5 +59,10 @@ function ps_now(): string {
  * Date du jour (Y-m-d) dans le fuseau WordPress.
  */
 function ps_today(): string {
+	// Site de TEST uniquement (variable d'environnement PS_TEST, jamais présente chez l'hébergeur) :
+	// date figée par tests/e2e-setup.php pour que les contrôles du jeu de démonstration ne dépendent pas du calendrier.
+	if ( ( getenv( 'PS_TEST' ) || ! empty( $_SERVER['PS_TEST'] ) ) && ( $frozen = get_option( 'ps_test_today' ) ) ) {
+		return (string) $frozen;
+	}
 	return current_time( 'Y-m-d' );
 }

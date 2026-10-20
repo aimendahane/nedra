@@ -29,14 +29,17 @@
 	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 
 /* ---------- Mode clair (par défaut) ---------- */
+/* Design 1.1.0 : base neutre « ardoise », bleu de la marque pour l'action, orange pour l'accent. */
 :root {
 	/* Couleurs de la marque (logo AMC Group) */
 	--ps-orange: #E8571F;
 	--ps-orange-strong: #C9450F;
-	--ps-orange-soft: #FDEDE5;
+	--ps-orange-soft: #FFF1EA;
 	--ps-blue: #385B9A;
-	--ps-blue-strong: #2A4677;
-	--ps-blue-soft: #E8EEF8;
+	--ps-blue-strong: #27457C;
+	--ps-blue-soft: #EBF0FA;
+	--ps-navy: #0E1A33;        /* Menu latéral */
+	--ps-navy-2: #16264A;
 
 	/* Rôles des couleurs */
 	--ps-primary: var(--ps-blue);
@@ -45,40 +48,73 @@
 	--ps-accent: var(--ps-orange);
 	--ps-accent-soft: var(--ps-orange-soft);
 	--ps-on-primary: #FFFFFF;
+	--ps-on-accent: #FFFFFF;
+	--ps-gradient-brand: linear-gradient(135deg, #2F4F8C 0%, #385B9A 45%, #5B7FC4 100%);
+	--ps-gradient-accent: linear-gradient(135deg, #F06A30 0%, #E8571F 55%, #D4430F 100%);
+	--ps-gradient-line: linear-gradient(90deg, var(--ps-orange) 0%, #F2A03D 35%, var(--ps-blue) 100%);
 
 	/* Surfaces et texte */
-	--ps-bg: #F4F6FA;
+	--ps-bg: #F3F5F9;
+	--ps-bg-glow-1: rgba(232, 87, 31, .07);
+	--ps-bg-glow-2: rgba(56, 91, 154, .09);
 	--ps-surface: #FFFFFF;
-	--ps-surface-2: #F8F9FC;
-	--ps-border: #DDE2EC;
-	--ps-text: #1F2733;
-	--ps-text-muted: #5D6878;
+	--ps-surface-2: #F7F8FB;
+	--ps-surface-3: #EEF1F6;
+	--ps-glass: rgba(255, 255, 255, .78);
+	--ps-border: #E3E7EF;
+	--ps-border-strong: #CDD4E1;
+	--ps-text: #141B2D;
+	--ps-text-muted: #5E6A80;
+	--ps-text-soft: #8A94A8;
 	--ps-focus: #E8571F;
+	--ps-ring: rgba(56, 91, 154, .22);
+	--ps-overlay: rgba(9, 14, 28, .45);
+
+	/* Menu latéral (sombre dans les deux modes) */
+	--ps-nav-bg: linear-gradient(180deg, var(--ps-navy) 0%, var(--ps-navy-2) 100%);
+	--ps-nav-solid: var(--ps-navy-2); /* fond sous le menu quand la page est longue */
+	--ps-nav-text: #C3CCE0;
+	--ps-nav-text-strong: #FFFFFF;
+	--ps-nav-hover: rgba(255, 255, 255, .07);
+	--ps-nav-active: rgba(255, 255, 255, .12);
+	--ps-nav-sep: rgba(255, 255, 255, .09);
 
 	/* États */
 	--ps-danger: #D93025;
-	--ps-danger-soft: #FDECEA;
-	--ps-success: #2B8A3E;
-	--ps-success-soft: #E6F4EA;
-	--ps-warning: #E67700;
-	--ps-warning-soft: #FFF4E0;
-	--ps-required: #FFF6CC; /* Fond jaune des champs obligatoires (cahier §3) */
-	--ps-row-late: #FDECEA;  /* Ligne rouge : offre en retard */
-	--ps-row-done: #E6F4EA;  /* Ligne verte : مقبول */
+	--ps-danger-soft: #FDEEEC;
+	--ps-success: #23884A;
+	--ps-success-soft: #E7F6EC;
+	--ps-warning: #D97706;
+	--ps-warning-soft: #FFF5E1;
+	--ps-on-status: #FFFFFF;
+	--ps-required: #FFF8DB; /* Fond des champs obligatoires (cahier §3) */
+	--ps-row-late: #FDF0EE;  /* Ligne rouge : offre en retard */
+	--ps-row-done: #EDF8F1;  /* Ligne verte : مقبول */
 
 	/* Typographie */
 	--ps-font: "Cairo", "Segoe UI", Tahoma, "Noto Sans Arabic", Arial, sans-serif;
 	--ps-font-size: 15px;
 	--ps-font-size-sm: 13px;
-	--ps-line-height: 1.6;
+	--ps-line-height: 1.65;
 
-	/* Formes */
-	--ps-radius: 10px;
-	--ps-radius-sm: 6px;
-	--ps-shadow: 0 1px 2px rgba(20, 30, 50, .06), 0 2px 8px rgba(20, 30, 50, .06);
-	--ps-header-h: 60px;
-	--ps-nav-w: 230px;
+	/* Formes et profondeur */
+	--ps-radius: 16px;
+	--ps-radius-sm: 10px;
+	--ps-radius-xs: 7px;
+	--ps-shadow-xs: 0 1px 2px rgba(16, 24, 40, .05);
+	--ps-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 4px 14px rgba(16, 24, 40, .06);
+	--ps-shadow-md: 0 2px 6px rgba(16, 24, 40, .06), 0 12px 28px rgba(16, 24, 40, .10);
+	--ps-shadow-lg: 0 24px 60px rgba(16, 24, 40, .22);
+	--ps-shadow-primary: 0 6px 16px rgba(56, 91, 154, .30);
+	--ps-shadow-accent: 0 6px 16px rgba(232, 87, 31, .30);
+	--ps-header-h: 64px;
+	--ps-nav-w: 248px;
 	--ps-logo-plate: #FFFFFF; /* Fond derrière le logo (noir) pour qu'il reste lisible en mode nuit */
+
+	/* Mouvement (désactivé si l'utilisateur préfère moins d'animations) */
+	--ps-ease: cubic-bezier(.2, .8, .2, 1);
+	--ps-dur: .18s;
+	--ps-dur-slow: .38s;
 
 	color-scheme: light;
 }
@@ -86,65 +122,107 @@
 /* ---------- Mode nuit ---------- */
 /* Choix manuel « dark », ou réglage du système quand le choix est « auto » */
 :root[data-theme="dark"] {
-	--ps-primary: #6E93D6;
-	--ps-primary-strong: #8DABE3;
-	--ps-primary-soft: #22304A;
-	--ps-accent: #F27A4A;
-	--ps-accent-soft: #3A2419;
-	--ps-on-primary: #0E1420;
+	--ps-primary: #7FA2E6;
+	--ps-primary-strong: #A3BDF0;
+	--ps-primary-soft: rgba(127, 162, 230, .14);
+	--ps-accent: #FF7A45;
+	--ps-accent-soft: rgba(255, 122, 69, .14);
+	--ps-on-primary: #0B1222;
+	--ps-gradient-brand: linear-gradient(135deg, #4D72BD 0%, #6A8FD8 100%);
 
-	--ps-bg: #0F141C;
-	--ps-surface: #18202B;
-	--ps-surface-2: #1E2734;
-	--ps-border: #2E3A4B;
-	--ps-text: #E6EAF0;
-	--ps-text-muted: #9AA6B6;
-	--ps-focus: #F27A4A;
+	--ps-bg: #0A0F1A;
+	--ps-bg-glow-1: rgba(255, 122, 69, .06);
+	--ps-bg-glow-2: rgba(127, 162, 230, .08);
+	--ps-surface: #121A28;
+	--ps-surface-2: #172133;
+	--ps-surface-3: #1D293E;
+	--ps-glass: rgba(14, 21, 34, .78);
+	--ps-border: #24314A;
+	--ps-border-strong: #33425F;
+	--ps-text: #E8EDF6;
+	--ps-text-muted: #9CA9C0;
+	--ps-text-soft: #6F7D96;
+	--ps-focus: #FF7A45;
+	--ps-ring: rgba(127, 162, 230, .28);
+	--ps-overlay: rgba(0, 0, 0, .6);
+
+	--ps-nav-bg: linear-gradient(180deg, #070C17 0%, #0D1526 100%);
+	--ps-nav-solid: #0D1526;
 
 	--ps-danger: #FF6B60;
-	--ps-danger-soft: #3B1D1B;
-	--ps-success: #5CC27A;
-	--ps-success-soft: #1A3324;
-	--ps-warning: #FFA94D;
-	--ps-warning-soft: #3A2B12;
-	--ps-required: #3A3418;
-	--ps-row-late: #3B1D1B;
-	--ps-row-done: #1A3324;
+	--ps-danger-soft: rgba(255, 107, 96, .13);
+	--ps-success: #4CC27A;
+	--ps-success-soft: rgba(76, 194, 122, .13);
+	--ps-warning: #FFAD4D;
+	--ps-warning-soft: rgba(255, 173, 77, .13);
+	--ps-on-status: #0B1222;
+	--ps-required: rgba(255, 214, 84, .09);
+	--ps-row-late: rgba(255, 107, 96, .10);
+	--ps-row-done: rgba(76, 194, 122, .09);
 
-	--ps-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 2px 8px rgba(0, 0, 0, .3);
+	--ps-shadow-xs: 0 1px 2px rgba(0, 0, 0, .4);
+	--ps-shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .28);
+	--ps-shadow-md: 0 2px 6px rgba(0, 0, 0, .4), 0 14px 32px rgba(0, 0, 0, .38);
+	--ps-shadow-lg: 0 24px 60px rgba(0, 0, 0, .6);
+	--ps-shadow-primary: 0 6px 18px rgba(77, 114, 189, .35);
+	--ps-shadow-accent: 0 6px 18px rgba(255, 122, 69, .3);
 	--ps-logo-plate: #F4F6FA;
 	color-scheme: dark;
 }
 
 @media (prefers-color-scheme: dark) {
 	:root[data-theme="auto"] {
-		--ps-primary: #6E93D6;
-		--ps-primary-strong: #8DABE3;
-		--ps-primary-soft: #22304A;
-		--ps-accent: #F27A4A;
-		--ps-accent-soft: #3A2419;
-		--ps-on-primary: #0E1420;
+		--ps-primary: #7FA2E6;
+		--ps-primary-strong: #A3BDF0;
+		--ps-primary-soft: rgba(127, 162, 230, .14);
+		--ps-accent: #FF7A45;
+		--ps-accent-soft: rgba(255, 122, 69, .14);
+		--ps-on-primary: #0B1222;
+		--ps-gradient-brand: linear-gradient(135deg, #4D72BD 0%, #6A8FD8 100%);
 
-		--ps-bg: #0F141C;
-		--ps-surface: #18202B;
-		--ps-surface-2: #1E2734;
-		--ps-border: #2E3A4B;
-		--ps-text: #E6EAF0;
-		--ps-text-muted: #9AA6B6;
-		--ps-focus: #F27A4A;
+		--ps-bg: #0A0F1A;
+		--ps-bg-glow-1: rgba(255, 122, 69, .06);
+		--ps-bg-glow-2: rgba(127, 162, 230, .08);
+		--ps-surface: #121A28;
+		--ps-surface-2: #172133;
+		--ps-surface-3: #1D293E;
+		--ps-glass: rgba(14, 21, 34, .78);
+		--ps-border: #24314A;
+		--ps-border-strong: #33425F;
+		--ps-text: #E8EDF6;
+		--ps-text-muted: #9CA9C0;
+		--ps-text-soft: #6F7D96;
+		--ps-focus: #FF7A45;
+		--ps-ring: rgba(127, 162, 230, .28);
+		--ps-overlay: rgba(0, 0, 0, .6);
+
+		--ps-nav-bg: linear-gradient(180deg, #070C17 0%, #0D1526 100%);
+		--ps-nav-solid: #0D1526;
+	--ps-nav-solid: #0D1526;
 
 		--ps-danger: #FF6B60;
-		--ps-danger-soft: #3B1D1B;
-		--ps-success: #5CC27A;
-		--ps-success-soft: #1A3324;
-		--ps-warning: #FFA94D;
-		--ps-warning-soft: #3A2B12;
-		--ps-required: #3A3418;
-		--ps-row-late: #3B1D1B;
-		--ps-row-done: #1A3324;
+		--ps-danger-soft: rgba(255, 107, 96, .13);
+		--ps-success: #4CC27A;
+		--ps-success-soft: rgba(76, 194, 122, .13);
+		--ps-warning: #FFAD4D;
+		--ps-warning-soft: rgba(255, 173, 77, .13);
+		--ps-on-status: #0B1222;
+		--ps-required: rgba(255, 214, 84, .09);
+		--ps-row-late: rgba(255, 107, 96, .10);
+		--ps-row-done: rgba(76, 194, 122, .09);
 
-		--ps-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 2px 8px rgba(0, 0, 0, .3);
+		--ps-shadow-xs: 0 1px 2px rgba(0, 0, 0, .4);
+		--ps-shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .28);
+		--ps-shadow-md: 0 2px 6px rgba(0, 0, 0, .4), 0 14px 32px rgba(0, 0, 0, .38);
+		--ps-shadow-lg: 0 24px 60px rgba(0, 0, 0, .6);
+		--ps-shadow-primary: 0 6px 18px rgba(77, 114, 189, .35);
+		--ps-shadow-accent: 0 6px 18px rgba(255, 122, 69, .3);
 		--ps-logo-plate: #F4F6FA;
 		color-scheme: dark;
 	}
+}
+
+/* Moins d'animations si l'utilisateur le demande (accessibilité). */
+@media (prefers-reduced-motion: reduce) {
+	:root { --ps-dur: 0s; --ps-dur-slow: 0s; }
 }

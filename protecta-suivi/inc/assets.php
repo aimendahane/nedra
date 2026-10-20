@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
  * Fichiers JS du cœur, dans l'ordre de chargement.
  */
 function ps_core_scripts(): array {
-	return array( 'format', 'ui', 'api', 'lists', 'session', 'router', 'notifications' );
+	return array( 'format', 'ui', 'icons', 'api', 'lists', 'session', 'router', 'notifications' );
 }
 
 /**

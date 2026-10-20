@@ -20,7 +20,8 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 5 | الإعدادات, comptes, fusion annuaire, import prototype, export, sauvegarde/restauration, e-mail du matin, Cron | ✅ terminée, tests verts | 0.5.0 |
 | 6 | Zip final, test installation vierge + mise à jour depuis 0.1.0, docs, release GitHub | ✅ terminée (sauf publication GitHub, bloquée) | 1.0.0 |
 | 1.0.1 | Demande client : tâches libres « مهمة جديدة » + e-mail (SMTP, vraie erreur) + explication Cron | ✅ terminée, tests verts | 1.0.1 · base v2 |
-| 1.0.2 | Demande client : notifications 🔔 (cloche + e-mail immédiat facultatif) | ✅ terminée, tests verts | **1.0.2** · base v3 |
+| 1.0.2 | Demande client : notifications 🔔 (cloche + e-mail immédiat facultatif) | ✅ terminée, tests verts | 1.0.2 · base v3 |
+| 1.1.0 | Demande client : nouveau design « world-class » (CSS/icônes/animations, aucune donnée touchée) | ✅ terminée, tests verts | **1.1.0** · base v3 |
 
 ### Tests (dernier passage complet, version 1.0.2) — détail : `docs/TEST-RESULTS.txt`
 - `sh protecta-suivi/tests/run-all.sh` → **580 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
@@ -36,7 +37,7 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
    et nouvelle migration si la structure change (tests/test-migrations.php à étendre).
 
 ### Vérification avec le fichier Excel réel du client (19/10/2026) — `docs/verif-excel/`
-9 problèmes listés au client (non corrigés, il a demandé la liste d'abord) : 01 date d'envoi = date du jour au lieu
+9 problèmes listés au client — 03, 04, 05, 06, 07, 08 corrigés en 1.1.0 (design) ; restent 01, 02, 09 : 01 date d'envoi = date du jour au lieu
 de تاريخ إرسال العرض du projet (bug) ; 02 champs date au format du navigateur ; 03 flèche verte pour المرفوضة ↑ ;
 04 tableaux Recap coupés sur mobile ; 05 fond du menu coupé ; 06 menu « إدخال مشروع » surligné sur une fiche ;
 07 lecture seule peu visible ; 08 numéro de projet coupé ; 09 numérotation P176… non conservée.
@@ -241,3 +242,10 @@ chaque décision prise seul.
   Le الوسيط n'est pas notifié (non demandé).
 - E-mail immédiat : préférence par compte `ps_instant_email` (désactivée par défaut), réglable dans la cloche.
 - Table `ps_notifications` jamais vidée (règle n°1) ; la cloche montre les 30 dernières.
+
+### Version 1.1.0 — design (décisions)
+- Refonte purement visuelle : mêmes classes CSS (les tests navigateur s'en servent), jetons dans variables.css
+  (ombres, rayons, durées, dégradés, menu sombre `--ps-nav-*`), icônes SVG maison dans `assets/js/core/icons.js`
+  (émojis gardés en secours). Animations coupées par `prefers-reduced-motion`.
+- Menu latéral bleu nuit dans les deux modes ; page active = fond clair + barre orange.
+- Recap : couleur de la comparaison N-1 selon le sens (`inverse` pour المرفوضة، لم تُرسل، retards).

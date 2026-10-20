@@ -320,7 +320,9 @@ async function step4(browser) {
 	check('5 graphiques dessinés (mois, تصنيف, أصناف, مكان, أسباب…)', drawn.length >= 5 && drawn.every(Boolean), drawn.join(','));
 	await page.screenshot({ path: SHOTS + '/s4-01-recap.png', fullPage: true });
 
-	// Clic sur la barre « أكتوبر » (mois 10) → Base Projets filtrée.
+	// Clic sur la barre « أكتوبر » (mois 10) → Base Projets filtrée (après la courte animation des graphiques).
+	await page.$eval('#ch-month', (c) => c.scrollIntoView({ block: 'center' }));
+	await page.waitForTimeout(900);
 	const box = await page.$eval('#ch-month', (c) => { const ch = Chart.getChart(c); const m = ch.getDatasetMeta(0).data[9]; const r = c.getBoundingClientRect(); return { x: r.left + m.x, y: r.top + m.y + 4 }; });
 	await page.mouse.click(box.x, box.y);
 	await page.waitForTimeout(900);
@@ -347,7 +349,7 @@ async function step4(browser) {
 	await page.click('#ps-theme-toggle'); // nuit
 	await page.waitForTimeout(500);
 	const tickColor = await page.$eval('#ch-month', (c) => Chart.getChart(c).options.scales.x.ticks.color);
-	check('mode nuit : graphiques redessinés avec les couleurs du thème', /rgb\(230|#E6EAF0|#e6eaf0/i.test(tickColor), tickColor);
+	check('mode nuit : graphiques redessinés avec les couleurs du thème', /^#E8EDF6$/i.test(tickColor.trim()) /* --ps-text du mode nuit (variables.css) */, tickColor);
 	await page.screenshot({ path: SHOTS + '/s4-02-recap-nuit.png', fullPage: true });
 	await page.click('#ps-theme-toggle');
 	await page.click('#ps-theme-toggle'); // retour auto
