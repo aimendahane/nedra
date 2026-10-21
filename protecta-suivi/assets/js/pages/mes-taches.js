@@ -94,7 +94,10 @@
 			try { st.meter.ac.close(); } catch (e) { /* déjà fermé */ }
 			st.meter = null;
 			// Aucun son capté : micro coupé, mauvais micro choisi ou autorisation partielle.
-			if (measured && st.peak < 0.01) ui.toast(PS.t('لم يُلتقط أي صوت: تأكّد أن الميكروفون يعمل وغير مكتوم، ثم أعد التسجيل.'), 'error');
+			if (measured && st.peak < 0.01) {
+				const several = $('[data-voice-mic]').options.length > 1;
+				ui.toast(PS.t('لم يُلتقط أي صوت: تأكّد أن الميكروفون يعمل وغير مكتوم، ثم أعد التسجيل.') + (several ? ' ' + PS.t('جرّب ميكروفونًا آخر من القائمة 🎤.') : ''), 'error');
+			}
 		}
 		function tick() {
 			st.seconds = (Date.now() - st.t0) / 1000;
@@ -106,8 +109,32 @@
 			if (st.rec && st.rec.state !== 'inactive') st.rec.stop();
 			clearInterval(st.timer);
 		}
+		/*
+		 * Choix du micro (1.3.4) : sur un PC il y a souvent plusieurs entrées (webcam, casque, « Stereo Mix »,
+		 * écran HDMI) et le navigateur peut prendre une entrée muette. Les noms ne sont connus qu'après autorisation.
+		 */
+		function savedMic() { try { return localStorage.getItem('ps_mic') || ''; } catch (e) { return ''; } }
+		function listMics() {
+			if (!navigator.mediaDevices.enumerateDevices) return;
+			navigator.mediaDevices.enumerateDevices().then(function (all) {
+				const mics = all.filter(function (d) { return d.kind === 'audioinput' && d.deviceId !== 'communications'; });
+				const sel = $('[data-voice-mic]');
+				const cur = sel.value || savedMic();
+				sel.innerHTML = mics.map(function (d, i) {
+					return html`<option value="${d.deviceId}" ${d.deviceId === cur ? ui.raw('selected') : ''}>🎤 ${d.label || PS.t('ميكروفون') + ' ' + (i + 1)}</option>`.html;
+				}).join('');
+				sel.hidden = mics.length < 2;
+			}).catch(function () { /* liste indisponible : micro par défaut */ });
+		}
 		function start() {
-			navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+			const id = $('[data-voice-mic]').value || savedMic();
+			const want = id && id !== 'default' ? { deviceId: { exact: id } } : true;
+			navigator.mediaDevices.getUserMedia({ audio: want }).catch(function (er) {
+				// Micro mémorisé débranché → micro par défaut.
+				if (want !== true && er && (er.name === 'OverconstrainedError' || er.name === 'NotFoundError')) return navigator.mediaDevices.getUserMedia({ audio: true });
+				throw er;
+			}).then(function (stream) {
+				listMics();
 				const type = voiceType();
 				st.stream = stream;
 				st.chunks = [];
@@ -133,6 +160,8 @@
 			if (e.target.closest('[data-voice-rec]')) { if (box.dataset.state === 'recording') stop(); else start(); }
 			if (e.target.closest('[data-voice-del]')) { st.blob = null; showState('idle'); }
 		});
+		$('[data-voice-mic]').addEventListener('change', function (e) { try { localStorage.setItem('ps_mic', e.target.value); } catch (er) { /* navigation privée */ } });
+		listMics();
 		showState('idle');
 		return {
 			result: function () {
@@ -146,7 +175,7 @@
 
 	/** Zone d'enregistrement (bouton, chrono, niveau du micro, réécoute, suppression). */
 	function voiceBoxHtml() {
-		return html`<div class="ps-voice" data-voice><button type="button" class="ps-btn ps-voice__rec" data-voice-rec></button><span class="ps-voice__time" data-voice-time dir="ltr"></span><span class="ps-voice__level" data-voice-level aria-hidden="true"><i></i></span><audio data-voice-audio controls></audio><button type="button" class="ps-btn ps-btn--ghost ps-btn--small" data-voice-del>🗑 ${PS.t('حذف')}</button></div>`;
+		return html`<div class="ps-voice" data-voice><button type="button" class="ps-btn ps-voice__rec" data-voice-rec></button><span class="ps-voice__time" data-voice-time dir="ltr"></span><span class="ps-voice__level" data-voice-level aria-hidden="true"><i></i></span><select class="ps-input ps-input--sm ps-voice__mic" data-voice-mic aria-label="${PS.t('الميكروفون')}" hidden></select><audio data-voice-audio controls></audio><button type="button" class="ps-btn ps-btn--ghost ps-btn--small" data-voice-del>🗑 ${PS.t('حذف')}</button></div>`;
 	}
 
 	/** Lecteur audio d'une tâche (fichier servi par l'API après contrôle des droits). */

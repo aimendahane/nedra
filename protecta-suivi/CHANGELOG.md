@@ -3,6 +3,14 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.3.4 — 2026-10-22 · base v4 — Choix du micro (PC)
+
+- Retour client : le son marche sur téléphone mais pas sur PC (« لم يُلتقط أي صوت »). Sur un PC il y a souvent
+  plusieurs entrées audio (webcam, casque, « Stereo Mix », écran HDMI) et le navigateur peut prendre une entrée muette.
+- **Liste 🎤 des micros** à côté du bouton d'enregistrement (dès qu'il y en a plusieurs) ; le choix est mémorisé
+  sur l'ordinateur ; micro débranché → micro par défaut. Si l'enregistrement est muet : « جرّب ميكروفونًا آخر ».
+- Tests navigateur : PC à deux entrées (muette + vraie) → alerte, choix du bon micro, envoi accepté.
+
 ## 1.3.3 — 2026-10-21 · base v4 — « 🎙 اختبار الصوت » (diagnostic du son)
 
 - الإعدادات ← عام ← **اختبار الصوت** : en 3 étapes sur le téléphone concerné — (1) son de test pour vérifier le

@@ -650,6 +650,7 @@ tr.ps-drill:hover td { background: var(--ps-primary-soft); }
 .ps-sound-steps .ps-voice { margin-top: 8px; }
 .ps-sound-report th { width: 40%; }
 .ps-sound-report__ok { width: 2.5em; text-align: center; font-weight: 700; }
+.ps-voice__mic { flex: 1 1 100%; max-width: 360px; }
 .ps-voice__level { flex: 0 1 120px; height: 8px; border-radius: 4px; background: var(--ps-border); overflow: hidden; }
 .ps-voice__level i { display: block; height: 100%; width: 0; background: var(--ps-success); transition: width 0.1s linear; }
 .ps-voice__time { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--ps-text-muted); }

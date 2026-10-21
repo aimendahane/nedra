@@ -687,16 +687,37 @@ async function step8() {
 		await page.click('[data-new-task]');
 		await page.waitForSelector('[data-voice-rec]');
 		await page.selectOption('[data-task-form] [name=employeeId]', { label: 'وفاء حامدي' });
+		// PC avec deux entrées : « Stereo Mix » (muette, par défaut) et le vrai micro.
 		await page.evaluate(() => {
-			navigator.mediaDevices.getUserMedia = async function () { const ac = new AudioContext(); const d = ac.createMediaStreamDestination(); const g = ac.createGain(); g.gain.value = 0; const o = ac.createOscillator(); o.connect(g); g.connect(d); o.start(); return d.stream; };
+			window.__micAsked = [];
+			navigator.mediaDevices.enumerateDevices = async () => [
+				{ kind: 'audioinput', deviceId: 'mix', label: 'Stereo Mix (Realtek)' },
+				{ kind: 'audioinput', deviceId: 'usb', label: 'Microphone USB' },
+			];
+			navigator.mediaDevices.getUserMedia = async function (c) {
+				const id = c.audio && c.audio.deviceId ? c.audio.deviceId.exact : 'mix';
+				window.__micAsked.push(id);
+				const ac = new AudioContext(); const d = ac.createMediaStreamDestination(); const g = ac.createGain(); g.gain.value = id === 'usb' ? 0.5 : 0; const o = ac.createOscillator(); o.connect(g); g.connect(d); o.start(); return d.stream;
+			};
 		});
 		await page.click('[data-voice-rec]');
 		await page.waitForTimeout(2600);
 		await page.click('[data-voice-rec]');
 		await page.waitForSelector('[data-voice][data-state="done"]');
-		check('micro muet : alerte « لم يُلتقط أي صوت » après l\'enregistrement', await page.waitForFunction(() => /لم يُلتقط أي صوت/.test(document.body.textContent), null, { timeout: 3000 }).then(() => true, () => false));
+		check('micro muet : alerte « لم يُلتقط أي صوت » + « جرّب ميكروفونًا آخر »', await page.waitForFunction(() => /لم يُلتقط أي صوت/.test(document.body.textContent) && /ميكروفونًا آخر/.test(document.body.textContent), null, { timeout: 3000 }).then(() => true, () => false));
+		const mics = await page.$$eval('[data-voice-mic] option', (o) => o.map((x) => x.textContent.trim()));
+		check('liste des micros affichée (plusieurs entrées sur le PC)', mics.length === 2 && mics[1].includes('Microphone USB') && await page.isVisible('[data-voice-mic]'), mics.join(' | '));
 		await page.click('[data-btn=save]');
 		check('micro muet : envoi refusé « التسجيل بدون صوت » (la fenêtre reste ouverte)', await page.waitForFunction(() => /التسجيل بدون صوت/.test(document.body.textContent), null, { timeout: 5000 }).then(() => true, () => false) && await page.isVisible('.ps-modal'));
+		await page.selectOption('[data-voice-mic]', 'usb');
+		await page.click('[data-voice-rec]');
+		await page.waitForTimeout(2600);
+		await page.click('[data-voice-rec]');
+		await page.waitForSelector('[data-voice][data-state="done"]');
+		check('autre micro choisi → utilisé pour l\'enregistrement et mémorisé', await page.evaluate(() => window.__micAsked[window.__micAsked.length - 1] === 'usb' && localStorage.getItem('ps_mic') === 'usb'));
+		await page.click('[data-btn=save]');
+		await page.waitForSelector('.ps-modal', { state: 'detached', timeout: 8000 }).catch(() => {});
+		check('avec le bon micro : message vocal accepté et envoyé', !(await page.isVisible('.ps-modal')));
 		await ctx.close();
 	}
 	{
