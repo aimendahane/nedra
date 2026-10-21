@@ -39,7 +39,48 @@ PS.notifications = (function () {
 					<span class="ps-bell__title">${n.title}</span><span class="ps-bell__body">${n.body || ''}</span>
 					<span class="ps-bell__meta">${n.actorName ? n.actorName + ' · ' : ''}${PS.format.dateTime(n.createdAt)}</span></button></li>`;
 			})}</ul>` : html`<p class="ps-muted ps-bell__foot">لا توجد إشعارات بعد. ستصلك هنا تغييرات المشاريع التي تتابعها.</p>`}
-			<label class="ps-check ps-bell__foot"><input type="checkbox" data-bell-mail ${prefs.instantEmail ? ui.raw('checked') : ''}> بريد فوري عند كل تغيير</label>`.html;
+			<label class="ps-check ps-bell__foot"><input type="checkbox" data-bell-mail ${prefs.instantEmail ? ui.raw('checked') : ''}> بريد فوري عند كل تغيير</label>
+			<div class="ps-bell__foot ps-bell__tg" data-bell-tg></div>`.html;
+		renderTelegram();
+	}
+
+	/* ---- Telegram (1.2.0) : ربط الحساب بضغطة واحدة ---- */
+	let tg = null;
+	let tgTimer = null;
+
+	function renderTelegram() {
+		const box = document.querySelector('[data-bell-tg]');
+		if (!box) return;
+		const draw = function () {
+			if (!tg || !tg.enabled) { box.hidden = true; return; }
+			box.hidden = false;
+			box.innerHTML = tg.linked
+				? html`<span class="ps-tg-ok">✈ مربوط بـ Telegram</span> <button type="button" class="ps-link" data-tg-unlink>فك الربط</button>`.html
+				: html`<button type="button" class="ps-btn ps-btn--small ps-btn--tg" data-tg-link>✈ ربط Telegram</button> <span class="ps-muted">لتصلك الإشعارات على هاتفك</span>`.html;
+		};
+		if (tg) return draw();
+		PS.api.get('me/telegram', { passive: true }).then(function (r) { tg = r; draw(); }).catch(function () {});
+	}
+
+	/** Ouvre le lien du bot puis vérifie toutes les 3 s (2 min) que l'utilisateur a appuyé sur « Start ». */
+	function linkTelegram() {
+		const win = window.open('about:blank', '_blank');
+		PS.api.post('me/telegram/link').then(function (r) {
+			if (win) win.location.href = r.url; else window.location.href = r.url;
+			ui.toast('اضغط «Start» في Telegram ثم ارجع هنا', 'info');
+			let n = 0;
+			clearInterval(tgTimer);
+			tgTimer = setInterval(function () {
+				if (++n > 40) return clearInterval(tgTimer);
+				PS.api.post('me/telegram/check', {}, { passive: true }).then(function (s) {
+					if (!s.linked) return;
+					clearInterval(tgTimer);
+					tg = s;
+					renderTelegram();
+					ui.toast('✔ تم ربط حسابك بـ Telegram', 'success');
+				}).catch(function () {});
+			}, 3000);
+		}).catch(function (e) { if (win) win.close(); ui.toast(e.message, 'error'); });
 	}
 
 	function open() {
@@ -76,6 +117,10 @@ PS.notifications = (function () {
 				close();
 				if (it.dataset.bellProject) PS.router.go('projet', { id: it.dataset.bellProject });
 				return;
+			}
+			if (e.target.closest('[data-tg-link]')) return linkTelegram();
+			if (e.target.closest('[data-tg-unlink]')) {
+				return PS.api.post('me/telegram/unlink').then(function (s) { tg = s; renderTelegram(); ui.toast('تم فك الربط', 'success'); });
 			}
 			if (e.target.closest('[data-bell-all]')) {
 				PS.api.post('notifications/read', { all: true }).then(function () { open(); }).catch(function (er) { ui.toast(er.message, 'error'); });

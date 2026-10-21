@@ -1,12 +1,12 @@
-RÉSULTATS DES TESTS — Protecta Suivi 1.1.0 (base v3) — 20/10/2026
+RÉSULTATS DES TESTS — Protecta Suivi 1.2.0 (base v4) — 21/10/2026
 
-1) sh protecta-suivi/tests/run-all.sh : 580 tests PHP réussis / 0 échoué + navigateur (étapes 1 à 5, 1.0.1, 1.0.2) : tout passé
-2) release-check.sh : installation vierge du zip 1.1.0 OK ; mise à jour 1.0.2 → 1.1.0 avec données : AUCUNE PERTE
+1) run-all.sh : 616 tests PHP réussis / 0 échoué + navigateur (étapes 1 à 5, 1.0.1, 1.0.2, 1.2.0 avec microphone simulé) : tout passé
+2) release-check.sh : installation vierge du zip 1.2.0 OK ; mise à jour 1.1.0 → 1.2.0 avec données : AUCUNE PERTE
 
 =========================== Détail run-all.sh ===========================
 ######## Tests PHP ########
 Site de test installé (thème : protecta-suivi)
-Thème v1.1.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
+Thème v1.2.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 
 == Activation : base de données ==
   ✔ ps_db_version = dernière migration
@@ -92,7 +92,7 @@ Thème v1.1.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ données de test en place
 
 == Mise à jour : version actuelle (migration 2) + migration simulée ==
-  ✔ ps_db_version passe à 4
+  ✔ ps_db_version passe à 5
   ✔ deuxième passage : aucune migration rejouée
   ✔ verrou de migration libéré
   ✔ une sauvegarde automatique créée AVANT la migration
@@ -126,6 +126,9 @@ Thème v1.1.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 == Migration 3 (1.0.2) : notifications ==
   ✔ table ps_notifications créée
   ✔ table ps_notifications vide (aucune notification inventée pour les anciennes données)
+
+== Migration 4 (1.2.0) : message vocal des tâches ==
+  ✔ colonnes voice_* ajoutées à ps_tasks
 
 == Mise à jour : listes et réglages de la الإدارة conservés ==
   ✔ valeur renommée : nom conservé
@@ -712,8 +715,51 @@ Thème v1.1.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ import ignoré ; compte désactivé (المتابع) non notifié
   ✔ notifications incluses dans la sauvegarde JSON
 
+== Telegram : réglage du bot (الإدارة) ==
+  ✔ token mal formé → refusé
+  ✔ token refusé par Telegram → message de Telegram affiché
+  ✔ activer sans token → refusé
+  ✔ token valide → vérifié (getMe), nom du bot retenu
+  ✔ token jamais renvoyé au navigateur
+  ✔ token absent de la sauvegarde JSON
+  ✔ Telegram actif
+
+== Telegram : liaison d'un compte ==
+  ✔ employé : Telegram disponible, pas encore lié
+  ✔ lien t.me/<bot>?start=<code aléatoire>
+  ✔ code inconnu → non lié
+  ✔ message « رابط غير صالح » envoyé à l'inconnu
+  ✔ bon code → compte lié
+  ✔ identifiant de discussion enregistré
+  ✔ message de bienvenue avec le nom du compte
+  ✔ code à usage unique : réutilisé par quelqu'un d'autre → refusé
+  ✔ code expiré (2 h) → refusé
+  ✔ le Cron termine aussi les liaisons en attente
+
+== Telegram : envois (notifications, tâches, résumé) ==
+  ✔ notification 🔔 reçue sur Telegram (projet, changement)
+  ✔ المسؤول lié reçoit aussi la notification
+  ✔ pas de bouton vers une adresse locale (Telegram exige https)
+  ✔ textes échappés (HTML Telegram)
+  ✔ tâche avec message vocal créée (durée retenue)
+  ✔ message vocal seul → titre par défaut « 🎙 رسالة صوتية »
+  ✔ fichier rangé dans le dossier protégé files/voice/
+  ✔ Telegram : texte de la tâche + message vocal (sendVoice)
+  ✔ si sendVoice échoue → envoi comme document
+  ✔ fichier qui n'est pas de l'audio → refusé (type vérifié sur le contenu)
+  ✔ message trop long (taille) → refusé
+  ✔ موظف : ne peut pas envoyer de message vocal (403)
+  ✔ un autre employé ne peut pas écouter le message (404)
+  ✔ résumé du matin envoyé aussi sur Telegram
+
+== Telegram : arrêt ==
+  ✔ bot bloqué par l'utilisateur → compte délié automatiquement
+  ✔ « /stop » dans Telegram → délié
+  ✔ message d'essai : compte non lié → message clair
+  ✔ Telegram désactivé → liaison impossible
+
 ----------------------------------------
-Résultat : 580 réussis, 0 échoués
+Résultat : 616 réussis, 0 échoués
 
 ######## Navigateur : fondations (étape 1) ########
 Page de connexion
@@ -880,6 +926,19 @@ Tous les contrôles navigateur sont passés.
   ✔ notification lue → compteur à 0
   ✔ « بريد فوري عند كل تغيير » mémorisé
   ✔ mobile (المتابع) : la liste s'affiche sans défilement horizontal
+
+Tous les contrôles navigateur sont passés.
+
+######## Navigateur : step8 (jeu de démonstration) ########
+1.2.0 — message vocal (مسؤول → موظف) et Telegram
+  ✔ fenêtre « مهمة جديدة » : bouton « 🎙 تسجيل رسالة صوتية »
+  ✔ enregistrement en cours : chronomètre affiché
+  ✔ après « إيقاف » : lecteur de vérification + « حذف »
+  ✔ tâche vocale envoyée (titre par défaut « 🎙 رسالة صوتية »)
+  ✔ موظف : lecteur audio dans « مهام مُسندة », fichier servi après contrôle des droits
+  ✔ lecture par morceaux (Range) pour avancer dans l'audio
+  ✔ Telegram non configuré : rien dans la cloche
+  ✔ الإعدادات ← عام : section Telegram (token + activation + essai)
 
 Tous les contrôles navigateur sont passés.
 

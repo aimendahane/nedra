@@ -29,6 +29,7 @@ function ps_migrations(): array {
 		1 => 'ps_migration_001_initial',
 		2 => 'ps_migration_002_tasks',
 		3 => 'ps_migration_003_notifications',
+		4 => 'ps_migration_004_task_voice',
 	);
 	return apply_filters( 'ps_migrations', $migrations );
 }
@@ -73,6 +74,15 @@ function ps_migration_002_tasks(): void {
  */
 function ps_migration_003_notifications(): void {
 	ps_apply_schema();
+}
+
+/**
+ * Migration 4 (1.2.0) : message vocal d'une tâche — ADD COLUMN voice_path, voice_mime, voice_size, voice_seconds
+ * sur {prefix}ps_tasks (dbDelta : ajoute seulement, les tâches existantes restent sans vocal).
+ */
+function ps_migration_004_task_voice(): void {
+	ps_apply_schema();
+	ps_ensure_storage();
 }
 
 /**

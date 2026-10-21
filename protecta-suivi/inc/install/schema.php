@@ -249,7 +249,7 @@ function ps_schema_sql(): array {
   KEY entity (entity,entity_id)
 ) $c;";
 
-	// Tâches libres (1.0.1, migration 2) : demandées par الإدارة / مسؤول مشروع à un employé
+	// Tâches libres (1.0.1, migration 2) ; message vocal voice_* (1.2.0, migration 4) : demandées par الإدارة / مسؤول مشروع à un employé
 	// (« مهمة جديدة »), affichées dans مهامي. Jamais supprimées : status open → done | cancelled.
 	$sql['tasks'] = "CREATE TABLE {$t('tasks')} (
   id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -263,6 +263,10 @@ function ps_schema_sql(): array {
   done_by bigint(20) unsigned DEFAULT NULL,
   done_at datetime DEFAULT NULL,
   done_note text DEFAULT NULL,
+  voice_path varchar(255) DEFAULT NULL,
+  voice_mime varchar(60) DEFAULT NULL,
+  voice_size bigint(20) unsigned DEFAULT NULL,
+  voice_seconds int(10) unsigned DEFAULT NULL,
   created_at datetime NOT NULL,
   updated_at datetime NOT NULL,
   PRIMARY KEY  (id),

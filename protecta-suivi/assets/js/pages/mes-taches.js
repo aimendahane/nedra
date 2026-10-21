@@ -30,6 +30,85 @@
 
 	function errMsg(er) { return (er && er.message) || 'حدث خطأ'; }
 
+	/* ---- Message vocal (1.2.0) : enregistrement dans le navigateur, 5 minutes au plus ---- */
+	const VOICE_MAX = 300;
+
+	/** Type d'enregistrement accepté par le navigateur (Chrome/Edge : webm, Firefox : ogg, iPhone/Safari : mp4). */
+	function voiceType() {
+		const types = ['audio/ogg;codecs=opus', 'audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+		for (let i = 0; i < types.length; i++) if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(types[i])) return types[i];
+		return '';
+	}
+
+	function voiceSupported() { return !!(window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.isSecureContext); }
+
+	function fmtSeconds(s) { s = Math.round(s); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+
+	/**
+	 * Enregistreur attaché à un conteneur [data-voice]. Renvoie { result(), stop() } ;
+	 * result() = { blob, seconds, ext } ou null.
+	 */
+	function voiceRecorder(box) {
+		const st = { rec: null, stream: null, chunks: [], blob: null, seconds: 0, timer: null, t0: 0 };
+		const $ = function (sel) { return box.querySelector(sel); };
+		function showState(state) {
+			box.dataset.state = state;
+			$('[data-voice-rec]').innerHTML = state === 'recording' ? '⏹ إيقاف التسجيل' : (state === 'done' ? '🎙 إعادة التسجيل' : '🎙 تسجيل رسالة صوتية');
+			$('[data-voice-time]').hidden = state === 'idle';
+			$('[data-voice-audio]').hidden = state !== 'done';
+			$('[data-voice-del]').hidden = state !== 'done';
+		}
+		function tick() {
+			st.seconds = (Date.now() - st.t0) / 1000;
+			$('[data-voice-time]').textContent = '● ' + fmtSeconds(st.seconds) + ' / ' + fmtSeconds(VOICE_MAX);
+			if (st.seconds >= VOICE_MAX) stop();
+		}
+		function stop() {
+			if (st.rec && st.rec.state !== 'inactive') st.rec.stop();
+			clearInterval(st.timer);
+		}
+		function start() {
+			navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+				const type = voiceType();
+				st.stream = stream;
+				st.chunks = [];
+				st.rec = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
+				st.rec.ondataavailable = function (e) { if (e.data && e.data.size) st.chunks.push(e.data); };
+				st.rec.onstop = function () {
+					stream.getTracks().forEach(function (t) { t.stop(); });
+					st.blob = new Blob(st.chunks, { type: st.rec.mimeType || type || 'audio/webm' });
+					$('[data-voice-audio]').src = URL.createObjectURL(st.blob);
+					$('[data-voice-time]').textContent = '🎙 ' + fmtSeconds(st.seconds);
+					showState('done');
+				};
+				st.rec.start(1000);
+				st.t0 = Date.now();
+				st.timer = setInterval(tick, 250);
+				tick();
+				showState('recording');
+			}).catch(function () { ui.toast('لم يُسمح باستعمال الميكروفون. فعّله من إعدادات المتصفح.', 'error'); });
+		}
+		box.addEventListener('click', function (e) {
+			if (e.target.closest('[data-voice-rec]')) { if (box.dataset.state === 'recording') stop(); else start(); }
+			if (e.target.closest('[data-voice-del]')) { st.blob = null; showState('idle'); }
+		});
+		showState('idle');
+		return {
+			result: function () {
+				if (!st.blob) return null;
+				const t = st.blob.type;
+				return { blob: st.blob, seconds: Math.round(st.seconds), ext: t.indexOf('ogg') >= 0 ? 'ogg' : t.indexOf('mp4') >= 0 ? 'm4a' : 'webm' };
+			},
+			stop: function () { stop(); if (st.stream) st.stream.getTracks().forEach(function (t) { t.stop(); }); },
+		};
+	}
+
+	/** Lecteur audio d'une tâche (fichier servi par l'API après contrôle des droits). */
+	function voicePlayer(r) {
+		if (!r.hasVoice) return '';
+		return html`<audio class="ps-voice__player" controls preload="none" src="${PS.config.restUrl + 'free-tasks/' + r.id + '/voice?_wpnonce=' + PS.config.nonce}"></audio>`;
+	}
+
 	/**
 	 * Fenêtre « مهمة جديدة ». Résout avec la tâche créée (ou null si fermée).
 	 * @param {Object} o { projectId, projectLabel, task (modification d'une tâche existante) }
@@ -40,6 +119,7 @@
 		const tomorrow = new Date(Date.parse(PS.config.today + 'T12:00:00Z') + 86400000).toISOString().slice(0, 10);
 		return L.load().then(function () {
 			let created = null;
+			let recorder = null;
 			return ui.modal({
 				title: t.id ? 'تعديل المهمة' : '📌 مهمة جديدة',
 				body: html`<form class="ps-form" data-task-form novalidate>
@@ -52,10 +132,15 @@
 						<input class="ps-input" type="date" name="dueDate" value="${t.id ? (t.dueDate || '') : tomorrow}"></label>
 					<label class="ps-field" data-key="note"><span class="ps-field__label">ملاحظة</span>
 						<textarea class="ps-input" name="note" rows="3">${t.note || ''}</textarea></label>
-					<p class="ps-muted ps-small">تظهر المهمة في «مهامي» عند الموظف، ويصله بريد إذا كان لحسابه بريد.</p>
+					${t.id ? '' : (voiceSupported()
+						? html`<div class="ps-voice" data-voice><button type="button" class="ps-btn ps-voice__rec" data-voice-rec></button><span class="ps-voice__time" data-voice-time dir="ltr"></span><audio data-voice-audio controls></audio><button type="button" class="ps-btn ps-btn--ghost ps-btn--small" data-voice-del>🗑 حذف</button></div>`
+						: html`<p class="ps-muted ps-small">🎙 الرسائل الصوتية تتطلب متصفحًا حديثًا واتصالًا آمنًا (https).</p>`)}
+					<p class="ps-muted ps-small">اكتب المهمة أو سجّل رسالة صوتية (أو الاثنين). تظهر في «مهامي» عند الموظف، ويصله بريد و/أو رسالة Telegram.</p>
 				</form>`,
 				buttons: [{ id: 'save', label: t.id ? '💾 حفظ' : '📌 إرسال المهمة', kind: 'primary' }, { id: 'cancel', label: 'إلغاء' }],
 				onOpen: function (wrap) {
+					const vbox = wrap.querySelector('[data-voice]');
+					if (vbox) recorder = voiceRecorder(vbox);
 					// Une erreur disparaît dès que le champ est corrigé.
 					wrap.addEventListener('input', function (e) {
 						const field = e.target.closest('.ps-field--error');
@@ -70,7 +155,17 @@
 					const f = wrap.querySelector('[data-task-form]');
 					const body = { employeeId: f.employeeId.value, title: f.title.value, dueDate: f.dueDate.value, note: f.note.value };
 					if (o.projectId) body.projectId = o.projectId;
-					const req = t.id ? PS.api.put('free-tasks/' + t.id, Object.assign({ action: 'edit' }, body)) : PS.api.post('free-tasks', body);
+					const voice = recorder ? recorder.result() : null;
+					if (recorder && wrap.querySelector('[data-voice]').dataset.state === 'recording') { ui.toast('أوقف التسجيل أولًا', 'error'); return false; }
+					let payload = body;
+					if (voice) {
+						// Formulaire multipart : les champs + le fichier audio.
+						payload = new FormData();
+						Object.keys(body).forEach(function (k) { payload.append(k, body[k] === undefined || body[k] === null ? '' : body[k]); });
+						payload.append('voiceSeconds', voice.seconds);
+						payload.append('voice', voice.blob, 'voice.' + voice.ext);
+					}
+					const req = t.id ? PS.api.put('free-tasks/' + t.id, Object.assign({ action: 'edit' }, body)) : PS.api.post('free-tasks', payload);
 					req.then(function (r) {
 						created = r;
 						ui.toast(t.id ? 'تم حفظ المهمة' : 'أُرسلت المهمة إلى ' + L.label(r.employeeId), 'success');
@@ -81,7 +176,7 @@
 					});
 					return false;
 				},
-			}).then(function () { return created; });
+			}).then(function () { if (recorder) recorder.stop(); return created; });
 		});
 	}
 	PS.taskModal = taskModal;
@@ -109,7 +204,7 @@
 				<div class="ps-task__row"><span><strong>${r.title}</strong>${r.projectId ? html` · <a href="#/projet?id=${r.projectId}" class="ps-mono">${r.projectNo}</a>` : ''}</span>
 				<button type="button" class="ps-btn ps-btn--small ps-btn--primary" data-task-done="${r.id}">✔ تمت</button></div>
 				<span class="ps-small">${dueText(r, data.today)}${r.createdByName ? ' · من ' + r.createdByName : ''}${who(r, showEmp)}</span>
-				${r.note ? html`<span class="ps-small ps-task__note">${r.note}</span>` : ''}</li>`;
+				${r.note ? html`<span class="ps-small ps-task__note">${r.note}</span>` : ''}${voicePlayer(r)}</li>`;
 		});
 	}
 
@@ -120,7 +215,7 @@
 			return html`<li class="ps-task__item ${done ? 'is-done' : (r.late ? 'is-danger' : '')}">
 				<div class="ps-task__row"><span>${done ? '✔ ' : ''}<strong>${r.title}</strong> → ${L.label(r.employeeId)}${r.projectId ? html` · <a href="#/projet?id=${r.projectId}" class="ps-mono">${r.projectNo}</a>` : ''}</span>
 				${done ? '' : html`<span class="ps-row ps-row--tight"><button type="button" class="ps-btn ps-btn--small" data-task-edit="${r.id}">✎</button><button type="button" class="ps-btn ps-btn--small ps-btn--ghost" data-task-cancel="${r.id}">إلغاء</button></span>`}</div>
-				<span class="ps-small">${done ? 'تمت ' + F.date(String(r.doneAt).slice(0, 10)) + (r.doneByName ? ' · ' + r.doneByName : '') : dueText(r, data.today)}</span></li>`;
+				<span class="ps-small">${done ? 'تمت ' + F.date(String(r.doneAt).slice(0, 10)) + (r.doneByName ? ' · ' + r.doneByName : '') : dueText(r, data.today)}</span>${voicePlayer(r)}</li>`;
 		});
 	}
 

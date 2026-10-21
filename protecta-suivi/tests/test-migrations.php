@@ -135,6 +135,10 @@ ps_test_section( 'Migration 3 (1.0.2) : notifications' );
 ps_assert( ps_table( 'notifications' ) === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', ps_table( 'notifications' ) ) ), 'table ps_notifications créée' );
 ps_assert_same( 0, (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'notifications' ) ), 'table ps_notifications vide (aucune notification inventée pour les anciennes données)' );
 
+ps_test_section( 'Migration 4 (1.2.0) : message vocal des tâches' );
+$voice_cols = $wpdb->get_col( 'SHOW COLUMNS FROM ' . ps_table( 'tasks' ) );
+ps_assert( ! array_diff( array( 'voice_path', 'voice_mime', 'voice_size', 'voice_seconds' ), $voice_cols ), 'colonnes voice_* ajoutées à ps_tasks' );
+
 ps_test_section( 'Mise à jour : listes et réglages de la الإدارة conservés' );
 
 ps_assert_same( 'صفاء بن علي', $wpdb->get_var( "SELECT label FROM $lt WHERE id=$safa" ), 'valeur renommée : nom conservé' );

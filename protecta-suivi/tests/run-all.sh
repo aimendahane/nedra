@@ -1,6 +1,6 @@
 #!/bin/sh
 # Lance TOUS les tests (développement local) : PHP, puis navigateur sur un site de test neuf.
-# step6 = version 1.0.1 (tâches libres, e-mail) ; step7 = 1.0.2 (notifications).
+# step6 = version 1.0.1 (tâches libres, e-mail) ; step7 = 1.0.2 (notifications) ; step8 = 1.2.0 (vocal, Telegram).
 #   sh tests/run-all.sh            (depuis le dossier du thème)
 # Variables : WP=/srv/wp, SHOTS=/tmp/ps-shots (captures d'écran)
 set -u
@@ -25,7 +25,7 @@ echo "\n######## Navigateur : fonctionnalités (étapes 2-5) ########"
 ONLY=step2 BASE_URL=http://localhost:8081 SHOTS="$SHOTS" node "$DIR/e2e-app.js" || fail "navigateur étape 2"
 
 # Chaque étape repart d'un site neuf avec le jeu de démonstration (les étapes modifient les données).
-for STEP in step3 step4 step5 step6 step7; do
+for STEP in step3 step4 step5 step6 step7 step8; do
 	echo "\n######## Navigateur : $STEP (jeu de démonstration) ########"
 	(cd "$WP" && sudo -u www-data env PS_TEST=1 DEMO=1 php "$DIR/e2e-setup.php") >/dev/null || fail "préparation démo $STEP"
 	ONLY=$STEP BASE_URL=http://localhost:8081 SHOTS="$SHOTS" node "$DIR/e2e-app.js" || fail "navigateur $STEP"

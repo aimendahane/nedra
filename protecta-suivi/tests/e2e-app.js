@@ -643,7 +643,54 @@ async function step7(browser) {
 	}
 }
 
-const STEPS = { step2, step3, step4, step5, step6, step7 };
+/* Version 1.2.0 : message vocal (microphone simulé par Chromium) + réglages Telegram. */
+async function step8() {
+	console.log('1.2.0 — message vocal (مسؤول → موظف) et Telegram');
+	const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] });
+	{
+		const { ctx, page } = await newPage(browser, 'masoul');
+		await go(page, '#/taches');
+		await page.click('[data-new-task]');
+		await page.waitForSelector('[data-voice-rec]');
+		check('fenêtre « مهمة جديدة » : bouton « 🎙 تسجيل رسالة صوتية »', (await page.textContent('[data-voice-rec]')).includes('تسجيل'));
+		await page.selectOption('[data-task-form] [name=employeeId]', { label: 'وفاء حامدي' });
+		await page.click('[data-voice-rec]');
+		await page.waitForTimeout(2600);
+		check('enregistrement en cours : chronomètre affiché', (await page.textContent('[data-voice-time]')).includes('0:0'));
+		await page.screenshot({ path: SHOTS + '/s8-01-enregistrement.png' });
+		await page.click('[data-voice-rec]');
+		await page.waitForSelector('[data-voice][data-state="done"]');
+		check('après « إيقاف » : lecteur de vérification + « حذف »', await page.isVisible('[data-voice-audio]') && await page.isVisible('[data-voice-del]'));
+		await page.click('[data-btn=save]');
+		await page.waitForSelector('.ps-modal', { state: 'detached' });
+		await page.waitForTimeout(600);
+		check('tâche vocale envoyée (titre par défaut « 🎙 رسالة صوتية »)', (await page.textContent('.ps-main')).includes('رسالة صوتية'));
+		await ctx.close();
+	}
+	{
+		const { ctx, page } = await newPage(browser, 'mowadhaf');
+		await go(page, '#/taches');
+		await page.waitForSelector('.ps-voice__player');
+		const res = await page.evaluate(async () => { const a = document.querySelector('.ps-voice__player'); const r = await fetch(a.src, { credentials: 'same-origin' }); const b = await r.arrayBuffer(); return { status: r.status, type: r.headers.get('content-type'), size: b.byteLength }; });
+		check('موظف : lecteur audio dans « مهام مُسندة », fichier servi après contrôle des droits', res.status === 200 && /^audio\//.test(res.type) && res.size > 1000, JSON.stringify(res));
+		const ranged = await page.evaluate(async () => { const a = document.querySelector('.ps-voice__player'); const r = await fetch(a.src, { headers: { Range: 'bytes=0-99' }, credentials: 'same-origin' }); return { status: r.status, len: (await r.arrayBuffer()).byteLength }; });
+		check('lecture par morceaux (Range) pour avancer dans l\'audio', ranged.status === 206 && ranged.len === 100, JSON.stringify(ranged));
+		await page.screenshot({ path: SHOTS + '/s8-02-tache-vocale.png', fullPage: true });
+		await page.click('#ps-bell');
+		await page.waitForTimeout(600);
+		check('Telegram non configuré : rien dans la cloche', !(await page.isVisible('[data-tg-link]')));
+		await ctx.close();
+	}
+	{
+		const { ctx, page } = await newPage(browser, 'idara');
+		await go(page, '#/parametres?tab=general');
+		check('الإعدادات ← عام : section Telegram (token + activation + essai)', !!(await page.$('[name=telegram_token][type=password]')) && !!(await page.$('[name=telegram_enabled]')) && !!(await page.$('[data-tg-test]')));
+		await ctx.close();
+	}
+	await browser.close();
+}
+
+const STEPS = { step2, step3, step4, step5, step6, step7, step8 };
 
 (async () => {
 	const browser = await chromium.launch();

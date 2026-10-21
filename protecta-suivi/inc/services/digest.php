@@ -48,8 +48,9 @@ function ps_digest_run( bool $force = false ): array {
  * @param string|null $to    Autre adresse de destination (bouton d'essai) ; défaut : l'e-mail du compte.
  */
 function ps_digest_send_to_user( WP_User $u, bool $force = false, ?array $facts = null, ?string $to = null ): bool {
-	$to = $to ?? $u->user_email;
-	if ( ! is_email( $to ) ) {
+	$own = null === $to;
+	$to  = $to ?? $u->user_email;
+	if ( ! is_email( $to ) && ! ( $own && '' !== ps_tg_chat_id( $u->ID ) ) ) {
 		return false;
 	}
 	$facts = $facts ?? ps_stats_facts();
@@ -62,6 +63,11 @@ function ps_digest_send_to_user( WP_User $u, bool $force = false, ?array $facts 
 	$total = count( $tasks['lateOffers'] ) + count( $tasks['followupsDue'] ) + count( $tasks['deliveries'] ) + count( $tasks['noFollowup'] ) + count( $tasks['assigned'] );
 	if ( ! $total && ! $force ) {
 		return false;
+	}
+	// Telegram (1.2.0) : version courte du résumé pour un compte lié (pas pour le bouton d'essai vers une autre adresse).
+	$tg = $own && '' !== ps_tg_chat_id( $u->ID ) && ps_tg_send_user( $u, ps_tg_digest_html( $u, $tasks, $admin ), home_url( '/#/taches' ), 'فتح مهامي' );
+	if ( ! is_email( $to ) ) {
+		return $tg;
 	}
 	$subject = ( $admin ? 'ملخص الفريق' : 'مهامك اليوم' ) . ' — ' . wp_date( 'd/m/Y' ) . ' — متابعة المشاريع';
 	$body    = ps_digest_html( $u, $tasks, $admin, $admin ? ps_stats_kpis( array_values( array_filter( $facts, fn( $f ) => (int) current_time( 'Y' ) === $f['year'] ) ) ) : null );

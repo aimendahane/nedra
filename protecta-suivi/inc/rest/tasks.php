@@ -24,6 +24,11 @@ function ps_register_task_routes(): void {
 		'/free-tasks/(?P<id>\d+)',
 		array( 'methods' => 'PUT', 'permission_callback' => ps_rest_permission(), 'callback' => 'ps_rest_free_task_update' )
 	);
+	register_rest_route(
+		PS_REST_NS,
+		'/free-tasks/(?P<id>\d+)/voice',
+		array( 'methods' => 'GET', 'permission_callback' => ps_rest_permission(), 'callback' => 'ps_rest_free_task_voice' )
+	);
 }
 
 function ps_rest_free_tasks_list( WP_REST_Request $r ) {
@@ -43,7 +48,10 @@ function ps_rest_free_tasks_list( WP_REST_Request $r ) {
 }
 
 function ps_rest_free_task_create( WP_REST_Request $r ) {
-	$id = ps_task_create( (array) $r->get_json_params(), get_current_user_id() );
+	// JSON, ou formulaire multipart quand un message vocal (« voice ») accompagne la tâche.
+	$body  = $r->get_json_params() ?: $r->get_body_params();
+	$voice = $r->get_file_params()['voice'] ?? null;
+	$id    = ps_task_create( (array) $body, get_current_user_id(), $voice ?: null );
 	if ( is_wp_error( $id ) ) {
 		return $id;
 	}
@@ -69,4 +77,38 @@ function ps_rest_free_task_update( WP_REST_Request $r ) {
 /** Une tâche au format API (avec le projet lié). */
 function ps_rest_free_task_one( int $id ): ?array {
 	return ps_task_list( array( 'status' => 'all', 'id' => $id ) )[0] ?? null;
+}
+
+/**
+ * Lecture du message vocal (lecteur audio de مهامي) : seulement pour qui peut voir la tâche.
+ * Les navigateurs demandent des morceaux du fichier (« Range ») pour avancer dans l'audio : pris en charge.
+ */
+function ps_rest_free_task_voice( WP_REST_Request $r ) {
+	$task = ps_task_row( (int) $r['id'] );
+	if ( ! $task || ! ps_task_can_view( $task, get_current_user_id() ) || empty( $task['voice_path'] ) ) {
+		return new WP_Error( 'ps_not_found', 'الرسالة الصوتية غير موجودة', array( 'status' => 404 ) );
+	}
+	$real = realpath( ps_storage_dir( 'files/' . $task['voice_path'] ) );
+	if ( ! $real || ! str_starts_with( $real, realpath( ps_storage_dir( 'files' ) ) ) || ! is_readable( $real ) ) {
+		return new WP_Error( 'ps_not_found', 'الرسالة الصوتية غير موجودة على الخادم', array( 'status' => 404 ) );
+	}
+	$size  = filesize( $real );
+	$start = 0;
+	$end   = $size - 1;
+	if ( preg_match( '/bytes=(\d*)-(\d*)/', (string) $r->get_header( 'range' ), $m ) ) {
+		$start = '' === $m[1] ? max( 0, $size - (int) $m[2] ) : (int) $m[1];
+		$end   = ( '' === $m[1] || '' === $m[2] ) ? $end : min( $end, (int) $m[2] );
+		status_header( 206 );
+		header( "Content-Range: bytes $start-$end/$size" );
+	}
+	header( 'Content-Type: ' . $task['voice_mime'] );
+	header( 'Accept-Ranges: bytes' );
+	header( 'Content-Length: ' . ( $end - $start + 1 ) );
+	header( 'Cache-Control: private, max-age=3600' );
+	header( 'X-Content-Type-Options: nosniff' );
+	$fh = fopen( $real, 'rb' ); // phpcs:ignore
+	fseek( $fh, $start );
+	echo fread( $fh, $end - $start + 1 ); // phpcs:ignore
+	fclose( $fh ); // phpcs:ignore
+	exit;
 }

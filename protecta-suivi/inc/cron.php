@@ -34,6 +34,7 @@ function ps_handle_cron_request(): void {
  * Exécute les tâches du jour et renvoie un compte rendu en une ligne.
  */
 function ps_cron_run(): string {
+	ps_tg_poll(); // liaisons Telegram en attente (1.2.0)
 	$r = ps_digest_run();
 	return sprintf( "OK %s digest=%s sent=%d skipped=%d\n", ps_now(), $r['status'], $r['sent'], $r['skipped'] );
 }

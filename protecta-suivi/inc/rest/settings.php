@@ -184,6 +184,8 @@ function ps_rest_settings_get() {
 			'mailFrom'       => get_option( 'admin_email' ),
 			'smtpPassSet'    => '' !== (string) get_option( 'ps_smtp_pass', '' ),
 			'myEmail'        => wp_get_current_user()->user_email,
+			'telegramBot'    => ps_tg_bot(),
+			'telegramTokenSet' => '' !== ps_tg_token(),
 		)
 	);
 }
@@ -240,6 +242,22 @@ function ps_rest_settings_put( WP_REST_Request $r ) {
 	}
 	if ( ! empty( $set['smtp_enabled'] ) && '' === trim( (string) ( $set['smtp_host'] ?? ps_setting( 'smtp_host' ) ) ) ) {
 		$errors['smtp_host'] = 'اكتب خادم SMTP (مثلًا mail.موقعك.com)';
+	}
+	// Telegram : token vérifié auprès de Telegram (getMe) avant d'être enregistré ; vide = garder l'ancien.
+	$tg_token = isset( $b['telegram_token'] ) ? trim( (string) $b['telegram_token'] ) : '';
+	if ( '' !== $tg_token ) {
+		$bot = ps_tg_save_token( $tg_token );
+		if ( is_wp_error( $bot ) ) {
+			$errors['telegram_token'] = $bot->get_error_message();
+		} else {
+			ps_log( null, 'update', 'settings', null, 'telegram_token', null, '@' . $bot );
+		}
+	}
+	if ( array_key_exists( 'telegram_enabled', $b ) ) {
+		$set['telegram_enabled'] = (bool) $b['telegram_enabled'];
+		if ( $set['telegram_enabled'] && '' === ps_tg_token() && ! isset( $errors['telegram_token'] ) ) {
+			$errors['telegram_token'] = 'الصق رمز البوت (token) أولًا';
+		}
 	}
 	// Mot de passe : jamais renvoyé ; champ vide = garder l'ancien.
 	$new_pass = isset( $b['smtp_pass'] ) ? (string) $b['smtp_pass'] : '';

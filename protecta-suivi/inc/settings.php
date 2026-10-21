@@ -39,6 +39,9 @@ function ps_default_settings(): array {
 		'smtp_secure'     => 'ssl', // ssl | tls | none
 		'smtp_user'       => '',
 
+		// Telegram (1.2.0, voir inc/services/telegram.php). Le token est gardé à part (option ps_telegram_token).
+		'telegram_enabled' => false,
+
 		// Jeton secret de l'URL Cron (généré à l'installation, régénérable).
 		'cron_token' => '',
 

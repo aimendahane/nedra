@@ -636,3 +636,18 @@ tr.ps-drill:hover td { background: var(--ps-primary-soft); }
 @media (prefers-reduced-motion: reduce) {
 	*, *::before, *::after { animation-duration: 0s !important; animation-iteration-count: 1 !important; transition-duration: 0s !important; scroll-behavior: auto !important; }
 }
+
+/* ---------- Telegram & message vocal (1.2.0) ---------- */
+.ps-bell__tg { border-top: 1px solid var(--ps-border); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ps-btn--tg { background: var(--ps-tg); border-color: transparent; color: var(--ps-on-accent); }
+.ps-btn--tg:hover { background: var(--ps-tg); filter: brightness(1.08); }
+.ps-tg-ok { color: var(--ps-tg); font-weight: 700; }
+.ps-steps { margin: 0 0 12px; padding-inline-start: 20px; display: grid; gap: 4px; color: var(--ps-text-muted); }
+.ps-voice { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px; border: 1px dashed var(--ps-border-strong); border-radius: var(--ps-radius-sm); background: var(--ps-surface-2); }
+.ps-voice[data-state="recording"] { border-color: var(--ps-danger); background: var(--ps-danger-soft); }
+.ps-voice[data-state="recording"] .ps-voice__rec { color: var(--ps-danger); border-color: var(--ps-danger); animation: ps-pulse 1.6s var(--ps-ease) infinite; }
+.ps-voice__time { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--ps-text-muted); }
+.ps-voice[data-state="recording"] .ps-voice__time { color: var(--ps-danger); }
+.ps-voice audio, .ps-voice__player { height: 38px; max-width: 100%; }
+.ps-voice audio { flex: 1 1 220px; }
+.ps-voice__player { margin-top: 6px; width: min(320px, 100%); }

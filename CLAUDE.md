@@ -21,7 +21,9 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 6 | Zip final, test installation vierge + mise à jour depuis 0.1.0, docs, release GitHub | ✅ terminée (sauf publication GitHub, bloquée) | 1.0.0 |
 | 1.0.1 | Demande client : tâches libres « مهمة جديدة » + e-mail (SMTP, vraie erreur) + explication Cron | ✅ terminée, tests verts | 1.0.1 · base v2 |
 | 1.0.2 | Demande client : notifications 🔔 (cloche + e-mail immédiat facultatif) | ✅ terminée, tests verts | 1.0.2 · base v3 |
-| 1.1.0 | Demande client : nouveau design « world-class » (CSS/icônes/animations, aucune donnée touchée) | ✅ terminée, tests verts | **1.1.0** · base v3 |
+| 1.1.0 | Demande client : nouveau design « world-class » (CSS/icônes/animations, aucune donnée touchée) | ✅ terminée, tests verts | 1.1.0 · base v3 |
+| 1.2.0 | Demande client : notifications Telegram + messages vocaux (الإدارة/مسؤول → موظف) | ✅ terminée, tests verts | **1.2.0** · base v4 |
+| 1.3.0 | Demande client : interface AR / EN / FR | ⏳ en cours | — |
 
 ### Tests (dernier passage complet, version 1.0.2) — détail : `docs/TEST-RESULTS.txt`
 - `sh protecta-suivi/tests/run-all.sh` → **580 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
@@ -249,3 +251,16 @@ chaque décision prise seul.
   (émojis gardés en secours). Animations coupées par `prefers-reduced-motion`.
 - Menu latéral bleu nuit dans les deux modes ; page active = fond clair + barre orange.
 - Recap : couleur de la comparaison N-1 selon le sens (`inverse` pour المرفوضة، لم تُرسل، retards).
+
+### Version 1.2.0 — décisions (Telegram, vocal)
+- Telegram SANS webhook : getUpdates (bouton « تحقق » automatique toutes les 3 s pendant 2 min + Cron) → marche
+  sur HostGator et en local. Liaison par lien t.me/<bot>?start=<code 24 hex, usage unique, 2 h>. chat_id en méta
+  `ps_tg_chat_id`. Token dans l'option `ps_telegram_token` (hors JSON). Boutons « فتح » seulement si l'adresse
+  du site est https publique (exigence Telegram).
+- Tout compte lié reçoit ses notifications 🔔 + tâches + résumé du matin (case « البريد الصباحي » = résumé,
+  e-mail et/ou Telegram). Bot bloqué → délié automatiquement.
+- « vocal » interprété comme : message vocal joint à une tâche libre (création seulement, pas en modification),
+  enregistré dans le navigateur (MediaRecorder : ogg/webm/mp4 selon le navigateur ; https obligatoire), 5 min,
+  12 Mo max, type vérifié sur le contenu, stocké dans uploads/protecta-suivi/files/voice (protégé), lu via
+  GET /free-tasks/{id}/voice (droits = voir la tâche, Range supporté). Telegram : sendVoice (ogg) sinon
+  sendAudio puis sendDocument.

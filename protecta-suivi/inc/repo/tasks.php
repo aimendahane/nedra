@@ -56,6 +56,8 @@ function ps_task_to_api( array $r, ?string $today = null ): array {
 		'doneAt'        => $r['done_at'],
 		'doneByName'    => $doer ? $doer->display_name : null,
 		'doneNote'      => $r['done_note'],
+		'hasVoice'      => ! empty( $r['voice_path'] ),
+		'voiceSeconds'  => isset( $r['voice_seconds'] ) ? (int) $r['voice_seconds'] : null,
 	);
 }
 
@@ -192,11 +194,22 @@ function ps_task_input( array $b, ?array $existing = null ) {
  *
  * @return int|WP_Error Identifiant de la tâche.
  */
-function ps_task_create( array $b, int $user_id ) {
+function ps_task_create( array $b, int $user_id, ?array $voice = null ) {
 	global $wpdb;
+	// Message vocal seul : un titre par défaut suffit.
+	if ( $voice && '' === trim( (string) ( $b['title'] ?? '' ) ) ) {
+		$b['title'] = '🎙 رسالة صوتية';
+	}
 	$set = ps_task_input( $b );
 	if ( is_wp_error( $set ) ) {
 		return $set;
+	}
+	if ( $voice ) {
+		$stored = ps_task_store_voice( $voice, (int) ( $b['voiceSeconds'] ?? 0 ) );
+		if ( is_wp_error( $stored ) ) {
+			return $stored;
+		}
+		$set += $stored;
 	}
 	$now = ps_now();
 	$wpdb->insert( ps_table( 'tasks' ), $set + array( 'status' => 'open', 'created_by' => $user_id, 'created_at' => $now, 'updated_at' => $now ) );
@@ -277,6 +290,8 @@ function ps_users_for_employee( int $employee_id ): array {
  * E-mail immédiat à l'employé quand une tâche lui est confiée. Sans effet bloquant :
  * un échec d'envoi n'empêche pas l'enregistrement (la tâche est de toute façon dans مهامي).
  *
+ * Aussi sur Telegram (1.2.0) si le compte est lié : texte + message vocal éventuel.
+ *
  * @return int Nombre d'e-mails partis.
  */
 function ps_task_notify( ?array $task ): int {
@@ -287,7 +302,11 @@ function ps_task_notify( ?array $task ): int {
 	$creator = $task['created_by'] ? get_userdata( (int) $task['created_by'] ) : null;
 	$app     = esc_url( home_url( '/#/taches' ) );
 	foreach ( ps_users_for_employee( (int) $task['employee_id'] ) as $u ) {
-		if ( ! is_email( $u->user_email ) || ( $creator && $u->ID === $creator->ID ) ) {
+		if ( $creator && $u->ID === $creator->ID ) {
+			continue;
+		}
+		ps_task_telegram( $u, $task, $creator );
+		if ( ! is_email( $u->user_email ) ) {
 			continue;
 		}
 		$h  = '<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;color:#1F2733;max-width:640px;margin:auto;border-top:4px solid #E8571F;padding:16px">';
@@ -302,4 +321,86 @@ function ps_task_notify( ?array $task ): int {
 		}
 	}
 	return $sent;
+}
+
+/**
+ * Tâche envoyée sur Telegram : texte, puis le message vocal s'il y en a un (1.2.0).
+ */
+function ps_task_telegram( WP_User $u, array $task, ?WP_User $creator ): void {
+	if ( '' === ps_tg_chat_id( $u->ID ) || ! ps_tg_enabled() ) {
+		return;
+	}
+	$h  = '📌 <b>مهمة جديدة</b>' . "\n" . '<b>' . esc_html( $task['title'] ) . '</b>' . "\n";
+	$h .= $task['due_date'] ? '📅 الأجل: ' . esc_html( wp_date( 'd/m/Y', strtotime( $task['due_date'] . ' 12:00:00' ) ) ) . "\n" : '';
+	$h .= $creator ? '👤 من: ' . esc_html( $creator->display_name ) . "\n" : '';
+	$h .= $task['note'] ? "\n" . esc_html( $task['note'] ) : '';
+	ps_tg_send_user( $u, $h, home_url( '/#/taches' ), 'فتح مهامي' );
+	if ( ! empty( $task['voice_path'] ) ) {
+		ps_tg_send_voice( $u, ps_storage_dir( 'files/' . $task['voice_path'] ), (string) $task['voice_mime'], '🎙 ' . esc_html( $task['title'] ) );
+	}
+}
+
+/* ---------------------------------------------------------------------- */
+/* Message vocal (1.2.0)                                                   */
+/* ---------------------------------------------------------------------- */
+
+/** Formats audio acceptés : extension => types détectés sur le contenu (navigateurs : webm/ogg ; iPhone : mp4). */
+function ps_voice_types(): array {
+	return array(
+		'webm' => array( 'audio/webm', 'video/webm' ),
+		'ogg'  => array( 'audio/ogg', 'application/ogg', 'video/ogg' ),
+		'm4a'  => array( 'audio/mp4', 'audio/x-m4a', 'video/mp4', 'audio/aac' ),
+		'mp3'  => array( 'audio/mpeg' ),
+		'wav'  => array( 'audio/wav', 'audio/x-wav' ),
+	);
+}
+
+/** Durée maximale d'un message (secondes) et taille maximale (octets). */
+const PS_VOICE_MAX_SECONDS = 300;
+const PS_VOICE_MAX_BYTES   = 12 * MB_IN_BYTES;
+
+/**
+ * Vérifie et range un message vocal envoyé avec une tâche (dossier protégé files/voice/AAAA/MM).
+ *
+ * @param array $upload Entrée de $_FILES.
+ * @return array|WP_Error Colonnes voice_* à enregistrer.
+ */
+function ps_task_store_voice( array $upload, int $seconds ) {
+	if ( ! empty( $upload['error'] ) || empty( $upload['tmp_name'] ) || ( ! is_uploaded_file( $upload['tmp_name'] ) && ! defined( 'PS_TESTING' ) ) ) {
+		return new WP_Error( 'ps_voice', 'فشل رفع الرسالة الصوتية', array( 'status' => 400 ) );
+	}
+	if ( (int) $upload['size'] <= 0 || (int) $upload['size'] > PS_VOICE_MAX_BYTES ) {
+		return new WP_Error( 'ps_voice_size', 'الرسالة الصوتية كبيرة جدًا (5 دقائق كحد أقصى)', array( 'status' => 400 ) );
+	}
+	$mime = function_exists( 'finfo_open' ) ? (string) finfo_file( finfo_open( FILEINFO_MIME_TYPE ), $upload['tmp_name'] ) : '';
+	$ext  = null;
+	foreach ( ps_voice_types() as $e => $mimes ) {
+		if ( in_array( $mime, $mimes, true ) ) {
+			$ext = $e;
+			break;
+		}
+	}
+	if ( ! $ext ) {
+		return new WP_Error( 'ps_voice_type', 'صيغة الصوت غير مدعومة', array( 'status' => 400 ) );
+	}
+	if ( ! ps_ensure_storage() ) {
+		return new WP_Error( 'ps_storage', 'تعذّر إنشاء مجلد الملفات', array( 'status' => 500 ) );
+	}
+	$sub = 'voice/' . current_time( 'Y/m' );
+	if ( ! wp_mkdir_p( ps_storage_dir( 'files/' . $sub ) ) ) {
+		return new WP_Error( 'ps_storage', 'تعذّر إنشاء مجلد الملفات', array( 'status' => 500 ) );
+	}
+	$stored = $sub . '/' . bin2hex( random_bytes( 16 ) ) . '.' . $ext;
+	$dest   = ps_storage_dir( 'files/' . $stored );
+	$moved  = defined( 'PS_TESTING' ) ? copy( $upload['tmp_name'], $dest ) : move_uploaded_file( $upload['tmp_name'], $dest );
+	if ( ! $moved ) {
+		return new WP_Error( 'ps_storage', 'تعذّر حفظ الرسالة الصوتية', array( 'status' => 500 ) );
+	}
+	return array(
+		'voice_path'    => $stored,
+		// Type « audio/… » envoyé au navigateur (un webm/mp4 audio peut être détecté « video/… »).
+		'voice_mime'    => array( 'webm' => 'audio/webm', 'ogg' => 'audio/ogg', 'm4a' => 'audio/mp4', 'mp3' => 'audio/mpeg', 'wav' => 'audio/wav' )[ $ext ],
+		'voice_size'    => (int) $upload['size'],
+		'voice_seconds' => max( 0, min( PS_VOICE_MAX_SECONDS, $seconds ) ) ?: null,
+	);
 }

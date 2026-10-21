@@ -194,6 +194,11 @@ function ps_notify_flush(): int {
 			if ( get_user_meta( $u->ID, 'ps_instant_email', true ) ) {
 				ps_notify_email( $u, (int) $pid, $title, $lines, $actor );
 			}
+			// Telegram (1.2.0) : tout compte lié reçoit ses notifications.
+			if ( '' !== ps_tg_chat_id( $u->ID ) ) {
+				$who = $actor ? get_userdata( $actor ) : null;
+				ps_tg_send_user( $u, ps_tg_notification_html( $title, $lines, $who ? $who->display_name : null ), home_url( '/#/projet?id=' . (int) $pid ), 'فتح المشروع' );
+			}
 		}
 	}
 	return $created;

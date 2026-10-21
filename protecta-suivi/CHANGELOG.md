@@ -3,6 +3,19 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.2.0 — 2026-10-21 · base v4 — Telegram et messages vocaux
+
+- **Notifications Telegram** (sans extension, sans adresse publique) : la الإدارة colle le token d'un bot
+  créé avec @BotFather (vérifié auprès de Telegram) ; chaque compte se lie en un clic (🔔 → « ربط Telegram »,
+  lien t.me avec code à usage unique valable 2 h). Reçus sur Telegram : notifications 🔔 des projets, tâches
+  confiées (avec le message vocal), résumé du matin. « /stop » ou « فك الربط » arrête tout ; bot bloqué →
+  compte délié automatiquement. Token jamais renvoyé au navigateur ni écrit dans la sauvegarde JSON.
+- **Messages vocaux** : dans « مهمة جديدة », la الإدارة / le مسؤول enregistre un message (🎙, 5 min max,
+  réécoute avant envoi). L'employé l'écoute dans مهامي (fichier protégé, servi après contrôle des droits,
+  lecture par morceaux) et le reçoit sur Telegram. Message vocal seul accepté (titre « 🎙 رسالة صوتية »).
+- **Base v4 (migration 4, additive)** : colonnes `voice_*` sur `ps_tasks`.
+- Tests : 616 tests PHP (Telegram simulé, vocal, migration 4) ; navigateur avec microphone simulé.
+
 ## 1.1.0 — 2026-10-20 · base v3 — Nouveau design
 
 - **Nouvelle identité visuelle** (aucun changement de données ni de base) : palette « ardoise » + bleu/orange

@@ -188,6 +188,18 @@ PS.settingsTabs = PS.settingsTabs || {};
 					<label class="ps-field"><span class="ps-field__label">كلمة السر</span><input class="ps-input" type="password" dir="ltr" name="smtp_pass" autocomplete="new-password" placeholder="${d.smtpPassSet ? 'محفوظة — اتركها فارغة للإبقاء عليها' : ''}"></label>
 				</div>
 				<div class="ps-row"><button type="submit" class="ps-btn ps-btn--primary">💾 حفظ</button></div>
+				<h2 class="ps-card__title ps-mt">إشعارات Telegram</h2>
+				<ol class="ps-small ps-steps">
+					<li>في Telegram افتح <a href="https://t.me/BotFather" target="_blank" rel="noopener" dir="ltr">@BotFather</a> ← <span dir="ltr">/newbot</span> ← اختر اسمًا (مثلًا «Protecta Suivi») ← انسخ <strong>الرمز (token)</strong>.</li>
+					<li>الصقه هنا، فعّل الإشعارات ثم <strong>حفظ</strong>.</li>
+					<li>كل موظف يربط حسابه من 🔔 ← «ربط Telegram» (ضغطة واحدة).</li>
+				</ol>
+				${d.telegramBot ? html`<p class="ps-alert ps-alert--success">✔ متصل بالبوت <a href="https://t.me/${d.telegramBot}" target="_blank" rel="noopener" dir="ltr">@${d.telegramBot}</a></p>` : ''}
+				<div class="ps-grid">
+					<label class="ps-field" data-key="telegram_token"><span class="ps-field__label">رمز البوت (token)</span><input class="ps-input" type="password" dir="ltr" name="telegram_token" autocomplete="off" placeholder="${d.telegramTokenSet ? 'محفوظ — اتركه فارغًا للإبقاء عليه' : '123456789:AA…'}"></label>
+				</div>
+				<label class="ps-check ps-mt"><input type="checkbox" name="telegram_enabled" ${s.telegram_enabled ? ui.raw('checked') : ''}> تفعيل إشعارات Telegram (الإشعارات 🔔، المهام والرسائل الصوتية، الملخص الصباحي)</label>
+				<div class="ps-row"><button type="submit" class="ps-btn ps-btn--primary">💾 حفظ</button><button type="button" class="ps-btn" data-tg-test>✈ رسالة تجريبية لي على Telegram</button></div>
 				<h2 class="ps-card__title ps-mt">تجربة الإرسال</h2>
 				<div class="ps-row">
 					<input class="ps-input" type="email" dir="ltr" data-test-to value="${d.myEmail || ''}" placeholder="البريد الذي يصله الاختبار" style="max-width:320px">
@@ -208,7 +220,7 @@ PS.settingsTabs = PS.settingsTabs || {};
 			const form = box.querySelector('[data-general]');
 			form.onsubmit = function (e) {
 				e.preventDefault();
-				const body = { digest_enabled: form.digest_enabled.checked, smtp_enabled: form.smtp_enabled.checked, smtp_secure: form.smtp_secure.value, smtp_pass: form.smtp_pass.value };
+				const body = { digest_enabled: form.digest_enabled.checked, smtp_enabled: form.smtp_enabled.checked, smtp_secure: form.smtp_secure.value, smtp_pass: form.smtp_pass.value, telegram_enabled: form.telegram_enabled.checked, telegram_token: form.telegram_token.value };
 				['mail_from_email', 'mail_from_name', 'smtp_host', 'smtp_port', 'smtp_user'].forEach(function (k) { body[k] = form[k].value; });
 				Object.keys(d.numeric).forEach(function (k) { body[k] = Number(form[k].value); });
 				PS.api.put('settings', body).then(function (r) {
@@ -216,6 +228,7 @@ PS.settingsTabs = PS.settingsTabs || {};
 					PS.config.settings.creatorEditHours = r.settings.creator_edit_hours;
 					ui.showErrors(form, {});
 					ui.toast('تم الحفظ', 'success');
+					if (body.telegram_token) generalTab(box); // affiche le nom du bot vérifié
 				}).catch(function (er) {
 					if (er.data && er.data.data && er.data.data.errors) ui.showErrors(form, er.data.data.errors);
 					ui.toast(errMsg(er), 'error');
@@ -231,6 +244,10 @@ PS.settingsTabs = PS.settingsTabs || {};
 				}).catch(function (er) {
 					out.innerHTML = html`<div class="ps-alert ps-alert--error">${errMsg(er)}</div>`.html;
 				}).then(function () { btn.disabled = false; });
+			};
+			box.querySelector('[data-tg-test]').onclick = function () {
+				PS.api.post('settings/telegram-test').then(function () { ui.toast('✔ أُرسلت الرسالة إلى Telegram', 'success'); })
+					.catch(function (er) { ui.toast(errMsg(er), 'error'); });
 			};
 			box.querySelector('[data-regen]').onclick = function () {
 				ui.confirm('تجديد الرمز؟ الرابط القديم يتوقف عن العمل، ويجب تحديث أمر الـ Cron في cPanel.', 'تجديد', 'danger').then(function (ok) {
