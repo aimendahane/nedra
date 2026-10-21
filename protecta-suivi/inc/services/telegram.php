@@ -212,8 +212,10 @@ function ps_tg_send_voice( WP_User $u, string $path, string $mime, string $capti
 	foreach ( $try as $method => $field ) {
 		$r = ps_tg_api( $method, $base, array( 'field' => $field, 'path' => $path, 'name' => 'voice.' . $ext, 'mime' => $mime ) );
 		if ( ! is_wp_error( $r ) ) {
+			$GLOBALS['ps_tg_voice_result'] = $method; // pour « اختبار الصوت » (1.3.3)
 			return true;
 		}
+		$GLOBALS['ps_tg_voice_result'] = $r->get_error_message();
 	}
 	return false;
 }

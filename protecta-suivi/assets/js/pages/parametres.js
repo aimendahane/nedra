@@ -159,6 +159,64 @@ PS.settingsTabs = PS.settingsTabs || {};
 	/* Réglages généraux, e-mail du matin, Cron                            */
 	/* ------------------------------------------------------------------ */
 
+	/** Son de test : 1 s à 440 Hz, fichier WAV fabriqué dans le navigateur (lu comme un message vocal). */
+	function toneWav() {
+		const rate = 22050, n = rate, buf = new DataView(new ArrayBuffer(44 + n * 2));
+		const w = function (o, s) { for (let i = 0; i < s.length; i++) buf.setUint8(o + i, s.charCodeAt(i)); };
+		w(0, 'RIFF'); buf.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); buf.setUint32(16, 16, true); buf.setUint16(20, 1, true);
+		buf.setUint16(22, 1, true); buf.setUint32(24, rate, true); buf.setUint32(28, rate * 2, true); buf.setUint16(32, 2, true);
+		buf.setUint16(34, 16, true); w(36, 'data'); buf.setUint32(40, n * 2, true);
+		for (let i = 0; i < n; i++) buf.setInt16(44 + i * 2, Math.sin(2 * Math.PI * 440 * i / rate) * 12000, true);
+		return new Blob([buf], { type: 'audio/wav' });
+	}
+
+	/**
+	 * « 🎙 اختبار الصوت » (1.3.3) : haut-parleur du téléphone, micro (niveau capté), analyse par le serveur
+	 * (format, durée, muet ou non, conversion pour Telegram) et envoi d'essai sur Telegram. Rien n'est enregistré.
+	 */
+	function soundTest(sec) {
+		const st = { heard: null, rec: null };
+		const vbox = sec.querySelector('[data-voice]');
+		if (vbox) st.rec = PS.voice.recorder(vbox);
+		sec.querySelector('[data-tone]').onclick = function () {
+			const a = new Audio(URL.createObjectURL(toneWav()));
+			a.play().then(function () { sec.querySelector('[data-tone-ask]').hidden = false; })
+				.catch(function (er) { st.heard = false; ui.toast(PS.t('تعذّر تشغيل الصوت:') + ' ' + er.message, 'error'); });
+		};
+		sec.querySelectorAll('[data-heard]').forEach(function (b) {
+			b.onclick = function () { st.heard = b.dataset.heard === '1'; sec.querySelector('[data-tone-ask]').innerHTML = st.heard ? '✔' : '✘'; };
+		});
+		sec.querySelector('[data-sound-run]').onclick = function (e) {
+			const btn = e.currentTarget;
+			const v = st.rec ? st.rec.result() : null;
+			if (!v) { ui.toast(PS.t('سجّل أولًا (الخطوة 2).'), 'error'); return; }
+			const fd = new FormData();
+			fd.append('voice', v.blob, 'voice.' + v.ext);
+			if (sec.querySelector('[data-sound-tg]').checked) fd.append('telegram', '1');
+			btn.disabled = true;
+			const out = sec.querySelector('[data-sound-report]');
+			out.innerHTML = html`<p class="ps-muted">${PS.t('جاري المعالجة…')}</p>`.html;
+			PS.api.post('voice-test', fd).then(function (r) {
+				const ok = function (b) { return b === true ? '✔' : (b === false ? '✘' : '—'); };
+				const peak = v.peak || 0;
+				const rows = [
+					[PS.t('مكبّر الصوت (النغمة)'), st.heard === null ? '—' : ok(st.heard), st.heard === false ? PS.t('ارفع صوت الوسائط في الهاتف وألغِ الوضع الصامت.') : ''],
+					[PS.t('الميكروفون (مستوى الصوت)'), ok(peak >= 0.05), Math.round(peak * 100) + '%' + (peak < 0.05 ? ' — ' + PS.t('الميكروفون لا يلتقط: اسمح به للمتصفح وأغلق التطبيقات التي تستعمله.') : '')],
+					[PS.t('الملف المسجَّل'), ok(r.size > 1000), v.blob.type + ' · ' + Math.round(r.size / 1024) + ' KB · ' + v.seconds + ' s'],
+					[PS.t('الخادم: الصيغة'), ok(!!r.format), r.format || PS.t('غير معروفة')],
+					[PS.t('الخادم: يحتوي على صوت'), r.silent === null ? '—' : ok(!r.silent), r.seconds !== null ? r.seconds + ' s' : ''],
+					[PS.t('تحويل إلى صيغة Telegram'), r.format === 'webm' ? ok(r.oggOk) : '—', ''],
+					[PS.t('Telegram'), r.telegram === null ? '—' : ok(String(r.telegram).indexOf('ok:') === 0), r.telegram && String(r.telegram).indexOf('ok:') !== 0 ? r.telegram : (r.telegram ? r.telegram.slice(3) : '')],
+				];
+				out.innerHTML = html`<table class="ps-table ps-sound-report"><tbody>${rows.map(function (x) {
+					return html`<tr><th>${x[0]}</th><td class="ps-sound-report__ok">${x[1]}</td><td dir="auto">${x[2]}</td></tr>`;
+				})}</tbody></table><p class="ps-small ps-muted" dir="ltr">${navigator.userAgent}</p>`.html;
+			}).catch(function (er) {
+				out.innerHTML = html`<div class="ps-alert ps-alert--error">${errMsg(er)}</div>`.html;
+			}).then(function () { btn.disabled = false; });
+		};
+	}
+
 	function generalTab(box) {
 		return PS.api.get('settings').then(function (d) {
 			const s = d.settings;
@@ -212,6 +270,18 @@ PS.settingsTabs = PS.settingsTabs || {};
 				<p class="ps-muted ps-small">${PS.t('احفظ أولًا ثم جرّب. إذا وصل البريد إلى «Spam»، استعمل SMTP.')}</p>
 				<div data-test-result></div>
 			</form>
+			<section class="ps-card" data-sound-test>
+				<h2 class="ps-card__title">🎙 ${PS.t('اختبار الصوت')}</h2>
+				<p class="ps-small">${PS.t('إذا كانت الرسائل الصوتية بدون صوت: قم بهذا الاختبار على نفس الهاتف، ثم أرسل لقطة شاشة للنتيجة.')}</p>
+				<ol class="ps-sound-steps">
+					<li><strong>${PS.t('مكبّر الصوت:')}</strong> <button type="button" class="ps-btn ps-btn--small" data-tone>🔊 ${PS.t('تشغيل نغمة')}</button>
+						<span data-tone-ask hidden> ${PS.t('هل سمعت النغمة؟')} <button type="button" class="ps-btn ps-btn--small" data-heard="1">✔ ${PS.t('نعم')}</button> <button type="button" class="ps-btn ps-btn--small" data-heard="0">✘ ${PS.t('لا')}</button></span></li>
+					<li><strong>${PS.t('الميكروفون:')}</strong> ${PS.t('سجّل 5 ثوانٍ وأنت تتكلم، ثم استمع.')}${PS.voice && PS.voice.supported() ? PS.voice.boxHtml() : html`<div class="ps-alert ps-alert--error">${PS.t('التسجيل غير متاح في هذا المتصفح أو الموقع ليس https.')}</div>`}</li>
+					<li><strong>${PS.t('الخادم + Telegram:')}</strong> <label class="ps-check"><input type="checkbox" data-sound-tg ${d.telegramBot ? ui.raw('checked') : ''}> ${PS.t('إرسال التسجيل إلى Telegram الخاص بي')}</label>
+						<button type="button" class="ps-btn ps-btn--primary" data-sound-run>🔍 ${PS.t('تحليل التسجيل')}</button></li>
+				</ol>
+				<div data-sound-report></div>
+			</section>
 			<section class="ps-card">
 				<h2 class="ps-card__title">${PS.t('المهمة اليومية (Cron Job في cPanel)')}</h2>
 				<p>${PS.t('منبّه في الاستضافة يفتح هذا الرابط السري مرة في اليوم، فيُرسل البريد الصباحي حتى لو لم يدخل أحد. في cPanel ←')} <strong>Cron Jobs</strong> ← Once Per Day ← ${PS.t('اختر الساعة ← الصق الأمر في «Command» (التفاصيل في README):')}</p>
@@ -253,6 +323,7 @@ PS.settingsTabs = PS.settingsTabs || {};
 				PS.api.post('settings/telegram-test').then(function () { ui.toast(PS.t('✔ أُرسلت الرسالة إلى Telegram'), 'success'); })
 					.catch(function (er) { ui.toast(errMsg(er), 'error'); });
 			};
+			soundTest(box.querySelector('[data-sound-test]'));
 			box.querySelector('[data-regen]').onclick = function () {
 				ui.confirm(PS.t('تجديد الرمز؟ الرابط القديم يتوقف عن العمل، ويجب تحديث أمر الـ Cron في cPanel.'), PS.t('تجديد'), 'danger').then(function (ok) {
 					if (!ok) return;

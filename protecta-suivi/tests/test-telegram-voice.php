@@ -170,6 +170,34 @@ if ( $ffmpeg ) {
 }
 ps_assert( ! ps_voice_webm_to_ogg( $ogg, wp_tempnam( 'x' ) ), 'un fichier qui n\'est pas du WebM n\'est pas converti' );
 
+// 1.3.3 : « اختبار الصوت » — analyse sans rien enregistrer, envoi d'essai sur Telegram.
+$vt = function ( $fixture, $tg_on ) {
+	$tmp = wp_tempnam( 'voice' );
+	copy( __DIR__ . '/fixtures/' . $fixture, $tmp );
+	$req = new WP_REST_Request( 'POST', '/' . PS_REST_NS . '/voice-test' );
+	$req->set_body_params( $tg_on ? array( 'telegram' => '1' ) : array() );
+	$req->set_file_params( array( 'voice' => array( 'name' => $fixture, 'tmp_name' => $tmp, 'size' => filesize( $tmp ), 'error' => 0 ) ) );
+	return rest_get_server()->dispatch( $req );
+};
+wp_set_current_user( $u_adm );
+$tasks_before = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'tasks' ) );
+$tg['calls']  = array();
+$d            = $vt( 'voice-chrome.webm', false )->get_data();
+ps_assert( 'webm' === $d['format'] && false === $d['silent'] && $d['seconds'] >= 3 && true === $d['oggOk'] && null === $d['telegram'], 'اختبار الصوت : WebM Chrome → format, durée, son présent, conversion Telegram OK', wp_json_encode( $d ) );
+$d = $vt( 'voice-silent.webm', false )->get_data();
+ps_assert( true === $d['silent'], 'اختبار الصوت : enregistrement muet signalé' );
+$d = $vt( 'voice-chrome.webm', true )->get_data();
+ps_assert( is_string( $d['telegram'] ) && ! str_starts_with( $d['telegram'], 'ok:' ) && str_contains( $d['telegram'], 'Telegram' ), 'اختبار الصوت : compte non lié → explication', wp_json_encode( $d, JSON_UNESCAPED_UNICODE ) );
+update_user_meta( $u_adm, 'ps_tg_chat_id', '555' );
+$d = $vt( 'voice-chrome.webm', true )->get_data();
+$vc = $sent( 'sendVoice', 555 );
+ps_assert( 'ok:sendVoice' === $d['telegram'] && 1 === count( $vc ) && str_starts_with( $vc[0]['params']['filename'] ?? '', 'voice.ogg|OggS' ), 'اختبار الصوت : envoi d\'essai sur Telegram en vrai message vocal (Ogg)', wp_json_encode( $d ) );
+delete_user_meta( $u_adm, 'ps_tg_chat_id' );
+ps_assert_same( $tasks_before, (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'tasks' ) ), 'اختبار الصوت : aucune tâche créée' );
+wp_set_current_user( $u_emp );
+ps_assert_same( 403, $vt( 'voice-chrome.webm', false )->get_status(), 'اختبار الصوت : réservé à الإدارة / مسؤول (403 pour un موظف)' );
+wp_set_current_user( $u_adm );
+
 // 1.3.2 : enregistrement muet (micro coupé) → refusé avec un message clair, rien n'est envoyé.
 ps_assert( false === ps_voice_is_silent( __DIR__ . '/fixtures/voice-chrome.webm' ), 'détection du silence : enregistrement avec voix → « contient du son »' );
 ps_assert( true === ps_voice_is_silent( __DIR__ . '/fixtures/voice-silent.webm' ) && true === ps_voice_is_silent( __DIR__ . '/fixtures/voice-silent.ogg' ), 'détection du silence : WebM et Ogg muets → « muet »' );

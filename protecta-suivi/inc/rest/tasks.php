@@ -26,6 +26,11 @@ function ps_register_task_routes(): void {
 	);
 	register_rest_route(
 		PS_REST_NS,
+		'/voice-test',
+		array( 'methods' => 'POST', 'permission_callback' => ps_rest_permission( 'ps_assign_tasks' ), 'callback' => 'ps_rest_voice_test' )
+	);
+	register_rest_route(
+		PS_REST_NS,
 		'/free-tasks/(?P<id>\d+)/voice',
 		array( 'methods' => 'GET', 'permission_callback' => ps_rest_permission(), 'callback' => 'ps_rest_free_task_voice' )
 	);
@@ -125,4 +130,50 @@ function ps_rest_free_task_voice( WP_REST_Request $r ) {
 	echo fread( $fh, $end - $start + 1 ); // phpcs:ignore
 	fclose( $fh ); // phpcs:ignore
 	exit;
+}
+
+/**
+ * « 🎙 اختبار الصوت » (1.3.3) : analyse un enregistrement d'essai SANS rien enregistrer (fichier temporaire supprimé).
+ * Réponse : format détecté, taille, durée (Opus), muet ou non, copie Ogg pour Telegram, envoi d'essai sur Telegram.
+ */
+function ps_rest_voice_test( WP_REST_Request $r ) {
+	$up = $r->get_file_params()['voice'] ?? null;
+	if ( ! $up || ! empty( $up['error'] ) || empty( $up['tmp_name'] ) || ( ! is_uploaded_file( $up['tmp_name'] ) && ! defined( 'PS_TESTING' ) ) ) {
+		return new WP_Error( 'ps_voice', ps__( 'فشل رفع الرسالة الصوتية' ), array( 'status' => 400 ) );
+	}
+	$ext = ps_voice_detect_ext( $up['tmp_name'] );
+	$out = array(
+		'size'     => (int) filesize( $up['tmp_name'] ),
+		'format'   => $ext,
+		'silent'   => $ext ? ps_voice_is_silent( $up['tmp_name'] ) : null,
+		'seconds'  => null,
+		'oggOk'    => null,
+		'telegram' => null,
+	);
+	$d = (string) file_get_contents( $up['tmp_name'] );
+	if ( 'webm' === $ext || 'ogg' === $ext ) {
+		$packets = 'webm' === $ext ? ( ps_voice_webm_packets( $d )['packets'] ?? array() ) : ps_voice_ogg_packets( $d );
+		$out['seconds'] = round( array_sum( array_map( 'ps_voice_opus_samples', $packets ) ) / 48000, 1 );
+	}
+	$tmp = trailingslashit( get_temp_dir() ) . 'ps-voice-test-' . bin2hex( random_bytes( 8 ) ) . '.' . ( $ext ?: 'bin' );
+	copy( $up['tmp_name'], $tmp );
+	if ( 'webm' === $ext ) {
+		$out['oggOk'] = ps_voice_webm_to_ogg( $tmp, ps_voice_ogg_path( $tmp ) );
+	}
+	if ( $ext && $r['telegram'] ) {
+		$u = wp_get_current_user();
+		if ( '' === ps_tg_chat_id( $u->ID ) || ! ps_tg_enabled() ) {
+			$out['telegram'] = ps__( 'حسابك غير مربوط بـ Telegram (🔔 ← ربط Telegram)' );
+		} else {
+			$GLOBALS['ps_tg_voice_result'] = '';
+			$ok              = ps_tg_send_voice( $u, $tmp, array( 'webm' => 'audio/webm', 'ogg' => 'audio/ogg', 'm4a' => 'audio/mp4', 'mp3' => 'audio/mpeg', 'wav' => 'audio/wav' )[ $ext ], '🎙 ' . ps__( 'اختبار الصوت' ) );
+			$out['telegram'] = $ok ? 'ok:' . $GLOBALS['ps_tg_voice_result'] : (string) $GLOBALS['ps_tg_voice_result'];
+		}
+	}
+	foreach ( array( $tmp, ps_voice_ogg_path( $tmp ) ) as $f ) {
+		if ( is_file( $f ) ) {
+			unlink( $f ); // fichiers temporaires de l'essai uniquement
+		}
+	}
+	return rest_ensure_response( $out );
 }

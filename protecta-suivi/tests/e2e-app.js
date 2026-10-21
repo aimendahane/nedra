@@ -729,6 +729,22 @@ async function step8() {
 	{
 		const { ctx, page } = await newPage(browser, 'idara');
 		await go(page, '#/parametres?tab=general');
+		// « 🎙 اختبار الصوت » : nغمة, micro (son continu simulé), analyse serveur.
+		await page.evaluate(() => {
+			navigator.mediaDevices.getUserMedia = async function () { const ac = new AudioContext(); const o = ac.createOscillator(); const d = ac.createMediaStreamDestination(); o.connect(d); o.start(); return d.stream; };
+		});
+		await page.click('[data-tone]');
+		await page.waitForSelector('[data-tone-ask]:not([hidden])', { timeout: 4000 }).catch(() => {});
+		await page.click('[data-heard="1"]').catch(() => {});
+		await page.click('[data-sound-test] [data-voice-rec]');
+		await page.waitForTimeout(2500);
+		await page.click('[data-sound-test] [data-voice-rec]');
+		await page.waitForSelector('[data-sound-test] [data-voice][data-state="done"]');
+		await page.click('[data-sound-run]');
+		await page.waitForSelector('.ps-sound-report', { timeout: 8000 }).catch(() => {});
+		const rep = await page.$$eval('.ps-sound-report tr', (t) => t.map((r) => r.textContent.replace(/\s+/g, ' ').trim()));
+		check('اختبار الصوت : rapport complet (haut-parleur ✔, micro ✔, son présent ✔)', rep.length === 7 && rep[0].includes('✔') && rep[1].includes('✔') && rep[4].includes('✔'), rep.join(' | ') || (await page.textContent('[data-sound-test]')).replace(/\s+/g, ' '));
+		await page.screenshot({ path: SHOTS + '/s8-03-test-son.png', fullPage: false, clip: await page.$eval('[data-sound-test]', (e) => { e.scrollIntoView(); const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; }) });
 		check('الإعدادات ← عام : section Telegram (token + activation + essai)', !!(await page.$('[name=telegram_token][type=password]')) && !!(await page.$('[name=telegram_enabled]')) && !!(await page.$('[data-tg-test]')));
 		await ctx.close();
 	}

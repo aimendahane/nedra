@@ -25,13 +25,14 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 1.2.0 | Demande client : notifications Telegram + messages vocaux (الإدارة/مسؤول → موظف) | ✅ terminée, tests verts | 1.2.0 · base v4 |
 | 1.3.0 | Demande client : interface AR / EN / FR | ✅ terminée, tests verts | 1.3.0 · base v4 |
 | 1.3.1 | Retour client : message vocal sans son (WebM → Ogg pour Telegram, niveau du micro) | ✅ terminée, tests verts | 1.3.1 · base v4 |
-| 1.3.2 | Retour client : toujours muet sur Android + Telegram → détection du silence, secours de lecture | ✅ terminée, tests verts | **1.3.2** · base v4 |
+| 1.3.2 | Retour client : toujours muet sur Android + Telegram → détection du silence, secours de lecture | ✅ terminée, tests verts | 1.3.2 · base v4 |
+| 1.3.3 | Retour client : toujours pas de son → panneau « اختبار الصوت » (diagnostic) + étapes Telegram | ✅ terminée, tests verts | **1.3.3** · base v4 |
 
-### Tests (dernier passage complet, version 1.3.2) — détail : `docs/TEST-RESULTS.txt`
-- `sh protecta-suivi/tests/run-all.sh` → **663 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
+### Tests (dernier passage complet, version 1.3.3) — détail : `docs/TEST-RESULTS.txt`
+- `sh protecta-suivi/tests/run-all.sh` → **669 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
   (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues) passés.
-- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.3.2.zip $PWD/dist/protecta-suivi-1.3.1.zip` (chemins absolus) →
-  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.3.1 → 1.3.2 avec données : **aucune perte**.
+- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.3.3.zip $PWD/dist/protecta-suivi-1.3.2.zip` (chemins absolus) →
+  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.3.2 → 1.3.3 avec données : **aucune perte**.
 
 ### Prochaines actions
 1. Dès que l'accès GitHub est rétabli : `git push -u origin claude/sweet-hopper-le9393` puis
@@ -281,3 +282,5 @@ chaque décision prise seul.
   → envoi refusé (422). Ordre d'enregistrement : ogg → webm → mp4/AAC (Opus vérifiable d'abord). Lecteur : en cas
   d'erreur, fetch + blob (secours Android) et message d'erreur du serveur affiché. Cause réelle chez le client
   non confirmée (pas d'Android ici) : la détection dira si c'est le micro.
+- 1.3.3 : POST /voice-test (ps_assign_tasks) analyse sans stocker (temp dans get_temp_dir, supprimé) ; panneau dans
+  الإعدادات ← عام (nغمة WAV générée, enregistreur partagé PS.voice, rapport ✔/✘ + userAgent). Attente de la capture du client.

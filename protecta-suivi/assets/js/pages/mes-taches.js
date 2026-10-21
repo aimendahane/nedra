@@ -138,10 +138,15 @@
 			result: function () {
 				if (!st.blob) return null;
 				const t = st.blob.type;
-				return { blob: st.blob, seconds: Math.round(st.seconds), ext: t.indexOf('ogg') >= 0 ? 'ogg' : t.indexOf('mp4') >= 0 ? 'm4a' : 'webm' };
+				return { blob: st.blob, peak: st.peak, seconds: Math.round(st.seconds), ext: t.indexOf('ogg') >= 0 ? 'ogg' : t.indexOf('mp4') >= 0 ? 'm4a' : 'webm' };
 			},
 			stop: function () { stop(); if (st.stream) st.stream.getTracks().forEach(function (t) { t.stop(); }); },
 		};
+	}
+
+	/** Zone d'enregistrement (bouton, chrono, niveau du micro, réécoute, suppression). */
+	function voiceBoxHtml() {
+		return html`<div class="ps-voice" data-voice><button type="button" class="ps-btn ps-voice__rec" data-voice-rec></button><span class="ps-voice__time" data-voice-time dir="ltr"></span><span class="ps-voice__level" data-voice-level aria-hidden="true"><i></i></span><audio data-voice-audio controls></audio><button type="button" class="ps-btn ps-btn--ghost ps-btn--small" data-voice-del>🗑 ${PS.t('حذف')}</button></div>`;
 	}
 
 	/** Lecteur audio d'une tâche (fichier servi par l'API après contrôle des droits). */
@@ -194,7 +199,7 @@
 					<label class="ps-field" data-key="note"><span class="ps-field__label">${PS.t('ملاحظة')}</span>
 						<textarea class="ps-input" name="note" rows="3">${t.note || ''}</textarea></label>
 					${t.id ? '' : (voiceSupported()
-						? html`<div class="ps-voice" data-voice><button type="button" class="ps-btn ps-voice__rec" data-voice-rec></button><span class="ps-voice__time" data-voice-time dir="ltr"></span><span class="ps-voice__level" data-voice-level aria-hidden="true"><i></i></span><audio data-voice-audio controls></audio><button type="button" class="ps-btn ps-btn--ghost ps-btn--small" data-voice-del>🗑 ${PS.t('حذف')}</button></div>`
+						? voiceBoxHtml()
 						: html`<p class="ps-muted ps-small">🎙 ${PS.t('الرسائل الصوتية تتطلب متصفحًا حديثًا واتصالًا آمنًا (https).')}</p>`)}
 					<p class="ps-muted ps-small">${PS.t('اكتب المهمة أو سجّل رسالة صوتية (أو الاثنين). تظهر في «مهامي» عند الموظف، ويصله بريد و/أو رسالة Telegram.')}</p>
 				</form>`,
@@ -353,4 +358,6 @@
 			});
 		},
 	});
+	// Réutilisé par « 🎙 اختبار الصوت » (الإعدادات ← عام).
+	PS.voice = { recorder: voiceRecorder, boxHtml: voiceBoxHtml, supported: voiceSupported };
 })();

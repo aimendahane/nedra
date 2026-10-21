@@ -361,6 +361,17 @@ function ps_voice_types(): array {
 	);
 }
 
+/** Format audio d'un fichier, détecté sur son CONTENU (extension de ps_voice_types()), ou null. */
+function ps_voice_detect_ext( string $file ): ?string {
+	$mime = function_exists( 'finfo_open' ) ? (string) finfo_file( finfo_open( FILEINFO_MIME_TYPE ), $file ) : '';
+	foreach ( ps_voice_types() as $e => $mimes ) {
+		if ( in_array( $mime, $mimes, true ) ) {
+			return $e;
+		}
+	}
+	return null;
+}
+
 /** Copie Ogg d'un message vocal WebM (même nom, extension .ogg). */
 function ps_voice_ogg_path( string $path ): string {
 	return preg_replace( '/\.webm$/', '.ogg', $path );
@@ -383,14 +394,7 @@ function ps_task_store_voice( array $upload, int $seconds ) {
 	if ( (int) $upload['size'] <= 0 || (int) $upload['size'] > PS_VOICE_MAX_BYTES ) {
 		return new WP_Error( 'ps_voice_size', ps__( 'الرسالة الصوتية كبيرة جدًا (5 دقائق كحد أقصى)' ), array( 'status' => 400 ) );
 	}
-	$mime = function_exists( 'finfo_open' ) ? (string) finfo_file( finfo_open( FILEINFO_MIME_TYPE ), $upload['tmp_name'] ) : '';
-	$ext  = null;
-	foreach ( ps_voice_types() as $e => $mimes ) {
-		if ( in_array( $mime, $mimes, true ) ) {
-			$ext = $e;
-			break;
-		}
-	}
+	$ext = ps_voice_detect_ext( $upload['tmp_name'] );
 	if ( ! $ext ) {
 		return new WP_Error( 'ps_voice_type', ps__( 'صيغة الصوت غير مدعومة' ), array( 'status' => 400 ) );
 	}

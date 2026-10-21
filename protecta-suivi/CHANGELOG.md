@@ -3,6 +3,14 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.3.3 — 2026-10-21 · base v4 — « 🎙 اختبار الصوت » (diagnostic du son)
+
+- الإعدادات ← عام ← **اختبار الصوت** : en 3 étapes sur le téléphone concerné — (1) son de test pour vérifier le
+  haut-parleur / volume multimédia, (2) enregistrement avec niveau du micro, (3) analyse par le serveur (format,
+  durée, son présent ou non, conversion pour Telegram) + envoi d'essai sur son propre Telegram. Rapport ✔/✘ à
+  envoyer en capture d'écran. Rien n'est enregistré (fichiers temporaires supprimés).
+- Tests : 669 tests PHP ; navigateur : rapport complet.
+
 ## 1.3.2 — 2026-10-21 · base v4 — Messages vocaux muets détectés (Android + Telegram)
 
 - **Enregistrement muet refusé** : le serveur vérifie le son SANS le décoder (un encodeur Opus qui ne reçoit
