@@ -186,6 +186,7 @@
 	"التالي ←": "Suivant →",
 	"الترتيب": "Ordre",
 	"الترتيب غير صالح": "Ordre invalide",
+	"التسجيل بدون صوت: الميكروفون لم يلتقط شيئًا. تأكّد من السماح بالميكروفون وأنه غير مكتوم، ثم أعد التسجيل.": "L'enregistrement est muet : le micro n'a rien capté. Vérifiez que le micro est autorisé et non coupé, puis réenregistrez.",
 	"التسليم CSV": "Livraisons CSV",
 	"التسليم Excel": "Livraisons Excel",
 	"التسليم الفعلي": "Livraison réelle",

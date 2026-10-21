@@ -34,11 +34,11 @@
 	const VOICE_MAX = 300;
 
 	/**
-	 * Type d'enregistrement : d'abord MP4/AAC (lisible partout, iPhone compris), sinon Ogg (Firefox),
-	 * sinon WebM (Chrome/Android ; le serveur en fait une copie Ogg pour Telegram).
+	 * Type d'enregistrement : Opus d'abord (Ogg pour Firefox, WebM pour Chrome/Android) — le serveur vérifie qu'il
+	 * n'est pas muet et en fait une copie Ogg pour Telegram ; MP4/AAC pour l'iPhone (seul format de Safari).
 	 */
 	function voiceType() {
-		const types = ['audio/mp4;codecs=mp4a.40.2', 'audio/ogg;codecs=opus', 'audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+		const types = ['audio/ogg;codecs=opus', 'audio/webm;codecs=opus', 'audio/webm', 'audio/mp4;codecs=mp4a.40.2', 'audio/mp4'];
 		for (let i = 0; i < types.length; i++) if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(types[i])) return types[i];
 		return '';
 	}
@@ -149,6 +149,26 @@
 		if (!r.hasVoice) return '';
 		return html`<audio class="ps-voice__player" controls preload="none" src="${PS.config.restUrl + 'free-tasks/' + r.id + '/voice?_wpnonce=' + PS.config.nonce}"></audio>`;
 	}
+
+	/*
+	 * Secours de lecture (1.3.2) : si le lecteur du téléphone n'arrive pas à lire l'adresse (certains Android),
+	 * le fichier est téléchargé entièrement puis lu depuis la mémoire ; une erreur du serveur est affichée.
+	 */
+	document.addEventListener('error', function (e) {
+		const a = e.target;
+		if (!a || !a.classList || !a.classList.contains('ps-voice__player') || a.dataset.fallback) return;
+		a.dataset.fallback = '1';
+		fetch(a.src, { credentials: 'same-origin' }).then(function (res) {
+			const type = res.headers.get('content-type') || '';
+			if (!res.ok || type.indexOf('json') >= 0) {
+				return res.json().then(function (j) { throw new Error((j && j.message) || PS.t('حدث خطأ')); });
+			}
+			return res.blob();
+		}).then(function (blob) {
+			a.src = URL.createObjectURL(blob);
+			a.play().catch(function () { /* l'utilisateur appuiera sur ▶ */ });
+		}).catch(function (er) { ui.toast(errMsg(er), 'error'); });
+	}, true);
 
 	/**
 	 * Fenêtre « مهمة جديدة ». Résout avec la tâche créée (ou null si fermée).

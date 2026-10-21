@@ -3,6 +3,17 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.3.2 — 2026-10-21 · base v4 — Messages vocaux muets détectés (Android + Telegram)
+
+- **Enregistrement muet refusé** : le serveur vérifie le son SANS le décoder (un encodeur Opus qui ne reçoit
+  que du silence produit des paquets de ≈ 8 octets, la voix des centaines). Un message muet (micro coupé,
+  mauvais micro, autorisation partielle) n'est plus envoyé : message clair « التسجيل بدون صوت… » et la fenêtre
+  reste ouverte pour réenregistrer. Une voix faible (−53 dB) reste acceptée.
+- **Lecture dans le site (Android)** : si le lecteur du téléphone échoue, le fichier est téléchargé puis lu depuis
+  la mémoire ; une erreur du serveur s'affiche au lieu d'un lecteur silencieux.
+- Enregistrement : Opus d'abord (vérifiable et converti en vrai vocal Telegram) ; MP4/AAC pour l'iPhone seulement.
+- Tests : 663 tests PHP (WebM et Ogg muets refusés, aucune tâche ni envoi) ; navigateur : micro muet, secours de lecture.
+
 ## 1.3.1 — 2026-10-21 · base v4 — Messages vocaux : le son arrive partout
 
 - **Telegram : message vocal muet corrigé.** Chrome, Edge et Android enregistrent en WebM, format que Telegram

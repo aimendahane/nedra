@@ -394,6 +394,10 @@ function ps_task_store_voice( array $upload, int $seconds ) {
 	if ( ! $ext ) {
 		return new WP_Error( 'ps_voice_type', ps__( 'صيغة الصوت غير مدعومة' ), array( 'status' => 400 ) );
 	}
+	// 1.3.2 : enregistrement muet (micro coupé, mauvais micro, autorisation partielle) → refusé, rien n'est envoyé.
+	if ( true === ps_voice_is_silent( $upload['tmp_name'] ) ) {
+		return new WP_Error( 'ps_voice_silent', ps__( 'التسجيل بدون صوت: الميكروفون لم يلتقط شيئًا. تأكّد من السماح بالميكروفون وأنه غير مكتوم، ثم أعد التسجيل.' ), array( 'status' => 422 ) );
+	}
 	if ( ! ps_ensure_storage() ) {
 		return new WP_Error( 'ps_storage', ps__( 'تعذّر إنشاء مجلد الملفات' ), array( 'status' => 500 ) );
 	}

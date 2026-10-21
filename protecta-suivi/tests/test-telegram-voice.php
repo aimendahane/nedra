@@ -170,6 +170,20 @@ if ( $ffmpeg ) {
 }
 ps_assert( ! ps_voice_webm_to_ogg( $ogg, wp_tempnam( 'x' ) ), 'un fichier qui n\'est pas du WebM n\'est pas converti' );
 
+// 1.3.2 : enregistrement muet (micro coupé) → refusé avec un message clair, rien n'est envoyé.
+ps_assert( false === ps_voice_is_silent( __DIR__ . '/fixtures/voice-chrome.webm' ), 'détection du silence : enregistrement avec voix → « contient du son »' );
+ps_assert( true === ps_voice_is_silent( __DIR__ . '/fixtures/voice-silent.webm' ) && true === ps_voice_is_silent( __DIR__ . '/fixtures/voice-silent.ogg' ), 'détection du silence : WebM et Ogg muets → « muet »' );
+ps_assert( null === ps_voice_is_silent( $ogg ), 'format non vérifiable → aucune décision (jamais de refus à tort)' );
+foreach ( array( 'webm', 'ogg' ) as $e ) {
+	$tmp = wp_tempnam( 'voice' );
+	copy( __DIR__ . '/fixtures/voice-silent.' . $e, $tmp );
+	$tg['calls'] = array();
+	$before      = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'tasks' ) );
+	$r           = $voice_req( array( 'employeeId' => ps_test_lid( 'employee', 'مجدي ميلادي' ), 'title' => 'صامت', 'voiceSeconds' => 3 ), array( 'name' => 'voice.' . $e, 'tmp_name' => $tmp, 'size' => filesize( $tmp ), 'error' => 0 ) );
+	ps_assert( 422 === $r->get_status() && str_contains( $r->get_data()['message'] ?? '', 'بدون صوت' ), "message vocal muet ($e) → refusé : « التسجيل بدون صوت… »", wp_json_encode( $r->get_data(), JSON_UNESCAPED_UNICODE ) );
+	ps_assert( $before === (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'tasks' ) ) && ! $tg['calls'], "… aucune tâche créée, rien envoyé sur Telegram ($e)" );
+}
+
 $txt = wp_tempnam( 'notaudio' );
 file_put_contents( $txt, 'hello world, not audio' );
 $r = $voice_req( array( 'employeeId' => ps_test_lid( 'employee', 'مجدي ميلادي' ), 'title' => 'x' ), array( 'name' => 'voice.ogg', 'tmp_name' => $txt, 'size' => filesize( $txt ), 'error' => 0 ) );

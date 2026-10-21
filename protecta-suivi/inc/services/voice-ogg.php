@@ -209,3 +209,51 @@ function ps_voice_ogg_build( string $head, array $packets ): string {
 	}
 	return $out;
 }
+
+/** Paquets Opus d'un fichier Ogg (Firefox) : pages « OggS » + table de segments (RFC 3533). */
+function ps_voice_ogg_packets( string $d ): array {
+	$packets = array();
+	$cur     = '';
+	$pos     = 0;
+	$len     = strlen( $d );
+	while ( $pos + 27 <= $len && 'OggS' === substr( $d, $pos, 4 ) ) {
+		$nseg = ord( $d[ $pos + 26 ] );
+		$lace = substr( $d, $pos + 27, $nseg );
+		$off  = $pos + 27 + $nseg;
+		for ( $i = 0; $i < strlen( $lace ); $i++ ) {
+			$n    = ord( $lace[ $i ] );
+			$cur .= substr( $d, $off, $n );
+			$off += $n;
+			if ( $n < 255 ) {
+				$packets[] = $cur;
+				$cur       = '';
+			}
+		}
+		$pos = $off;
+	}
+	return array_values( array_filter( $packets, fn( $p ) => ! str_starts_with( $p, 'OpusHead' ) && ! str_starts_with( $p, 'OpusTags' ) ) );
+}
+
+/**
+ * Le message est-il muet ? (1.3.2) — sans décoder : un encodeur Opus qui ne reçoit que du silence produit
+ * des paquets minuscules (≈ 3 à 10 octets), la voix des paquets de dizaines ou centaines d'octets.
+ *
+ * @return bool|null true = muet, false = contient du son, null = format non vérifiable (MP4/AAC de l'iPhone).
+ */
+function ps_voice_is_silent( string $path ): ?bool {
+	$d = (string) @file_get_contents( $path ); // phpcs:ignore
+	if ( "\x1A\x45\xDF\xA3" === substr( $d, 0, 4 ) ) {
+		$parsed  = ps_voice_webm_packets( $d );
+		$packets = $parsed ? $parsed['packets'] : array();
+	} elseif ( 'OggS' === substr( $d, 0, 4 ) && str_contains( substr( $d, 0, 200 ), 'OpusHead' ) ) {
+		$packets = ps_voice_ogg_packets( $d );
+	} else {
+		return null;
+	}
+	$sizes = array_map( 'strlen', array_slice( $packets, 3 ) ); // les tout premiers paquets peuvent être plus gros
+	if ( count( $sizes ) < 5 ) {
+		return null; // trop court pour juger
+	}
+	sort( $sizes );
+	return $sizes[ (int) floor( count( $sizes ) * 0.9 ) ] <= 20; // 90 % des paquets minuscules = aucun son
+}

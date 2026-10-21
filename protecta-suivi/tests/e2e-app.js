@@ -681,6 +681,25 @@ async function step8() {
 		await ctx.close();
 	}
 	{
+		// Micro muet : alerte pendant l'enregistrement, puis refus clair au moment d'envoyer (rien n'est envoyé).
+		const { ctx, page } = await newPage(browser, 'masoul');
+		await go(page, '#/taches');
+		await page.click('[data-new-task]');
+		await page.waitForSelector('[data-voice-rec]');
+		await page.selectOption('[data-task-form] [name=employeeId]', { label: 'وفاء حامدي' });
+		await page.evaluate(() => {
+			navigator.mediaDevices.getUserMedia = async function () { const ac = new AudioContext(); const d = ac.createMediaStreamDestination(); const g = ac.createGain(); g.gain.value = 0; const o = ac.createOscillator(); o.connect(g); g.connect(d); o.start(); return d.stream; };
+		});
+		await page.click('[data-voice-rec]');
+		await page.waitForTimeout(2600);
+		await page.click('[data-voice-rec]');
+		await page.waitForSelector('[data-voice][data-state="done"]');
+		check('micro muet : alerte « لم يُلتقط أي صوت » après l\'enregistrement', await page.waitForFunction(() => /لم يُلتقط أي صوت/.test(document.body.textContent), null, { timeout: 3000 }).then(() => true, () => false));
+		await page.click('[data-btn=save]');
+		check('micro muet : envoi refusé « التسجيل بدون صوت » (la fenêtre reste ouverte)', await page.waitForFunction(() => /التسجيل بدون صوت/.test(document.body.textContent), null, { timeout: 5000 }).then(() => true, () => false) && await page.isVisible('.ps-modal'));
+		await ctx.close();
+	}
+	{
 		const { ctx, page } = await newPage(browser, 'mowadhaf');
 		await go(page, '#/taches');
 		await page.waitForSelector('.ps-voice__player');
@@ -696,6 +715,11 @@ async function step8() {
 			return { seconds: audio.duration, rms: Math.sqrt(s / d.length) };
 		}).catch((e) => ({ error: String(e) }));
 		check('message vocal servi : décodé par le navigateur, avec du son (pas muet)', sound.seconds > 1.5 && sound.rms > 0.01, JSON.stringify(sound));
+		// Secours de lecture (téléphones dont le lecteur échoue) : téléchargement puis lecture depuis la mémoire.
+		await page.$eval('.ps-voice__player', (a) => a.dispatchEvent(new Event('error')));
+		check('lecteur en échec → fichier téléchargé et relu (secours Android)', await page.waitForFunction(() => document.querySelector('.ps-voice__player').src.startsWith('blob:'), null, { timeout: 5000 }).then(() => true, () => false));
+		await page.evaluate(() => { const a = document.createElement('audio'); a.className = 'ps-voice__player'; a.src = PS.config.restUrl + 'free-tasks/999999/voice?_wpnonce=' + PS.config.nonce; document.querySelector('.ps-main').appendChild(a); a.dispatchEvent(new Event('error')); });
+		check('message introuvable → erreur du serveur affichée', await page.waitForFunction(() => /غير موجودة/.test(document.body.textContent), null, { timeout: 5000 }).then(() => true, () => false));
 		await page.screenshot({ path: SHOTS + '/s8-02-tache-vocale.png', fullPage: true });
 		await page.click('#ps-bell');
 		await page.waitForTimeout(600);

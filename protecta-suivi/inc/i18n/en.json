@@ -186,6 +186,7 @@
 	"التالي ←": "Next →",
 	"الترتيب": "Order",
 	"الترتيب غير صالح": "Invalid order",
+	"التسجيل بدون صوت: الميكروفون لم يلتقط شيئًا. تأكّد من السماح بالميكروفون وأنه غير مكتوم، ثم أعد التسجيل.": "The recording has no sound: the microphone picked up nothing. Make sure the microphone is allowed and not muted, then record again.",
 	"التسليم CSV": "Deliveries CSV",
 	"التسليم Excel": "Deliveries Excel",
 	"التسليم الفعلي": "Actual delivery",
