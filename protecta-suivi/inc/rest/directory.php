@@ -40,11 +40,11 @@ function ps_register_directory_routes(): void {
 					'callback'            => static function ( WP_REST_Request $r ) use ( $kind ) {
 						$data = ps_rest_directory_input( $kind, (array) $r->get_json_params() );
 						if ( null === $data['name'] ) {
-							return new WP_Error( 'ps_validation', 'اكتب الاسم', array( 'status' => 422, 'errors' => array( 'name' => 'خانة إجبارية' ) ) );
+							return new WP_Error( 'ps_validation', ps__( 'اكتب الاسم' ), array( 'status' => 422, 'errors' => array( 'name' => ps__( 'خانة إجبارية' ) ) ) );
 						}
 						$existing = ps_dir_find_by_name( $kind, $data['name'] );
 						if ( $existing ) {
-							return new WP_Error( 'ps_exists', 'الاسم موجود في الدليل', array( 'status' => 409, 'existing' => ps_dir_to_api( $kind, $existing ) ) );
+							return new WP_Error( 'ps_exists', ps__( 'الاسم موجود في الدليل' ), array( 'status' => 409, 'existing' => ps_dir_to_api( $kind, $existing ) ) );
 						}
 						$id = ps_dir_create( $kind, $data );
 						return rest_ensure_response( ps_dir_to_api( $kind, ps_dir_get( $kind, $id ) ) );
@@ -93,7 +93,7 @@ function ps_register_directory_routes(): void {
 					'permission_callback' => ps_rest_permission(),
 					'callback'            => static function ( WP_REST_Request $r ) use ( $kind ) {
 						$row = ps_dir_get( $kind, ps_dir_resolve( $kind, (int) $r['id'] ) );
-						return $row ? rest_ensure_response( ps_dir_to_api( $kind, $row ) ) : new WP_Error( 'ps_not_found', 'غير موجود', array( 'status' => 404 ) );
+						return $row ? rest_ensure_response( ps_dir_to_api( $kind, $row ) ) : new WP_Error( 'ps_not_found', ps__( 'غير موجود' ), array( 'status' => 404 ) );
 					},
 				),
 				array(
@@ -102,14 +102,14 @@ function ps_register_directory_routes(): void {
 					'callback'            => static function ( WP_REST_Request $r ) use ( $kind ) {
 						$row = ps_dir_get( $kind, (int) $r['id'] );
 						if ( ! $row || $row['merged_into_id'] ) {
-							return new WP_Error( 'ps_not_found', 'غير موجود', array( 'status' => 404 ) );
+							return new WP_Error( 'ps_not_found', ps__( 'غير موجود' ), array( 'status' => 404 ) );
 						}
 						$data = ps_rest_directory_input( $kind, (array) $r->get_json_params() );
 						if ( null === $data['name'] ) {
 							unset( $data['name'] );
 						}
 						if ( ! ps_dir_update( $kind, (int) $row['id'], $data ) ) {
-							return new WP_Error( 'ps_exists', 'الاسم موجود في الدليل (استعمل الدمج)', array( 'status' => 409 ) );
+							return new WP_Error( 'ps_exists', ps__( 'الاسم موجود في الدليل (استعمل الدمج)' ), array( 'status' => 409 ) );
 						}
 						return rest_ensure_response( ps_dir_to_api( $kind, ps_dir_get( $kind, (int) $row['id'] ) ) );
 					},

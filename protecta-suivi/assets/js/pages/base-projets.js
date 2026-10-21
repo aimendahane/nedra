@@ -18,53 +18,53 @@
 
 	/** Colonnes : [clé de tri, titre, rendu]. */
 	const COLUMNS = [
-		['receivedYear', 'السنة', function (r) { return r.receivedYear; }],
-		['seq', 'رقم', function (r) { return r.seq; }],
-		['placeId', 'المكان', function (r) { return html`<span title="${L.label(r.placeId)}">${L.short(r.placeId)}</span>`; }],
-		['urgencyId', 'الاستعجال', function (r) { return L.badge(r.urgencyId); }],
-		['importanceKindId', 'الأهمية كصنف', function (r) { return L.label(r.importanceKindId); }],
-		['importanceSizeId', 'الأهمية كحجم', function (r) { return L.label(r.importanceSizeId); }],
-		['month', 'الشهر', function (r) { return F.month(r.month); }],
-		['categoryId', 'التصنيف', function (r) { return L.label(r.categoryId); }],
-		['companyName', 'اسم الشركة', function (r) { return r.companyName || ''; }],
-		['directPerson', 'شخص المباشر', function (r) { return r.directPerson || ''; }],
-		['directPhone', 'رقم شخص المباشر', function (r) { return html`<span dir="ltr">${r.directPhone || ''}</span>`; }],
-		['name', 'اسم المشروع', function (r) { return html`<a href="#/projet?id=${r.id}">${r.name}</a>`; }],
-		[null, 'الأصناف', function (r) { return r.itemTypeIds.map(L.label).join('، '); }],
-		['receivedDate', 'تاريخ استلام الطلب', function (r) { return F.date(r.receivedDate); }],
-		['sentDate', 'تاريخ إرسال الطلب', function (r) { return F.date(r.sentDate); }],
-		['followerEmpId', 'الموظف المتابع', function (r) { return L.label(r.followerEmpId); }],
-		['intermediaryEmpId', 'الموظف الوسيط', function (r) { return L.label(r.intermediaryEmpId); }],
-		['projectNo', 'رقم المشروع', function (r) { return html`<a class="ps-mono" href="#/projet?id=${r.id}">${r.projectNo}</a>`; }],
-		['followupStatusId', 'حالة المتابعة', function (r) { return L.badge(r.followupStatusId, L.label(r.followupStatusId)); }],
-		['offerStatus', 'حالة العرض', function (r) { return L.offerBadge(r.offerStatus); }],
+		['receivedYear', PS.t('السنة'), function (r) { return r.receivedYear; }],
+		['seq', PS.t('رقم'), function (r) { return r.seq; }],
+		['placeId', PS.t('المكان'), function (r) { return html`<span title="${L.label(r.placeId)}">${L.short(r.placeId)}</span>`; }],
+		['urgencyId', PS.t('الاستعجال'), function (r) { return L.badge(r.urgencyId); }],
+		['importanceKindId', PS.t('الأهمية كصنف'), function (r) { return L.label(r.importanceKindId); }],
+		['importanceSizeId', PS.t('الأهمية كحجم'), function (r) { return L.label(r.importanceSizeId); }],
+		['month', PS.t('الشهر'), function (r) { return F.month(r.month); }],
+		['categoryId', PS.t('التصنيف'), function (r) { return L.label(r.categoryId); }],
+		['companyName', PS.t('اسم الشركة'), function (r) { return r.companyName || ''; }],
+		['directPerson', PS.t('شخص المباشر'), function (r) { return r.directPerson || ''; }],
+		['directPhone', PS.t('رقم شخص المباشر'), function (r) { return html`<span dir="ltr">${r.directPhone || ''}</span>`; }],
+		['name', PS.t('اسم المشروع'), function (r) { return html`<a href="#/projet?id=${r.id}">${r.name}</a>`; }],
+		[null, PS.t('الأصناف'), function (r) { return r.itemTypeIds.map(L.label).join(PS.t('، ')); }],
+		['receivedDate', PS.t('تاريخ استلام الطلب'), function (r) { return F.date(r.receivedDate); }],
+		['sentDate', PS.t('تاريخ إرسال الطلب'), function (r) { return F.date(r.sentDate); }],
+		['followerEmpId', PS.t('الموظف المتابع'), function (r) { return L.label(r.followerEmpId); }],
+		['intermediaryEmpId', PS.t('الموظف الوسيط'), function (r) { return L.label(r.intermediaryEmpId); }],
+		['projectNo', PS.t('رقم المشروع'), function (r) { return html`<a class="ps-mono" href="#/projet?id=${r.id}">${r.projectNo}</a>`; }],
+		['followupStatusId', PS.t('حالة المتابعة'), function (r) { return L.badge(r.followupStatusId, L.label(r.followupStatusId)); }],
+		['offerStatus', PS.t('حالة العرض'), function (r) { return L.offerBadge(r.offerStatus); }],
 		[null, 'NOTE', function (r) { return html`<span class="ps-clip" title="${r.note || ''}">${r.note || ''}</span>`; }],
-		[null, 'رابط ملف المشاريع', function (r) { return r.filesLink ? html`<a href="${r.filesLink}" target="_blank" rel="noopener noreferrer">🔗 فتح</a>` : ''; }],
-		['sourceId', 'مصدر الطلب', function (r) { return L.label(r.sourceId); }],
-		['priority', 'الأولوية', function (r) { return r.priority ? html`<span class="ps-badge ps-prio ps-prio--${r.priority}">${r.priority}</span>` : ''; }],
+		[null, PS.t('رابط ملف المشاريع'), function (r) { return r.filesLink ? html`<a href="${r.filesLink}" target="_blank" rel="noopener noreferrer">🔗 ${PS.t('فتح')}</a>` : ''; }],
+		['sourceId', PS.t('مصدر الطلب'), function (r) { return L.label(r.sourceId); }],
+		['priority', PS.t('الأولوية'), function (r) { return r.priority ? html`<span class="ps-badge ps-prio ps-prio--${r.priority}">${r.priority}</span>` : ''; }],
 	];
 
 	/** Filtres : [paramètre, libellé, liste ou fonction d'options]. */
 	const FILTERS = [
-		['year', 'السنة', 'year'],
-		['month', 'الشهر', 'month'],
-		['placeId', 'المكان', 'place'],
-		['urgencyId', 'الاستعجال', 'urgency'],
-		['categoryId', 'التصنيف', 'category'],
-		['followerEmpId', 'الموظف المتابع', 'employee'],
-		['responsibleEmpId', 'المسؤول', 'employee'],
-		['followupStatusId', 'حالة المتابعة', 'followup_status'],
-		['offerStatus', 'حالة العرض', 'offerStatus'],
-		['sourceId', 'مصدر الطلب', 'source'],
-		['itemTypeId', 'الصنف', 'item_type'],
-		['priority', 'الأولوية', 'priority'],
+		['year', PS.t('السنة'), 'year'],
+		['month', PS.t('الشهر'), 'month'],
+		['placeId', PS.t('المكان'), 'place'],
+		['urgencyId', PS.t('الاستعجال'), 'urgency'],
+		['categoryId', PS.t('التصنيف'), 'category'],
+		['followerEmpId', PS.t('الموظف المتابع'), 'employee'],
+		['responsibleEmpId', PS.t('المسؤول'), 'employee'],
+		['followupStatusId', PS.t('حالة المتابعة'), 'followup_status'],
+		['offerStatus', PS.t('حالة العرض'), 'offerStatus'],
+		['sourceId', PS.t('مصدر الطلب'), 'source'],
+		['itemTypeId', PS.t('الصنف'), 'item_type'],
+		['priority', PS.t('الأولوية'), 'priority'],
 	];
 
 	let st = null; // { main, params, data, selected:Set }
 
 	function filterOptions(kind, current) {
 		const opt = function (v, label) { return '<option value="' + ui.esc(v) + '"' + (String(v) === String(current) ? ' selected' : '') + '>' + ui.esc(label) + '</option>'; };
-		let h = '<option value="">الكل</option>';
+		let h = ('<option value="">' + PS.t('الكل') + '</option>');
 		if (kind === 'year') {
 			const y = new Date().getFullYear();
 			for (let i = y + 1; i >= y - 6; i--) h += opt(i, i);
@@ -75,10 +75,10 @@
 		} else if (kind === 'priority') {
 			['P1', 'P2', 'P3'].forEach(function (p) { h += opt(p, p); });
 		} else {
-			if (kind === 'source') h += opt('unspecified', '⚠ مصدر غير محدد');
+			if (kind === 'source') h += opt('unspecified', PS.t('⚠ مصدر غير محدد'));
 			L.values(kind).forEach(function (v) {
 				if (kind === 'source' && v.code === 'unspecified') return;
-				h += opt(v.id, L.optionText(v) + (v.hidden ? ' (مخفي)' : ''));
+				h += opt(v.id, L.optionText(v) + (v.hidden ? PS.t(' (مخفي)') : ''));
 			});
 		}
 		return ui.raw(h);
@@ -91,19 +91,19 @@
 		const active = FILTERS.filter(function (f) { return p[f[0]]; }).length + (p.q ? 1 : 0) + (p.companyId ? 1 : 0);
 		return html`<div class="ps-card ps-toolbar">
 			<div class="ps-toolbar__row">
-				<input type="search" class="ps-input ps-search" placeholder="🔍 بحث: اسم المشروع، الشركة، الرقم، الهاتف…" value="${p.q || ''}" data-search>
-				${PS.router.can('ps_create_project') ? html`<a class="ps-btn ps-btn--primary" href="#/projet">➕ مشروع جديد</a>` : ''}
+				<input type="search" class="ps-input ps-search" placeholder="🔍 ${PS.t('بحث: اسم المشروع، الشركة، الرقم، الهاتف…')}" value="${p.q || ''}" data-search>
+				${PS.router.can('ps_create_project') ? html`<a class="ps-btn ps-btn--primary" href="#/projet">➕ ${PS.t('مشروع جديد')}</a>` : ''}
 				${PS.router.can('ps_export') ? html`<button type="button" class="ps-btn" data-action="export-csv">⬇ CSV</button><button type="button" class="ps-btn" data-action="export-xlsx">⬇ Excel</button>` : ''}
-				<button type="button" class="ps-btn ps-btn--ghost" data-action="toggle-filters" aria-expanded="${st.showFilters ? 'true' : 'false'}">⚙ الفلاتر ${active ? html`<span class="ps-count">${active}</span>` : ''}</button>
+				<button type="button" class="ps-btn ps-btn--ghost" data-action="toggle-filters" aria-expanded="${st.showFilters ? 'true' : 'false'}">⚙ ${PS.t('الفلاتر')} ${active ? html`<span class="ps-count">${active}</span>` : ''}</button>
 			</div>
 			<div class="ps-filters" ${st.showFilters ? '' : ui.raw('hidden')}>
 				${FILTERS.map(function (f) {
 					return html`<label class="ps-field ps-field--compact"><span class="ps-field__label">${f[1]}</span><select class="ps-input" data-filter="${f[0]}">${filterOptions(f[2], p[f[0]])}</select></label>`;
 				})}
 				<div class="ps-filters__end">
-					${p.companyId ? html`<span class="ps-chip">الشركة #${p.companyId} <button type="button" class="ps-chip__x" data-action="clear-company">×</button></span>` : ''}
-					${PS.router.can('ps_delete') ? html`<label class="ps-check"><input type="checkbox" data-filter="trash" ${p.trash ? ui.raw('checked') : ''}> 🗑 سلة المحذوفات</label>` : ''}
-					<button type="button" class="ps-btn ps-btn--small" data-action="reset-filters">مسح الفلاتر</button>
+					${p.companyId ? html`<span class="ps-chip">${PS.t('الشركة #')}${p.companyId} <button type="button" class="ps-chip__x" data-action="clear-company">×</button></span>` : ''}
+					${PS.router.can('ps_delete') ? html`<label class="ps-check"><input type="checkbox" data-filter="trash" ${p.trash ? ui.raw('checked') : ''}> 🗑 ${PS.t('سلة المحذوفات')}</label>` : ''}
+					<button type="button" class="ps-btn ps-btn--small" data-action="reset-filters">${PS.t('مسح الفلاتر')}</button>
 				</div>
 			</div>
 		</div>`;
@@ -111,11 +111,11 @@
 
 	function bulkBar() {
 		if (!isAdmin() || !st.selected.size) return '';
-		return html`<div class="ps-bulk" role="region" aria-label="تعديل جماعي">
-			<strong>${st.selected.size} مشروع محدد</strong>
-			<label>تعيين مصدر الطلب: <select class="ps-input ps-input--sm" data-bulk-source>${ui.raw(L.options('source', '', { emptyLabel: 'اختر…' }))}</select></label>
-			<button type="button" class="ps-btn ps-btn--primary ps-btn--small" data-action="bulk-apply">تطبيق</button>
-			<button type="button" class="ps-btn ps-btn--small" data-action="bulk-clear">إلغاء التحديد</button>
+		return html`<div class="ps-bulk" role="region" aria-label="${PS.t('تعديل جماعي')}">
+			<strong>${st.selected.size} ${PS.t('مشروع محدد')}</strong>
+			<label>${PS.t('تعيين مصدر الطلب:')} <select class="ps-input ps-input--sm" data-bulk-source>${ui.raw(L.options('source', '', { emptyLabel: PS.t('اختر…') }))}</select></label>
+			<button type="button" class="ps-btn ps-btn--primary ps-btn--small" data-action="bulk-apply">${PS.t('تطبيق')}</button>
+			<button type="button" class="ps-btn ps-btn--small" data-action="bulk-clear">${PS.t('إلغاء التحديد')}</button>
 		</div>`;
 	}
 
@@ -126,7 +126,7 @@
 		const allChecked = rows.length && rows.every(function (r) { return st.selected.has(r.id); });
 		return html`<div class="ps-table-wrap ps-desktop-only"><table class="ps-table ps-table--list">
 			<thead><tr>
-				${admin ? html`<th><input type="checkbox" data-check-all aria-label="تحديد الكل" ${allChecked ? ui.raw('checked') : ''}></th>` : ''}
+				${admin ? html`<th><input type="checkbox" data-check-all aria-label="${PS.t('تحديد الكل')}" ${allChecked ? ui.raw('checked') : ''}></th>` : ''}
 				${COLUMNS.map(function (c) {
 					if (!c[0]) return html`<th>${c[1]}</th>`;
 					const on = sort === c[0];
@@ -136,9 +136,9 @@
 			</tr></thead>
 			<tbody>${rows.map(function (r) {
 				return html`<tr>
-					${admin ? html`<td><input type="checkbox" data-check="${r.id}" aria-label="تحديد ${r.projectNo}" ${st.selected.has(r.id) ? ui.raw('checked') : ''}></td>` : ''}
+					${admin ? html`<td><input type="checkbox" data-check="${r.id}" aria-label="${PS.t('تحديد')} ${r.projectNo}" ${st.selected.has(r.id) ? ui.raw('checked') : ''}></td>` : ''}
 					${COLUMNS.map(function (c) { return html`<td>${c[2](r)}</td>`; })}
-					${st.params.trash ? html`<td><button type="button" class="ps-btn ps-btn--small" data-restore="${r.id}">↩ استرجاع</button></td>` : ''}
+					${st.params.trash ? html`<td><button type="button" class="ps-btn ps-btn--small" data-restore="${r.id}">↩ ${PS.t('استرجاع')}</button></td>` : ''}
 				</tr>`;
 			})}</tbody>
 		</table></div>`;
@@ -158,10 +158,10 @@
 	function pager(d) {
 		const pages = Math.max(1, Math.ceil(d.total / d.perPage));
 		if (pages <= 1) return '';
-		return html`<nav class="ps-pager" aria-label="الصفحات">
-			<button type="button" class="ps-btn ps-btn--small" data-page="${d.page - 1}" ${d.page <= 1 ? ui.raw('disabled') : ''}>→ السابق</button>
-			<span>صفحة ${d.page} / ${pages}</span>
-			<button type="button" class="ps-btn ps-btn--small" data-page="${d.page + 1}" ${d.page >= pages ? ui.raw('disabled') : ''}>التالي ←</button>
+		return html`<nav class="ps-pager" aria-label="${PS.t('الصفحات')}">
+			<button type="button" class="ps-btn ps-btn--small" data-page="${d.page - 1}" ${d.page <= 1 ? ui.raw('disabled') : ''}>→ ${PS.t('السابق')}</button>
+			<span>${PS.t('صفحة')} ${d.page} / ${pages}</span>
+			<button type="button" class="ps-btn ps-btn--small" data-page="${d.page + 1}" ${d.page >= pages ? ui.raw('disabled') : ''}>${PS.t('التالي ←')}</button>
 		</nav>`;
 	}
 
@@ -171,11 +171,11 @@
 		if (!d) return;
 		let body;
 		if (!d.rows.length) {
-			body = ui.empty(st.params.trash ? '🗑' : '📁', Object.keys(st.params).length ? 'لا توجد مشاريع تطابق البحث أو الفلاتر.' : 'لا توجد مشاريع بعد. ابدأ بإدخال مشروع جديد.');
+			body = ui.empty(st.params.trash ? '🗑' : '📁', Object.keys(st.params).length ? PS.t('لا توجد مشاريع تطابق البحث أو الفلاتر.') : PS.t('لا توجد مشاريع بعد. ابدأ بإدخال مشروع جديد.'));
 		} else {
 			body = html`${table(d.rows)}${cards(d.rows)}`;
 		}
-		box.innerHTML = html`<p class="ps-muted ps-small" role="status">${d.total} مشروع${st.params.trash ? ' في سلة المحذوفات' : ''}</p>${bulkBar()}${body}${pager(d)}`.html;
+		box.innerHTML = html`<p class="ps-muted ps-small" role="status">${d.total} ${PS.t('مشروع')}${st.params.trash ? PS.t(' في سلة المحذوفات') : ''}</p>${bulkBar()}${body}${pager(d)}`.html;
 	}
 
 	function load() {
@@ -224,7 +224,7 @@
 			if (pg) { setParam('page', pg.dataset.page); window.scrollTo(0, 0); return; }
 			const rs = e.target.closest('[data-restore]');
 			if (rs) {
-				PS.api.post('projects/' + rs.dataset.restore + '/restore').then(function () { ui.toast('تم الاسترجاع', 'success'); load(); }).catch(function (er) { ui.toast(er.message, 'error'); });
+				PS.api.post('projects/' + rs.dataset.restore + '/restore').then(function () { ui.toast(PS.t('تم الاسترجاع'), 'success'); load(); }).catch(function (er) { ui.toast(er.message, 'error'); });
 				return;
 			}
 			const a = e.target.closest('[data-action]');
@@ -242,12 +242,12 @@
 
 	function bulkApply() {
 		const sel = st.main.querySelector('[data-bulk-source]');
-		if (!sel.value) { ui.toast('اختر مصدر الطلب', 'error'); return; }
+		if (!sel.value) { ui.toast(PS.t('اختر مصدر الطلب'), 'error'); return; }
 		const n = st.selected.size;
-		ui.confirm('تعيين «' + L.label(Number(sel.value)) + '» كمصدر طلب لـ ' + n + ' مشروع؟').then(function (ok) {
+		ui.confirm(PS.t('تعيين «') + L.label(Number(sel.value)) + PS.t('» كمصدر طلب لـ ') + n + PS.t(' مشروع؟')).then(function (ok) {
 			if (!ok) return;
 			PS.api.post('projects/bulk-source', { ids: Array.from(st.selected), sourceId: Number(sel.value) }).then(function (r) {
-				ui.toast('تم تحديث ' + r.updated + ' مشروع', 'success');
+				ui.toast(PS.t('تم تحديث ') + r.updated + PS.t(' مشروع'), 'success');
 				st.selected.clear();
 				load();
 			}).catch(function (e) { ui.toast(e.message, 'error'); });
@@ -255,14 +255,14 @@
 	}
 
 	function renderPage() {
-		st.main.innerHTML = html`<div class="ps-page-head"><h1>المشاريع</h1></div>${toolbar()}<div data-results><div class="ps-loading">جاري التحميل…</div></div>`.html;
+		st.main.innerHTML = html`<div class="ps-page-head"><h1>${PS.t('المشاريع')}</h1></div>${toolbar()}<div data-results><div class="ps-loading">${PS.t('جاري التحميل…')}</div></div>`.html;
 		bind();
 		return load();
 	}
 
 	PS.router.register({
 		id: 'projets',
-		title: 'المشاريع',
+		title: PS.t('المشاريع'),
 		icon: '📁',
 		cap: 'ps_access',
 		order: 30,

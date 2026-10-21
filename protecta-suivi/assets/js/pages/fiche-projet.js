@@ -19,8 +19,8 @@
 	const html = ui.html;
 	const L = PS.lists;
 	const PARTY_FIELDS = [
-		['companyName', 'اسم الشركة'], ['person', 'الشخص المسؤول'], ['phone', 'الهاتف', 'tel'], ['email', 'الإيميل', 'email'],
-		['address', 'العنوان'], ['position', 'المنصب'], ['rank', 'الرتبة'], ['location', 'الموقع'],
+		['companyName', PS.t('اسم الشركة')], ['person', PS.t('الشخص المسؤول')], ['phone', PS.t('الهاتف'), 'tel'], ['email', PS.t('الإيميل'), 'email'],
+		['address', PS.t('العنوان')], ['position', PS.t('المنصب')], ['rank', PS.t('الرتبة')], ['location', PS.t('الموقع')],
 	];
 	/** Clés des règles « obligatoire » pour chaque champ d'intervenant. */
 	const PARTY_RULE = { companyName: 'company', person: 'person', phone: 'phone', email: 'email' };
@@ -95,7 +95,7 @@
 		const o = opts || {};
 		const v = ui.getPath(state.draft, path);
 		let options = L.options(listKey, v);
-		if (o.addable && !readOnly()) options += '<option value="__add">' + (listKey === 'place' ? '+ إضافة مكان جديد' : '+ إضافة صنف جديد') + '</option>';
+		if (o.addable && !readOnly()) options += '<option value="__add">' + (listKey === 'place' ? PS.t('+ إضافة مكان جديد') : PS.t('+ إضافة صنف جديد')) + '</option>';
 		return fieldWrap(label, ruleKey === undefined ? path : ruleKey,
 			html`<select data-bind="${path}" data-key="${o.key || path}" data-list="${listKey}"${dis()}>${ui.raw(options)}</select>`, o.cls);
 	}
@@ -107,63 +107,63 @@
 	function sectionInfo() {
 		const d = state.draft;
 		const isRejected = L.followupType(d.followupStatusId) === 'rejected';
-		const offerNoBtn = !readOnly() ? html`<button type="button" class="ps-btn ps-btn--small" data-action="suggest-offer">اقتراح رقم</button>` : '';
+		const offerNoBtn = !readOnly() ? html`<button type="button" class="ps-btn ps-btn--small" data-action="suggest-offer">${PS.t('اقتراح رقم')}</button>` : '';
 		return html`<section class="ps-card">
-			<h2 class="ps-card__title">معلومات المشروع <span class="ps-muted">(الخانات الصفراء إجبارية)</span></h2>
+			<h2 class="ps-card__title">${PS.t('معلومات المشروع')} <span class="ps-muted">(${PS.t('الخانات الصفراء إجبارية')})</span></h2>
 			<div class="ps-grid">
-				${state.mode === 'edit' ? fieldWrap('رقم المشروع', null, html`<input value="${state.project.projectNo}" disabled>`) : fieldWrap('رقم المشروع', null, html`<input value="يتولّد تلقائيًا عند الحفظ" disabled>`)}
-				${fieldWrap('رقم العرض', 'offer_no', html`<span class="ps-inline"><input data-bind="offerNo" data-key="offer_no" value="${d.offerNo || ''}" dir="ltr"${dis()}>${offerNoBtn}</span>`)}
-				${input('name', 'اسم المشروع', 'text', 'name', { key: 'name', cls: 'ps-span-2' })}
-				${input('receivedDate', 'تاريخ استلام الطلب', 'date', 'received_date', { key: 'received_date' })}
-				${input('sentDate', 'تاريخ إرسال العرض', 'date', 'sent_date', { key: 'sent_date' })}
-				${select('responsibleEmpId', 'المسؤول عن المشروع', 'employee', 'responsible_emp_id', { key: 'responsible_emp_id' })}
-				${select('followerEmpId', 'الموظف المتابع', 'employee', 'follower_emp_id', { key: 'follower_emp_id' })}
-				${select('intermediaryEmpId', 'الموظف الوسيط', 'employee', 'intermediary_emp_id', { key: 'intermediary_emp_id' })}
-				${select('placeId', 'المكان', 'place', 'place_id', { key: 'place_id', addable: true })}
-				${select('categoryId', 'التصنيف', 'category', 'category_id', { key: 'category_id' })}
-				${select('urgencyId', 'درجة الاستعجال', 'urgency', 'urgency_id', { key: 'urgency_id' })}
-				${select('importanceKindId', 'الأهمية كصنف', 'importance', 'importance_kind_id', { key: 'importance_kind_id' })}
-				${select('importanceSizeId', 'الأهمية كحجم', 'importance', 'importance_size_id', { key: 'importance_size_id' })}
-				${select('sourceId', 'مصدر الطلب', 'source', 'source_id', { key: 'source_id' })}
-				${select('followupStatusId', 'حالة المتابعة', 'followup_status', 'followup_status_id', { key: 'followup_status_id' })}
-				${isRejected || d.lossReasonId ? select('lossReasonId', 'سبب الرفض أو الخسارة', 'loss_reason', 'loss_reason_id', { key: 'loss_reason_id' }) : ''}
-				${input('filesLink', 'رابط ملف المشاريع (Drive / OneDrive)', 'url', 'files_link', { key: 'files_link', cls: 'ps-span-2' })}
+				${state.mode === 'edit' ? fieldWrap(PS.t('رقم المشروع'), null, html`<input value="${state.project.projectNo}" disabled>`) : fieldWrap(PS.t('رقم المشروع'), null, html`<input value="${PS.t('يتولّد تلقائيًا عند الحفظ')}" disabled>`)}
+				${fieldWrap(PS.t('رقم العرض'), 'offer_no', html`<span class="ps-inline"><input data-bind="offerNo" data-key="offer_no" value="${d.offerNo || ''}" dir="ltr"${dis()}>${offerNoBtn}</span>`)}
+				${input('name', PS.t('اسم المشروع'), 'text', 'name', { key: 'name', cls: 'ps-span-2' })}
+				${input('receivedDate', PS.t('تاريخ استلام الطلب'), 'date', 'received_date', { key: 'received_date' })}
+				${input('sentDate', PS.t('تاريخ إرسال العرض'), 'date', 'sent_date', { key: 'sent_date' })}
+				${select('responsibleEmpId', PS.t('المسؤول عن المشروع'), 'employee', 'responsible_emp_id', { key: 'responsible_emp_id' })}
+				${select('followerEmpId', PS.t('الموظف المتابع'), 'employee', 'follower_emp_id', { key: 'follower_emp_id' })}
+				${select('intermediaryEmpId', PS.t('الموظف الوسيط'), 'employee', 'intermediary_emp_id', { key: 'intermediary_emp_id' })}
+				${select('placeId', PS.t('المكان'), 'place', 'place_id', { key: 'place_id', addable: true })}
+				${select('categoryId', PS.t('التصنيف'), 'category', 'category_id', { key: 'category_id' })}
+				${select('urgencyId', PS.t('درجة الاستعجال'), 'urgency', 'urgency_id', { key: 'urgency_id' })}
+				${select('importanceKindId', PS.t('الأهمية كصنف'), 'importance', 'importance_kind_id', { key: 'importance_kind_id' })}
+				${select('importanceSizeId', PS.t('الأهمية كحجم'), 'importance', 'importance_size_id', { key: 'importance_size_id' })}
+				${select('sourceId', PS.t('مصدر الطلب'), 'source', 'source_id', { key: 'source_id' })}
+				${select('followupStatusId', PS.t('حالة المتابعة'), 'followup_status', 'followup_status_id', { key: 'followup_status_id' })}
+				${isRejected || d.lossReasonId ? select('lossReasonId', PS.t('سبب الرفض أو الخسارة'), 'loss_reason', 'loss_reason_id', { key: 'loss_reason_id' }) : ''}
+				${input('filesLink', PS.t('رابط ملف المشاريع (Drive / OneDrive)'), 'url', 'files_link', { key: 'files_link', cls: 'ps-span-2' })}
 			</div>
-			${fieldWrap('NOTE / نص الطلب', 'note', html`<textarea rows="4" data-bind="note" data-key="note"${dis()}>${d.note || ''}</textarea>`, 'ps-mt')}
+			${fieldWrap(PS.t('NOTE / نص الطلب'), 'note', html`<textarea rows="4" data-bind="note" data-key="note"${dis()}>${d.note || ''}</textarea>`, 'ps-mt')}
 		</section>`;
 	}
 
 	function sectionAmounts() {
-		let margin = 'يُحسب بعد الحفظ (نفس العملة)';
+		let margin = PS.t('يُحسب بعد الحفظ (نفس العملة)');
 		if (state.mode === 'edit' && state.project.computed.margin) {
 			const m = state.project.computed.margin;
 			margin = PS.format.money(m.amount, L.code(state.project.offerCurrencyId)) + (m.percent === null ? '' : ' (' + PS.format.percent(m.percent) + ')');
 		} else if (state.mode === 'edit') {
-			margin = '— (يلزم المبلغان بنفس العملة)';
+			margin = PS.t('— (يلزم المبلغان بنفس العملة)');
 		}
 		return html`<section class="ps-card">
-			<h2 class="ps-card__title">المبالغ <span class="ps-muted">(اختياري)</span></h2>
+			<h2 class="ps-card__title">${PS.t('المبالغ')} <span class="ps-muted">(${PS.t('اختياري')})</span></h2>
 			<div class="ps-grid">
-				${input('offerAmount', 'مبلغ العرض', 'number', 'offer_amount', { key: 'offer_amount' })}
-				${select('offerCurrencyId', 'عملة العرض', 'currency', 'offer_currency_id', { key: 'offer_currency_id' })}
-				${input('purchaseAmount', 'مبلغ الشراء', 'number', 'purchase_amount', { key: 'purchase_amount' })}
-				${select('purchaseCurrencyId', 'عملة الشراء', 'currency', 'purchase_currency_id', { key: 'purchase_currency_id' })}
-				${fieldWrap('هامش الربح', null, html`<input value="${margin}" disabled>`)}
+				${input('offerAmount', PS.t('مبلغ العرض'), 'number', 'offer_amount', { key: 'offer_amount' })}
+				${select('offerCurrencyId', PS.t('عملة العرض'), 'currency', 'offer_currency_id', { key: 'offer_currency_id' })}
+				${input('purchaseAmount', PS.t('مبلغ الشراء'), 'number', 'purchase_amount', { key: 'purchase_amount' })}
+				${select('purchaseCurrencyId', PS.t('عملة الشراء'), 'currency', 'purchase_currency_id', { key: 'purchase_currency_id' })}
+				${fieldWrap(PS.t('هامش الربح'), null, html`<input value="${margin}" disabled>`)}
 			</div>
 		</section>`;
 	}
 
 	function sectionParties() {
 		return html`<section class="ps-card">
-			<h2 class="ps-card__title">الأطراف المتدخلة</h2>
-			<p class="ps-muted ps-small">اكتب اسم الشركة واختر من الدليل لتعبئة بياناتها، أو أضف شركة جديدة.</p>
+			<h2 class="ps-card__title">${PS.t('الأطراف المتدخلة')}</h2>
+			<p class="ps-muted ps-small">${PS.t('اكتب اسم الشركة واختر من الدليل لتعبئة بياناتها، أو أضف شركة جديدة.')}</p>
 			<div class="ps-parties">${Object.keys(PS.config.partyRoles).map(partyCard)}</div>
 		</section>`;
 	}
 
 	function partyCard(role) {
 		const p = state.draft.parties[role] || {};
-		const linked = p.companyId ? html`<span class="ps-linked" title="مرتبطة بدليل الشركات">🔗</span>` : '';
+		const linked = p.companyId ? html`<span class="ps-linked" title="${PS.t('مرتبطة بدليل الشركات')}">🔗</span>` : '';
 		return html`<fieldset class="ps-party">
 			<legend>${PS.config.partyRoles[role]} ${linked}</legend>
 			<div class="ps-grid ps-grid--tight">${PARTY_FIELDS.map(function (f) {
@@ -186,17 +186,17 @@
 				<td>${selectCell('items.' + i + '.employeeId', 'employee', 'items.' + i + '.employee_id')}</td>
 				<td><div class="ps-field ${isRequired('item.due_date') ? 'ps-field--required' : ''}"><input type="date" class="ps-input" data-bind="items.${i}.dueDate" data-key="items.${i}.due_date" value="${it.dueDate || ''}"${dis()}></div></td>
 				${edit ? html`<td>${it.offerStatusCode ? L.offerBadge(it.offerStatusCode) : ''}</td>` : ''}
-				<td>${readOnly() || locked ? '' : html`<button type="button" class="ps-icon-btn ps-icon-btn--sm" data-action="remove-item" data-i="${i}" aria-label="حذف الصنف">✕</button>`}</td>
+				<td>${readOnly() || locked ? '' : html`<button type="button" class="ps-icon-btn ps-icon-btn--sm" data-action="remove-item" data-i="${i}" aria-label="${PS.t('حذف الصنف')}">✕</button>`}</td>
 			</tr>`;
 		});
 		return html`<section class="ps-card">
-			<h2 class="ps-card__title">الأصناف المطلوبة ${isRequired('items.min_one') ? html`<span class="ps-muted">(صنف واحد على الأقل)</span>` : ''}</h2>
+			<h2 class="ps-card__title">${PS.t('الأصناف المطلوبة')} ${isRequired('items.min_one') ? html`<span class="ps-muted">(${PS.t('صنف واحد على الأقل')})</span>` : ''}</h2>
 			<div data-key="items"></div>
 			<div class="ps-table-wrap"><table class="ps-table ps-table--form">
-				<thead><tr><th>الصنف ${isRequired('item.item_type_id') ? '*' : ''}</th><th>الكمية</th><th>الموظف المسؤول ${isRequired('item.employee_id') ? '*' : ''}</th><th>الأجل المطلوب ${isRequired('item.due_date') ? '*' : ''}</th>${edit ? html`<th>حالة العرض</th>` : ''}<th></th></tr></thead>
+				<thead><tr><th>${PS.t('الصنف')} ${isRequired('item.item_type_id') ? '*' : ''}</th><th>${PS.t('الكمية')}</th><th>${PS.t('الموظف المسؤول')} ${isRequired('item.employee_id') ? '*' : ''}</th><th>${PS.t('الأجل المطلوب')} ${isRequired('item.due_date') ? '*' : ''}</th>${edit ? html`<th>${PS.t('حالة العرض')}</th>` : ''}<th></th></tr></thead>
 				<tbody>${rows}</tbody>
 			</table></div>
-			${readOnly() ? '' : html`<div class="ps-row"><button type="button" class="ps-btn" data-action="add-item">+ صنف</button></div>`}
+			${readOnly() ? '' : html`<div class="ps-row"><button type="button" class="ps-btn" data-action="add-item">+ ${PS.t('صنف')}</button></div>`}
 		</section>`;
 	}
 
@@ -204,38 +204,38 @@
 		const v = ui.getPath(state.draft, path);
 		const rule = listKey === 'item_type' ? 'item.item_type_id' : 'item.employee_id';
 		let options = L.options(listKey, v);
-		if (addable && !readOnly()) options += '<option value="__add">+ إضافة صنف جديد</option>';
+		if (addable && !readOnly()) options += ('<option value="__add">+ ' + PS.t('إضافة صنف جديد') + '</option>');
 		return html`<div class="ps-field ${isRequired(rule) ? 'ps-field--required' : ''}"><select class="ps-input" data-bind="${path}" data-key="${errKey}" data-list="${listKey}"${dis()}>${ui.raw(options)}</select></div>`;
 	}
 
 	function sectionCompetitors() {
 		const rows = state.draft.competitors.map(function (c, i) {
 			const chips = (c.itemTypeIds || []).map(function (id) {
-				return html`<span class="ps-chip">${L.label(id)}${readOnly() ? '' : html`<button type="button" class="ps-chip__x" data-action="remove-comp-type" data-i="${i}" data-id="${id}" aria-label="إزالة">×</button>`}</span>`;
+				return html`<span class="ps-chip">${L.label(id)}${readOnly() ? '' : html`<button type="button" class="ps-chip__x" data-action="remove-comp-type" data-i="${i}" data-id="${id}" aria-label="${PS.t('إزالة')}">×</button>`}</span>`;
 			});
 			const typeOptions = L.values('item_type').filter(function (v) { return !v.hidden && (c.itemTypeIds || []).indexOf(v.id) === -1; })
 				.map(function (v) { return html`<option value="${v.id}">${v.label}</option>`; });
 			return html`<tr>
 				<td><div class="ps-field"><input class="ps-input" data-bind="competitors.${i}.competitorName" data-key="competitors.${i}.competitor_name" data-competitor="${i}" value="${c.competitorName || ''}"${dis()}></div></td>
 				<td><div class="ps-field"><input class="ps-input" data-bind="competitors.${i}.brand" value="${c.brand || ''}"${dis()}></div></td>
-				<td><div class="ps-list-chips">${chips}</div>${readOnly() ? '' : html`<select class="ps-input ps-input--sm" data-action="add-comp-type" data-i="${i}"><option value="">+ صنف</option>${typeOptions}</select>`}</td>
+				<td><div class="ps-list-chips">${chips}</div>${readOnly() ? '' : html`<select class="ps-input ps-input--sm" data-action="add-comp-type" data-i="${i}"><option value="">+ ${PS.t('صنف')}</option>${typeOptions}</select>`}</td>
 				<td><div class="ps-field"><input class="ps-input" data-bind="competitors.${i}.notes" value="${c.notes || ''}"${dis()}></div></td>
-				<td>${readOnly() ? '' : html`<button type="button" class="ps-icon-btn ps-icon-btn--sm" data-action="remove-comp" data-i="${i}" aria-label="حذف المنافس">✕</button>`}</td>
+				<td>${readOnly() ? '' : html`<button type="button" class="ps-icon-btn ps-icon-btn--sm" data-action="remove-comp" data-i="${i}" aria-label="${PS.t('حذف المنافس')}">✕</button>`}</td>
 			</tr>`;
 		});
 		return html`<section class="ps-card">
-			<h2 class="ps-card__title">المنافسون</h2>
+			<h2 class="ps-card__title">${PS.t('المنافسون')}</h2>
 			${rows.length ? html`<div class="ps-table-wrap"><table class="ps-table ps-table--form">
-				<thead><tr><th>المنافس</th><th>الماركة</th><th>الأصناف</th><th>ملاحظات</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : html`<p class="ps-muted">لا يوجد منافسون مسجلون.</p>`}
-			${readOnly() ? '' : html`<div class="ps-row"><button type="button" class="ps-btn" data-action="add-comp">+ منافس</button></div>`}
+				<thead><tr><th>${PS.t('المنافس')}</th><th>${PS.t('الماركة')}</th><th>${PS.t('الأصناف')}</th><th>${PS.t('ملاحظات')}</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : html`<p class="ps-muted">${PS.t('لا يوجد منافسون مسجلون.')}</p>`}
+			${readOnly() ? '' : html`<div class="ps-row"><button type="button" class="ps-btn" data-action="add-comp">+ ${PS.t('منافس')}</button></div>`}
 		</section>`;
 	}
 
 	function formActions() {
 		if (readOnly()) return '';
 		return html`<div class="ps-form-actions">
-			<button type="button" class="ps-btn ps-btn--primary" data-action="save">💾 ${state.mode === 'create' ? 'حفظ المشروع' : 'حفظ التعديلات'}</button>
-			${state.mode === 'create' ? html`<button type="button" class="ps-btn" data-action="reset">تفريغ</button>` : html`<button type="button" class="ps-btn" data-action="cancel">إلغاء التعديلات</button>`}
+			<button type="button" class="ps-btn ps-btn--primary" data-action="save">💾 ${state.mode === 'create' ? PS.t('حفظ المشروع') : PS.t('حفظ التعديلات')}</button>
+			${state.mode === 'create' ? html`<button type="button" class="ps-btn" data-action="reset">${PS.t('تفريغ')}</button>` : html`<button type="button" class="ps-btn" data-action="cancel">${PS.t('إلغاء التعديلات')}</button>`}
 		</div>`;
 	}
 
@@ -253,31 +253,31 @@
 
 	function header() {
 		if (state.mode === 'create') {
-			return html`<div class="ps-page-head"><h1>إدخال مشروع جديد</h1></div>${state.lastSaved ? html`<div class="ps-alert ps-alert--success" role="status">✔ تم حفظ المشروع <strong>${state.lastSaved.projectNo}</strong> — <a href="#/projet?id=${state.lastSaved.id}">عرض المشروع</a></div>` : ''}${state.restored ? html`<div class="ps-alert ps-alert--info">تم استرجاع مسودة غير محفوظة. <button type="button" class="ps-btn ps-btn--small" data-action="reset">بدء مشروع جديد</button></div>` : ''}`;
+			return html`<div class="ps-page-head"><h1>${PS.t('إدخال مشروع جديد')}</h1></div>${state.lastSaved ? html`<div class="ps-alert ps-alert--success" role="status">✔ ${PS.t('تم حفظ المشروع')} <strong>${state.lastSaved.projectNo}</strong> — <a href="#/projet?id=${state.lastSaved.id}">${PS.t('عرض المشروع')}</a></div>` : ''}${state.restored ? html`<div class="ps-alert ps-alert--info">${PS.t('تم استرجاع مسودة غير محفوظة.')} <button type="button" class="ps-btn ps-btn--small" data-action="reset">${PS.t('بدء مشروع جديد')}</button></div>` : ''}`;
 		}
 		const p = state.project;
 		const perm = p.permissions;
 		let banner = '';
-		if (p.deletedAt) banner = html`<div class="ps-alert ps-alert--error">هذا المشروع في سلة المحذوفات.</div>`;
-		else if (!perm.canEdit) banner = html`<div class="ps-alert ps-alert--info">عرض فقط: التعديل للمسؤول عن المشروع والإدارة${PS.config.settings.creatorEditHours ? ' (أو لمن أنشأه خلال ' + PS.config.settings.creatorEditHours + ' ساعة)' : ''}.</div>`;
-		else if (perm.editReason === 'creator') banner = html`<div class="ps-alert ps-alert--warning">يمكنك تعديل هذا المشروع حتى ${PS.format.dateTime(perm.editUntil)}.</div>`;
+		if (p.deletedAt) banner = html`<div class="ps-alert ps-alert--error">${PS.t('هذا المشروع في سلة المحذوفات.')}</div>`;
+		else if (!perm.canEdit) banner = html`<div class="ps-alert ps-alert--info">${PS.t('عرض فقط: التعديل للمسؤول عن المشروع والإدارة')}${PS.config.settings.creatorEditHours ? PS.t(' (أو لمن أنشأه خلال ') + PS.config.settings.creatorEditHours + PS.t(' ساعة)') : ''}.</div>`;
+		else if (perm.editReason === 'creator') banner = html`<div class="ps-alert ps-alert--warning">${PS.t('يمكنك تعديل هذا المشروع حتى')} ${PS.format.dateTime(perm.editUntil)}.</div>`;
 		return html`<div class="ps-page-head">
 			<h1><span class="ps-mono">${p.projectNo}</span> — ${p.name}</h1>
 			<div class="ps-page-head__badges">${L.offerBadge(p.computed.offerStatus)} ${L.badge(p.followupStatusId, L.label(p.followupStatusId))} ${p.computed.priority ? html`<span class="ps-badge ps-prio ps-prio--${p.computed.priority}">${p.computed.priority}</span>` : ''}</div>
 			<div class="ps-page-head__actions">
-				${PS.router.can('ps_assign_tasks') && !p.deletedAt ? html`<button type="button" class="ps-btn" data-action="new-task">📌 مهمة</button>` : ''}
-				${perm.canDelete && !p.deletedAt ? html`<button type="button" class="ps-btn ps-btn--danger" data-action="delete">🗑 حذف</button>` : ''}
-				${perm.canDelete && p.deletedAt ? html`<button type="button" class="ps-btn" data-action="restore">↩ استرجاع</button>` : ''}
-				<a class="ps-btn" href="#/projets">→ المشاريع</a>
+				${PS.router.can('ps_assign_tasks') && !p.deletedAt ? html`<button type="button" class="ps-btn" data-action="new-task">📌 ${PS.t('مهمة')}</button>` : ''}
+				${perm.canDelete && !p.deletedAt ? html`<button type="button" class="ps-btn ps-btn--danger" data-action="delete">🗑 ${PS.t('حذف')}</button>` : ''}
+				${perm.canDelete && p.deletedAt ? html`<button type="button" class="ps-btn" data-action="restore">↩ ${PS.t('استرجاع')}</button>` : ''}
+				<a class="ps-btn" href="#/projets">→ ${PS.t('المشاريع')}</a>
 			</div>
 		</div>
-		<p class="ps-muted ps-small">أُنشئ ${PS.format.dateTime(p.createdAt)} من طرف ${p.createdBy ? p.createdBy.name : '—'} · آخر تعديل ${PS.format.dateTime(p.updatedAt)}${p.updatedBy ? ' من طرف ' + p.updatedBy.name : ''}</p>
+		<p class="ps-muted ps-small">${PS.t('أُنشئ')} ${PS.format.dateTime(p.createdAt)} ${PS.t('من طرف')} ${p.createdBy ? p.createdBy.name : '—'} · ${PS.t('آخر تعديل')} ${PS.format.dateTime(p.updatedAt)}${p.updatedBy ? PS.t(' من طرف ') + p.updatedBy.name : ''}</p>
 		${banner}`;
 	}
 
 	function tabs() {
 		if (state.mode === 'create') return '';
-		const t = [['data', 'البيانات'], ['followups', 'سجل المتابعة'], ['files', 'الملفات'], ['log', 'سجل التعديلات']];
+		const t = [['data', PS.t('البيانات')], ['followups', PS.t('سجل المتابعة')], ['files', PS.t('الملفات')], ['log', PS.t('سجل التعديلات')]];
 		return html`<div class="ps-tabs" role="tablist">${t.map(function (x) {
 			return html`<button type="button" role="tab" class="ps-tab" aria-selected="${state.tab === x[0] ? 'true' : 'false'}" data-tab="${x[0]}">${x[1]}</button>`;
 		})}</div>`;
@@ -286,7 +286,7 @@
 	function render() {
 		let body = '';
 		if (state.mode === 'create' || state.tab === 'data') body = formHtml();
-		else body = html`<div data-tab-body><div class="ps-loading">جاري التحميل…</div></div>`;
+		else body = html`<div data-tab-body><div class="ps-loading">${PS.t('جاري التحميل…')}</div></div>`;
 		state.main.innerHTML = html`${header()}${tabs()}${body}`.html;
 		bindForm();
 		if (state.mode === 'edit' && state.tab !== 'data') PS.projectTabs[state.tab](state.main.querySelector('[data-tab-body]'), state.project);
@@ -356,7 +356,7 @@
 	function onClick(e) {
 		const tab = e.target.closest('[data-tab]');
 		if (tab) {
-			if (state.tab === 'data' && state.dirty && !window.confirm('توجد تعديلات غير محفوظة. متابعة؟')) return;
+			if (state.tab === 'data' && state.dirty && !window.confirm(PS.t('توجد تعديلات غير محفوظة. متابعة؟'))) return;
 			if (state.tab === 'data') state.dirty = false;
 			state.tab = tab.dataset.tab;
 			if (state.tab === 'data') state.draft = projectToDraft(state.project);
@@ -400,12 +400,12 @@
 		const prev = ui.getPath(state.draft, path);
 		const isPlace = key === 'place';
 		ui.modal({
-			title: isPlace ? 'إضافة مكان جديد' : 'إضافة صنف جديد',
+			title: isPlace ? PS.t('إضافة مكان جديد') : PS.t('إضافة صنف جديد'),
 			body: html`<div class="ps-grid">
-				<label class="ps-field ps-field--required"><span class="ps-field__label">${isPlace ? 'اسم المكان' : 'اسم الصنف'} *</span><input data-q="label"></label>
-				${isPlace ? html`<label class="ps-field"><span class="ps-field__label">الرمز (مثال: ZW)</span><input data-q="code" dir="ltr" maxlength="6"></label>` : ''}
-			</div><p class="ps-muted ps-small">تُضاف القيمة للقائمة وتصبح متاحة لكل الفريق.</p>`,
-			buttons: [{ id: 'ok', label: 'إضافة', kind: 'primary' }, { id: 'cancel', label: 'إلغاء' }],
+				<label class="ps-field ps-field--required"><span class="ps-field__label">${isPlace ? PS.t('اسم المكان') : PS.t('اسم الصنف')} *</span><input data-q="label"></label>
+				${isPlace ? html`<label class="ps-field"><span class="ps-field__label">${PS.t('الرمز (مثال: ZW)')}</span><input data-q="code" dir="ltr" maxlength="6"></label>` : ''}
+			</div><p class="ps-muted ps-small">${PS.t('تُضاف القيمة للقائمة وتصبح متاحة لكل الفريق.')}</p>`,
+			buttons: [{ id: 'ok', label: PS.t('إضافة'), kind: 'primary' }, { id: 'cancel', label: PS.t('إلغاء') }],
 			onButton: function (id, box) {
 				if (id !== 'ok') return true;
 				const label = box.querySelector('[data-q="label"]').value.trim();
@@ -414,7 +414,7 @@
 				PS.api.post('lists/' + key + '/quick-add', { label: label, code: codeEl ? codeEl.value : '' }).then(function (r) {
 					L.add(r.value);
 					ui.setPath(state.draft, path, r.value.id);
-					ui.toast(r.existed ? 'القيمة موجودة مسبقًا وتم اختيارها' : 'تمت الإضافة', 'success');
+					ui.toast(r.existed ? PS.t('القيمة موجودة مسبقًا وتم اختيارها') : PS.t('تمت الإضافة'), 'success');
 					rerenderKeepScroll();
 				}).catch(function (err) { ui.toast(err.message, 'error'); rerenderKeepScroll(); });
 				return true;
@@ -431,12 +431,12 @@
 					return rows.map(function (c) { return { id: c.id, label: c.name, sub: [c.person, c.phone].filter(Boolean).join(' · '), data: c }; });
 				});
 			},
-			newLabel: function (q) { return '+ إضافة شركة جديدة: «' + q + '»'; },
+			newLabel: function (q) { return PS.t('+ إضافة شركة جديدة: «') + q + '»'; },
 			onNew: function (q) {
 				const p = state.draft.parties[role];
 				p.companyId = null;
 				p.companyName = q;
-				ui.toast('ستُضاف الشركة إلى الدليل عند حفظ المشروع', 'info');
+				ui.toast(PS.t('ستُضاف الشركة إلى الدليل عند حفظ المشروع'), 'info');
 				saveDraftLocal();
 			},
 			onSelect: function (it) {
@@ -462,7 +462,7 @@
 					return rows.map(function (c) { return { id: c.id, label: c.name }; });
 				});
 			},
-			newLabel: function (q) { return '+ منافس جديد: «' + q + '»'; },
+			newLabel: function (q) { return PS.t('+ منافس جديد: «') + q + '»'; },
 			onNew: function (q) { state.draft.competitors[i].competitorId = null; state.draft.competitors[i].competitorName = q; saveDraftLocal(); },
 			onSelect: function (it) { state.draft.competitors[i].competitorId = it.id; state.draft.competitors[i].competitorName = it.label; saveDraftLocal(); },
 		});
@@ -485,20 +485,20 @@
 			importance_size_id: 'importanceSizeId', followup_status_id: 'followupStatusId', source_id: 'sourceId', offer_amount: 'offerAmount',
 			files_link: 'filesLink', note: 'note',
 		};
-		Object.keys(map).forEach(function (k) { if (req.indexOf(k) !== -1 && empty(d[map[k]])) errs[k] = 'خانة إجبارية'; });
+		Object.keys(map).forEach(function (k) { if (req.indexOf(k) !== -1 && empty(d[map[k]])) errs[k] = PS.t('خانة إجبارية'); });
 		Object.keys(PS.config.partyRoles).forEach(function (role) {
 			const p = d.parties[role] || {};
 			[['company', 'companyName'], ['person', 'person'], ['phone', 'phone'], ['email', 'email']].forEach(function (f) {
-				if (req.indexOf(role + '.' + f[0]) !== -1 && empty(p[f[1]]) && !(f[0] === 'company' && p.companyId)) errs['parties.' + role + '.' + f[0]] = 'خانة إجبارية';
+				if (req.indexOf(role + '.' + f[0]) !== -1 && empty(p[f[1]]) && !(f[0] === 'company' && p.companyId)) errs['parties.' + role + '.' + f[0]] = PS.t('خانة إجبارية');
 			});
 		});
-		if (req.indexOf('items.min_one') !== -1 && !d.items.length) errs.items = 'لازم صنف واحد على الأقل';
+		if (req.indexOf('items.min_one') !== -1 && !d.items.length) errs.items = PS.t('لازم صنف واحد على الأقل');
 		d.items.forEach(function (it, i) {
 			[['item_type_id', 'itemTypeId'], ['employee_id', 'employeeId'], ['due_date', 'dueDate'], ['quantity', 'quantity']].forEach(function (f) {
-				if (req.indexOf('item.' + f[0]) !== -1 && empty(it[f[1]])) errs['items.' + i + '.' + f[0]] = 'خانة إجبارية';
+				if (req.indexOf('item.' + f[0]) !== -1 && empty(it[f[1]])) errs['items.' + i + '.' + f[0]] = PS.t('خانة إجبارية');
 			});
 		});
-		if (rules().sent_after_received && d.sentDate && d.receivedDate && d.sentDate < d.receivedDate) errs.sent_date = 'تاريخ الإرسال لازم يكون بعد تاريخ الاستلام أو نفس اليوم';
+		if (rules().sent_after_received && d.sentDate && d.receivedDate && d.sentDate < d.receivedDate) errs.sent_date = PS.t('تاريخ الإرسال لازم يكون بعد تاريخ الاستلام أو نفس اليوم');
 		return errs;
 	}
 
@@ -508,7 +508,7 @@
 		const errs = clientErrors();
 		if (Object.keys(errs).length) {
 			ui.showErrors(form, errs);
-			ui.toast('يرجى تعبئة الخانات الإجبارية', 'error');
+			ui.toast(PS.t('يرجى تعبئة الخانات الإجبارية'), 'error');
 			return;
 		}
 		ui.showErrors(form, {});
@@ -527,12 +527,12 @@
 				state.draft = emptyDraft();
 				render();
 				window.scrollTo(0, 0);
-				ui.toast('تم حفظ المشروع ' + p.projectNo, 'success');
+				ui.toast(PS.t('تم حفظ المشروع ') + p.projectNo, 'success');
 			} else {
 				state.project = p;
 				state.draft = projectToDraft(p);
 				render();
-				ui.toast('تم حفظ التعديلات', 'success');
+				ui.toast(PS.t('تم حفظ التعديلات'), 'success');
 			}
 		}).catch(function (err) {
 			state.saving = false;
@@ -550,20 +550,20 @@
 
 	function askDuplicates(list) {
 		ui.modal({
-			title: '⚠️ مشروع مشابه موجود',
-			body: html`<p>يوجد مشروع لنفس الشركة باسم قريب خلال آخر ${60} يومًا. تأكد أنه ليس نفس الطلب:</p>
+			title: PS.t('⚠️ مشروع مشابه موجود'),
+			body: html`<p>${PS.t('يوجد مشروع لنفس الشركة باسم قريب خلال آخر')} ${60} ${PS.t('يومًا. تأكد أنه ليس نفس الطلب:')}</p>
 				<ul class="ps-dup-list">${list.map(function (d) {
-					return html`<li><a href="#/projet?id=${d.id}" target="_blank" rel="noopener"><strong>${d.projectNo}</strong> — ${d.name}</a><br><span class="ps-muted">${d.companyName} · ${PS.format.date(d.receivedDate)} · تشابه ${Math.round(d.similarity * 100)}%</span></li>`;
+					return html`<li><a href="#/projet?id=${d.id}" target="_blank" rel="noopener"><strong>${d.projectNo}</strong> — ${d.name}</a><br><span class="ps-muted">${d.companyName} · ${PS.format.date(d.receivedDate)} · ${PS.t('تشابه')} ${Math.round(d.similarity * 100)}%</span></li>`;
 				})}</ul>`,
-			buttons: [{ id: 'save', label: 'حفظ رغم ذلك', kind: 'accent' }, { id: 'back', label: 'رجوع للتعديل' }],
+			buttons: [{ id: 'save', label: PS.t('حفظ رغم ذلك'), kind: 'accent' }, { id: 'back', label: PS.t('رجوع للتعديل') }],
 		}).then(function (r) { if (r === 'save') save(true); });
 	}
 
 	function removeProject() {
-		ui.confirm('نقل المشروع ' + state.project.projectNo + ' إلى سلة المحذوفات؟ يمكن استرجاعه لاحقًا.', 'حذف', 'danger').then(function (ok) {
+		ui.confirm(PS.t('نقل المشروع ') + state.project.projectNo + PS.t(' إلى سلة المحذوفات؟ يمكن استرجاعه لاحقًا.'), PS.t('حذف'), 'danger').then(function (ok) {
 			if (!ok) return;
 			PS.api.del('projects/' + state.project.id).then(function () {
-				ui.toast('تم نقل المشروع إلى سلة المحذوفات', 'success');
+				ui.toast(PS.t('تم نقل المشروع إلى سلة المحذوفات'), 'success');
 				PS.router.go('projets');
 			}).catch(function (e) { ui.toast(e.message, 'error'); });
 		});
@@ -571,7 +571,7 @@
 
 	function restoreProject() {
 		PS.api.post('projects/' + state.project.id + '/restore').then(function () {
-			ui.toast('تم استرجاع المشروع', 'success');
+			ui.toast(PS.t('تم استرجاع المشروع'), 'success');
 			PS.router.route();
 		}).catch(function (e) { ui.toast(e.message, 'error'); });
 	}
@@ -582,7 +582,7 @@
 
 	PS.router.register({
 		id: 'projet',
-		title: 'إدخال مشروع',
+		title: PS.t('إدخال مشروع'),
 		icon: '➕',
 		cap: 'ps_create_project',
 		order: 20,
@@ -603,7 +603,7 @@
 			});
 		},
 		leave: function () {
-			return !(state && state.mode === 'edit' && state.dirty) || window.confirm('توجد تعديلات غير محفوظة. مغادرة الصفحة؟');
+			return !(state && state.mode === 'edit' && state.dirty) || window.confirm(PS.t('توجد تعديلات غير محفوظة. مغادرة الصفحة؟'));
 		},
 	});
 })();

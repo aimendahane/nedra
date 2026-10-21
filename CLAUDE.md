@@ -22,14 +22,14 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 1.0.1 | Demande client : tâches libres « مهمة جديدة » + e-mail (SMTP, vraie erreur) + explication Cron | ✅ terminée, tests verts | 1.0.1 · base v2 |
 | 1.0.2 | Demande client : notifications 🔔 (cloche + e-mail immédiat facultatif) | ✅ terminée, tests verts | 1.0.2 · base v3 |
 | 1.1.0 | Demande client : nouveau design « world-class » (CSS/icônes/animations, aucune donnée touchée) | ✅ terminée, tests verts | 1.1.0 · base v3 |
-| 1.2.0 | Demande client : notifications Telegram + messages vocaux (الإدارة/مسؤول → موظف) | ✅ terminée, tests verts | **1.2.0** · base v4 |
-| 1.3.0 | Demande client : interface AR / EN / FR | ⏳ en cours | — |
+| 1.2.0 | Demande client : notifications Telegram + messages vocaux (الإدارة/مسؤول → موظف) | ✅ terminée, tests verts | 1.2.0 · base v4 |
+| 1.3.0 | Demande client : interface AR / EN / FR | ✅ terminée, tests verts | **1.3.0** · base v4 |
 
-### Tests (dernier passage complet, version 1.0.2) — détail : `docs/TEST-RESULTS.txt`
-- `sh protecta-suivi/tests/run-all.sh` → **580 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
-  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2) passés.
-- `sh protecta-suivi/tests/release-check.sh dist/protecta-suivi-1.0.0.zip dist/protecta-suivi-0.1.0.zip` →
-  installation vierge (connexion, saisie, Recap) OK ; mise à jour 0.1.0 → 1.0.0 avec données : **aucune perte**.
+### Tests (dernier passage complet, version 1.3.0) — détail : `docs/TEST-RESULTS.txt`
+- `sh protecta-suivi/tests/run-all.sh` → **650 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
+  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues) passés.
+- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.3.0.zip $PWD/dist/protecta-suivi-1.2.0.zip` (chemins absolus) →
+  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.2.0 → 1.3.0 avec données : **aucune perte**.
 
 ### Prochaines actions
 1. Dès que l'accès GitHub est rétabli : `git push -u origin claude/sweet-hopper-le9393` puis
@@ -251,6 +251,14 @@ chaque décision prise seul.
   (émojis gardés en secours). Animations coupées par `prefers-reduced-motion`.
 - Menu latéral bleu nuit dans les deux modes ; page active = fond clair + barre orange.
 - Recap : couleur de la comparaison N-1 selon le sens (`inverse` pour المرفوضة، لم تُرسل، retards).
+
+### Version 1.3.0 — langues (décisions)
+- Le texte ARABE du code est la clé : `ps__()` / `ps_e()` (PHP), `PS.t()` (JS) ; dictionnaires `inc/i18n/{en,fr}.json`.
+  Tout nouveau texte DOIT être ajouté aux deux fichiers (tests/test-i18n.php échoue sinon).
+- Langue = préférence du compte (méta `ps_lang`) → cookie de la page de connexion (copié sur le compte à la connexion
+  s'il n'a pas de préférence) → réglage `default_lang` (ar). E-mails/Telegram : langue du destinataire (`ps_with_lang`).
+- Données saisies jamais traduites ; valeurs de listes traduites seulement si le libellé est encore celui par défaut.
+- « Item » / « Article » pour صنف ; « Decision needed » / « Décision requise » pour لازم قرار.
 
 ### Version 1.2.0 — décisions (Telegram, vocal)
 - Telegram SANS webhook : getUpdates (bouton « تحقق » automatique toutes les 3 s pendant 2 min + Cron) → marche

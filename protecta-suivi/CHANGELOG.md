@@ -3,6 +3,21 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.3.0 — 2026-10-21 · base v4 — Interface en العربية / English / Français
+
+- **Trois langues** : العربية (par défaut, de droite à gauche), English et Français (de gauche à droite).
+  Choix sur la page de connexion (liens « العربية · English · Français ») ou dans l'en-tête (bouton « AR / EN / FR »).
+  La langue est enregistrée sur le compte : chacun garde la sienne sur tous ses appareils.
+- Tout est traduit : menus, pages, formulaires, messages d'erreur, Recap (graphiques remis dans le bon sens),
+  exports CSV/Excel, valeurs par défaut des listes (un libellé renommé par la الإدارة reste tel qu'il a été saisi).
+- **E-mails et Telegram dans la langue du destinataire** (notifications, tâches, résumé du matin) : une même
+  modification peut partir en arabe à l'un et en français à l'autre.
+- الإعدادات ← عام : « لغة الواجهة الافتراضية » (comptes sans choix, page de connexion).
+- Aucune donnée saisie n'est traduite ni modifiée ; aucune migration (base v4 inchangée).
+- Ajouter un texte : l'écrire en arabe dans `ps__()` / `PS.t()` et sa traduction dans `inc/i18n/en.json` et `fr.json`.
+- Tests : 650 tests PHP (dont dictionnaires complets : 897 textes × 2 langues) ; navigateur step9 (connexion en anglais,
+  passage au français, retour à l'arabe, mobile).
+
 ## 1.2.0 — 2026-10-21 · base v4 — Telegram et messages vocaux
 
 - **Notifications Telegram** (sans extension, sans adresse publique) : la الإدارة colle le token d'un bot

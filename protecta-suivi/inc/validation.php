@@ -48,42 +48,42 @@ function ps_project_list_fields(): array {
  */
 function ps_validation_fields(): array {
 	return array(
-		'offer_no'             => 'رقم العرض',
-		'name'                 => 'اسم المشروع',
-		'received_date'        => 'تاريخ استلام الطلب',
-		'sent_date'            => 'تاريخ إرسال العرض',
-		'responsible_emp_id'   => 'المسؤول عن المشروع',
-		'follower_emp_id'      => 'الموظف المتابع',
-		'intermediary_emp_id'  => 'الموظف الوسيط',
-		'place_id'             => 'المكان',
-		'category_id'          => 'التصنيف',
-		'urgency_id'           => 'درجة الاستعجال',
-		'importance_kind_id'   => 'الأهمية كصنف',
-		'importance_size_id'   => 'الأهمية كحجم',
-		'followup_status_id'   => 'حالة المتابعة',
-		'source_id'            => 'مصدر الطلب',
-		'loss_reason_id'       => 'سبب الرفض أو الخسارة',
-		'offer_amount'         => 'مبلغ العرض',
-		'offer_currency_id'    => 'عملة العرض',
-		'purchase_amount'      => 'مبلغ الشراء',
-		'purchase_currency_id' => 'عملة الشراء',
-		'files_link'           => 'رابط ملف المشاريع',
-		'note'                 => 'NOTE / نص الطلب',
-		'owner.company'        => 'المالك: اسم الشركة',
-		'owner.person'         => 'المالك: الشخص المسؤول',
-		'owner.phone'          => 'المالك: الهاتف',
-		'owner.email'          => 'المالك: الإيميل',
-		'executor.company'     => 'الشركة المنفذة: اسم الشركة',
-		'executor.person'      => 'الشركة المنفذة: الشخص المسؤول',
-		'executor.phone'       => 'الشركة المنفذة: الهاتف',
-		'direct.person'        => 'الشخص المباشر: الاسم',
-		'direct.phone'         => 'الشخص المباشر: الهاتف',
-		'broker.company'       => 'الوسيط: اسم الشركة',
-		'items.min_one'        => 'صنف واحد على الأقل',
-		'item.item_type_id'    => 'الصنف',
-		'item.quantity'        => 'الكمية',
-		'item.employee_id'     => 'الموظف المسؤول عن الصنف',
-		'item.due_date'        => 'الأجل المطلوب',
+		'offer_no'             => ps__( 'رقم العرض' ),
+		'name'                 => ps__( 'اسم المشروع' ),
+		'received_date'        => ps__( 'تاريخ استلام الطلب' ),
+		'sent_date'            => ps__( 'تاريخ إرسال العرض' ),
+		'responsible_emp_id'   => ps__( 'المسؤول عن المشروع' ),
+		'follower_emp_id'      => ps__( 'الموظف المتابع' ),
+		'intermediary_emp_id'  => ps__( 'الموظف الوسيط' ),
+		'place_id'             => ps__( 'المكان' ),
+		'category_id'          => ps__( 'التصنيف' ),
+		'urgency_id'           => ps__( 'درجة الاستعجال' ),
+		'importance_kind_id'   => ps__( 'الأهمية كصنف' ),
+		'importance_size_id'   => ps__( 'الأهمية كحجم' ),
+		'followup_status_id'   => ps__( 'حالة المتابعة' ),
+		'source_id'            => ps__( 'مصدر الطلب' ),
+		'loss_reason_id'       => ps__( 'سبب الرفض أو الخسارة' ),
+		'offer_amount'         => ps__( 'مبلغ العرض' ),
+		'offer_currency_id'    => ps__( 'عملة العرض' ),
+		'purchase_amount'      => ps__( 'مبلغ الشراء' ),
+		'purchase_currency_id' => ps__( 'عملة الشراء' ),
+		'files_link'           => ps__( 'رابط ملف المشاريع' ),
+		'note'                 => ps__( 'NOTE / نص الطلب' ),
+		'owner.company'        => ps__( 'المالك: اسم الشركة' ),
+		'owner.person'         => ps__( 'المالك: الشخص المسؤول' ),
+		'owner.phone'          => ps__( 'المالك: الهاتف' ),
+		'owner.email'          => ps__( 'المالك: الإيميل' ),
+		'executor.company'     => ps__( 'الشركة المنفذة: اسم الشركة' ),
+		'executor.person'      => ps__( 'الشركة المنفذة: الشخص المسؤول' ),
+		'executor.phone'       => ps__( 'الشركة المنفذة: الهاتف' ),
+		'direct.person'        => ps__( 'الشخص المباشر: الاسم' ),
+		'direct.phone'         => ps__( 'الشخص المباشر: الهاتف' ),
+		'broker.company'       => ps__( 'الوسيط: اسم الشركة' ),
+		'items.min_one'        => ps__( 'صنف واحد على الأقل' ),
+		'item.item_type_id'    => ps__( 'الصنف' ),
+		'item.quantity'        => ps__( 'الكمية' ),
+		'item.employee_id'     => ps__( 'الموظف المسؤول عن الصنف' ),
+		'item.due_date'        => ps__( 'الأجل المطلوب' ),
 	);
 }
 
@@ -92,10 +92,10 @@ function ps_validation_fields(): array {
  */
 function ps_party_roles(): array {
 	return array(
-		'owner'    => 'المالك',
-		'executor' => 'الشركة المنفذة',
-		'direct'   => 'الشخص المباشر',
-		'broker'   => 'الوسيط',
+		'owner'    => ps__( 'المالك' ),
+		'executor' => ps__( 'الشركة المنفذة' ),
+		'direct'   => ps__( 'الشخص المباشر' ),
+		'broker'   => ps__( 'الوسيط' ),
 	);
 }
 
@@ -133,7 +133,7 @@ function ps_validate_project( array $in, ?array $existing = null ): array {
 	$errors   = array();
 	$need     = fn( $key ) => isset( $required[ $key ] );
 	$empty    = fn( $v ) => null === $v || '' === $v || ( is_string( $v ) && '' === trim( $v ) );
-	$msg_req  = fn( $key ) => 'خانة إجبارية: ' . ( $labels[ $key ] ?? $key );
+	$msg_req  = fn( $key ) => ps__( 'خانة إجبارية: ' ) . ( $labels[ $key ] ?? $key );
 
 	// 1. Champs obligatoires du projet.
 	foreach ( array_keys( $labels ) as $key ) {
@@ -151,21 +151,21 @@ function ps_validate_project( array $in, ?array $existing = null ): array {
 		}
 		$row = $wpdb->get_row( $wpdb->prepare( "SELECT list_key, is_hidden FROM $lists_t WHERE id = %d", (int) $id ), ARRAY_A );
 		if ( ! $row || $row['list_key'] !== $list_key ) {
-			$errors[ $key ] = 'قيمة غير موجودة في القائمة: ' . $labels[ $key ];
+			$errors[ $key ] = ps__( 'قيمة غير موجودة في القائمة: ' ) . $labels[ $key ];
 		} elseif ( $row['is_hidden'] && (int) ( $old[ $key ] ?? 0 ) !== (int) $id ) {
-			$errors[ $key ] = 'هذه القيمة لم تعد متاحة: ' . $labels[ $key ];
+			$errors[ $key ] = ps__( 'هذه القيمة لم تعد متاحة: ' ) . $labels[ $key ];
 		}
 	}
 
 	// 3. Dates.
 	foreach ( array( 'received_date', 'sent_date' ) as $key ) {
 		if ( ! $empty( $f[ $key ] ?? null ) && ! ps_is_valid_date( $f[ $key ] ) ) {
-			$errors[ $key ] = 'تاريخ غير صحيح: ' . $labels[ $key ];
+			$errors[ $key ] = ps__( 'تاريخ غير صحيح: ' ) . $labels[ $key ];
 		}
 	}
 	if ( ! empty( $rules['sent_after_received'] ) && ! isset( $errors['sent_date'] ) && ! isset( $errors['received_date'] )
 		&& ! $empty( $f['sent_date'] ?? null ) && ! $empty( $f['received_date'] ?? null ) && $f['sent_date'] < $f['received_date'] ) {
-		$errors['sent_date'] = 'تاريخ الإرسال لازم يكون بعد تاريخ الاستلام أو نفس اليوم';
+		$errors['sent_date'] = ps__( 'تاريخ الإرسال لازم يكون بعد تاريخ الاستلام أو نفس اليوم' );
 	}
 
 	// تاريخ إرسال العرض obligatoire dès qu'un صنف est envoyé (مرسل / مقبول / مرفوض).
@@ -177,7 +177,7 @@ function ps_validate_project( array $in, ?array $existing = null ): array {
 		}
 	}
 	if ( $has_sent && $empty( $f['sent_date'] ?? null ) && ! isset( $errors['sent_date'] ) ) {
-		$errors['sent_date'] = 'تاريخ إرسال العرض إجباري لأن عرضًا واحدًا على الأقل تم إرساله';
+		$errors['sent_date'] = ps__( 'تاريخ إرسال العرض إجباري لأن عرضًا واحدًا على الأقل تم إرساله' );
 	}
 
 	// 4. رقم العرض unique.
@@ -190,7 +190,7 @@ function ps_validate_project( array $in, ?array $existing = null ): array {
 			)
 		);
 		if ( $dup ) {
-			$errors['offer_no'] = 'رقم العرض مستعمل في المشروع ' . $dup;
+			$errors['offer_no'] = ps__( 'رقم العرض مستعمل في المشروع ' ) . $dup;
 		}
 	}
 
@@ -201,15 +201,15 @@ function ps_validate_project( array $in, ?array $existing = null ): array {
 			continue;
 		}
 		if ( ! is_numeric( $v ) || (float) $v < 0 ) {
-			$errors[ $key ] = 'مبلغ غير صحيح: ' . $labels[ $key ];
+			$errors[ $key ] = ps__( 'مبلغ غير صحيح: ' ) . $labels[ $key ];
 		} elseif ( $empty( $f[ $cur ] ?? null ) ) {
-			$errors[ $cur ] = 'اختر العملة';
+			$errors[ $cur ] = ps__( 'اختر العملة' );
 		}
 	}
 
 	// 6. Lien.
 	if ( ! $empty( $f['files_link'] ?? null ) && ! wp_http_validate_url( $f['files_link'] ) && ! preg_match( '#^https?://#i', $f['files_link'] ) ) {
-		$errors['files_link'] = 'رابط غير صحيح (يبدأ بـ https://)';
+		$errors['files_link'] = ps__( 'رابط غير صحيح (يبدأ بـ https://)' );
 	}
 
 	// 7. Intervenants.
@@ -222,17 +222,17 @@ function ps_validate_project( array $in, ?array $existing = null ): array {
 			}
 		}
 		if ( ! empty( $rules['email_format'] ) && ! $empty( $p['email'] ?? null ) && ! is_email( $p['email'] ) ) {
-			$errors[ "parties.$role.email" ] = 'الإيميل غير صحيح (' . $role_label . ')';
+			$errors[ "parties.$role.email" ] = ps__( 'الإيميل غير صحيح (' ) . $role_label . ')';
 		}
 		if ( ! empty( $rules['phone_format'] ) && ! $empty( $p['phone'] ?? null ) && ! ps_is_valid_phone( $p['phone'] ) ) {
-			$errors[ "parties.$role.phone" ] = 'الهاتف أرقام فقط (' . $role_label . ')';
+			$errors[ "parties.$role.phone" ] = ps__( 'الهاتف أرقام فقط (' ) . $role_label . ')';
 		}
 	}
 
 	// 8. أصناف.
 	$items = (array) ( $in['items'] ?? array() );
 	if ( $need( 'items.min_one' ) && ! $items ) {
-		$errors['items'] = 'لازم صنف واحد على الأقل';
+		$errors['items'] = ps__( 'لازم صنف واحد على الأقل' );
 	}
 	$old_items = array();
 	foreach ( (array) ( $existing['items'] ?? array() ) as $it ) {
@@ -245,13 +245,13 @@ function ps_validate_project( array $in, ?array $existing = null ): array {
 			}
 		}
 		if ( ! $empty( $it['due_date'] ?? null ) && ! ps_is_valid_date( $it['due_date'] ) ) {
-			$errors[ "items.$i.due_date" ] = 'تاريخ غير صحيح';
+			$errors[ "items.$i.due_date" ] = ps__( 'تاريخ غير صحيح' );
 		}
 		if ( ! $empty( $it['quantity'] ?? null ) && ( ! is_numeric( $it['quantity'] ) || (float) $it['quantity'] < 0 ) ) {
-			$errors[ "items.$i.quantity" ] = 'كمية غير صحيحة';
+			$errors[ "items.$i.quantity" ] = ps__( 'كمية غير صحيحة' );
 		}
 		if ( ! empty( $it['id'] ) && ! isset( $old_items[ (int) $it['id'] ] ) ) {
-			$errors[ "items.$i" ] = 'صنف غير موجود في هذا المشروع';
+			$errors[ "items.$i" ] = ps__( 'صنف غير موجود في هذا المشروع' );
 		}
 		$prev = $old_items[ (int) ( $it['id'] ?? 0 ) ] ?? array();
 		foreach ( array( 'item_type_id' => 'item_type', 'employee_id' => 'employee' ) as $col => $list_key ) {
@@ -260,9 +260,9 @@ function ps_validate_project( array $in, ?array $existing = null ): array {
 			}
 			$row = $wpdb->get_row( $wpdb->prepare( "SELECT list_key, is_hidden FROM $lists_t WHERE id = %d", (int) $it[ $col ] ), ARRAY_A );
 			if ( ! $row || $row['list_key'] !== $list_key ) {
-				$errors[ "items.$i.$col" ] = 'قيمة غير موجودة في القائمة';
+				$errors[ "items.$i.$col" ] = ps__( 'قيمة غير موجودة في القائمة' );
 			} elseif ( $row['is_hidden'] && (int) ( $prev[ $col ] ?? 0 ) !== (int) $it[ $col ] ) {
-				$errors[ "items.$i.$col" ] = 'هذه القيمة لم تعد متاحة';
+				$errors[ "items.$i.$col" ] = ps__( 'هذه القيمة لم تعد متاحة' );
 			}
 		}
 	}
@@ -270,18 +270,18 @@ function ps_validate_project( array $in, ?array $existing = null ): array {
 	$kept = array_map( fn( $it ) => (int) ( $it['id'] ?? 0 ), $items );
 	foreach ( $old_items as $id => $it ) {
 		if ( ! in_array( $id, $kept, true ) && 'preparing' !== ( $it['offer_status_code'] ?? 'preparing' ) ) {
-			$errors['items'] = 'لا يمكن حذف صنف تمت معالجته؛ غيّر حالته إلى «ملغى» من صفحة العروض';
+			$errors['items'] = ps__( 'لا يمكن حذف صنف تمت معالجته؛ غيّر حالته إلى «ملغى» من صفحة العروض' );
 		}
 	}
 
 	// 9. منافسون : un nom ou un concurrent de l'annuaire par ligne.
 	foreach ( (array) ( $in['competitors'] ?? array() ) as $i => $c ) {
 		if ( empty( $c['competitor_id'] ) && $empty( $c['competitor_name'] ?? null ) ) {
-			$errors[ "competitors.$i.competitor_name" ] = 'اكتب اسم المنافس أو احذف السطر';
+			$errors[ "competitors.$i.competitor_name" ] = ps__( 'اكتب اسم المنافس أو احذف السطر' );
 		}
 		foreach ( (array) ( $c['item_type_ids'] ?? array() ) as $tid ) {
 			if ( ps_list_key_of( (int) $tid ) !== 'item_type' ) {
-				$errors[ "competitors.$i.item_type_ids" ] = 'صنف غير موجود';
+				$errors[ "competitors.$i.item_type_ids" ] = ps__( 'صنف غير موجود' );
 			}
 		}
 	}

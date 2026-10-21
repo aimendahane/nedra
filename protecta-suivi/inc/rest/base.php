@@ -18,14 +18,14 @@ defined( 'ABSPATH' ) || exit;
 function ps_rest_permission( string $cap = 'ps_access' ): callable {
 	return static function ( WP_REST_Request $request ) use ( $cap ) {
 		if ( ! empty( $GLOBALS['ps_session_expired'] ) ) {
-			return new WP_Error( 'ps_session_expired', 'انتهت الجلسة بسبب عدم النشاط. الرجاء تسجيل الدخول من جديد.', array( 'status' => 401 ) );
+			return new WP_Error( 'ps_session_expired', ps__( 'انتهت الجلسة بسبب عدم النشاط. الرجاء تسجيل الدخول من جديد.' ), array( 'status' => 401 ) );
 		}
 		$uid = get_current_user_id();
 		if ( ! $uid ) {
-			return new WP_Error( 'ps_not_logged_in', 'الرجاء تسجيل الدخول.', array( 'status' => 401 ) );
+			return new WP_Error( 'ps_not_logged_in', ps__( 'الرجاء تسجيل الدخول.' ), array( 'status' => 401 ) );
 		}
 		if ( ! current_user_can( $cap ) ) {
-			return new WP_Error( 'ps_forbidden', 'ليس لديك صلاحية لهذه العملية.', array( 'status' => 403 ) );
+			return new WP_Error( 'ps_forbidden', ps__( 'ليس لديك صلاحية لهذه العملية.' ), array( 'status' => 403 ) );
 		}
 		// Les rafraîchissements automatiques (X-PS-Passive) ne prolongent pas la session.
 		if ( ! $request->get_header( 'x_ps_passive' ) ) {

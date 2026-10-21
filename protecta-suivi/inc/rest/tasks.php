@@ -62,13 +62,13 @@ function ps_rest_free_task_update( WP_REST_Request $r ) {
 	$uid  = get_current_user_id();
 	$task = ps_task_row( (int) $r['id'] );
 	if ( ! $task || ! ps_task_can_view( $task, $uid ) ) {
-		return new WP_Error( 'ps_not_found', 'المهمة غير موجودة', array( 'status' => 404 ) );
+		return new WP_Error( 'ps_not_found', ps__( 'المهمة غير موجودة' ), array( 'status' => 404 ) );
 	}
 	$b      = (array) $r->get_json_params();
 	$action = (string) ( $b['action'] ?? '' );
 	$ok     = in_array( $action, array( 'done', 'reopen' ), true ) ? ps_task_can_complete( $task, $uid ) : ps_task_can_edit( $task, $uid );
 	if ( ! $ok ) {
-		return new WP_Error( 'ps_forbidden', 'يمكن تعديل المهمة أو إلغاؤها من طرف من أرسلها أو الإدارة فقط.', array( 'status' => 403 ) );
+		return new WP_Error( 'ps_forbidden', ps__( 'يمكن تعديل المهمة أو إلغاؤها من طرف من أرسلها أو الإدارة فقط.' ), array( 'status' => 403 ) );
 	}
 	$res = ps_task_update( $task, $action, $b, $uid );
 	return is_wp_error( $res ) ? $res : rest_ensure_response( ps_rest_free_task_one( (int) $task['id'] ) );
@@ -86,11 +86,11 @@ function ps_rest_free_task_one( int $id ): ?array {
 function ps_rest_free_task_voice( WP_REST_Request $r ) {
 	$task = ps_task_row( (int) $r['id'] );
 	if ( ! $task || ! ps_task_can_view( $task, get_current_user_id() ) || empty( $task['voice_path'] ) ) {
-		return new WP_Error( 'ps_not_found', 'الرسالة الصوتية غير موجودة', array( 'status' => 404 ) );
+		return new WP_Error( 'ps_not_found', ps__( 'الرسالة الصوتية غير موجودة' ), array( 'status' => 404 ) );
 	}
 	$real = realpath( ps_storage_dir( 'files/' . $task['voice_path'] ) );
 	if ( ! $real || ! str_starts_with( $real, realpath( ps_storage_dir( 'files' ) ) ) || ! is_readable( $real ) ) {
-		return new WP_Error( 'ps_not_found', 'الرسالة الصوتية غير موجودة على الخادم', array( 'status' => 404 ) );
+		return new WP_Error( 'ps_not_found', ps__( 'الرسالة الصوتية غير موجودة على الخادم' ), array( 'status' => 404 ) );
 	}
 	$size  = filesize( $real );
 	$start = 0;

@@ -92,12 +92,12 @@ add_action(
  */
 function ps_mail_send( string $to, string $subject, string $html ) {
 	if ( ! is_email( $to ) ) {
-		return new WP_Error( 'ps_mail_to', 'عنوان البريد غير صالح: ' . $to );
+		return new WP_Error( 'ps_mail_to', ps__( 'عنوان البريد غير صالح: ' ) . $to );
 	}
 	ps_mail_last_error( '' );
 	$ok = wp_mail( $to, $subject, $html, array( 'Content-Type: text/html; charset=UTF-8' ) );
 	if ( $ok ) {
 		return true;
 	}
-	return new WP_Error( 'ps_mail', ps_mail_last_error() ?: 'رفضت الاستضافة الإرسال (دالة mail غير متاحة).' );
+	return new WP_Error( 'ps_mail', ps_mail_last_error() ?: ps__( 'رفضت الاستضافة الإرسال (دالة mail غير متاحة).' ) );
 }

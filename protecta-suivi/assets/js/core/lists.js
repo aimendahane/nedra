@@ -22,7 +22,13 @@ PS.lists = (function () {
 		data = d;
 		byId = {};
 		Object.keys(d.lists).forEach(function (k) {
-			d.lists[k].forEach(function (v) { byId[v.id] = v; });
+			d.lists[k].forEach(function (v) {
+				// Valeur affichée dans la langue de l'interface si c'est une valeur par défaut connue du dictionnaire ;
+				// une valeur renommée par la الإدارة reste telle quelle. labelRaw = valeur enregistrée.
+				v.labelRaw = v.label;
+				v.label = PS.t(v.label);
+				byId[v.id] = v;
+			});
 		});
 		return d;
 	}
@@ -57,7 +63,7 @@ PS.lists = (function () {
 		values(key).forEach(function (v) {
 			const isCur = String(v.id) === String(current);
 			if (v.hidden && !isCur) return;
-			html += '<option value="' + v.id + '"' + (isCur ? ' selected' : '') + '>' + esc(optionText(v)) + (v.hidden ? ' (مخفي)' : '') + '</option>';
+			html += '<option value="' + v.id + '"' + (isCur ? ' selected' : '') + '>' + esc(optionText(v)) + (v.hidden ? PS.t(' (مخفي)') : '') + '</option>';
 		});
 		return html;
 	}
@@ -77,6 +83,7 @@ PS.lists = (function () {
 	/** Ajoute une valeur reçue du serveur (ajout rapide) sans tout recharger. */
 	function add(value) {
 		if (!data) return;
+		value.labelRaw = value.label;
 		const list = data.lists[value.listKey] || (data.lists[value.listKey] = []);
 		if (!byId[value.id]) list.push(value);
 		byId[value.id] = value;

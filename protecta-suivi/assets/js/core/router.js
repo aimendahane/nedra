@@ -115,13 +115,13 @@ PS.router = (function () {
 		currentNav = page.id === 'projet' && r.params.id ? 'projets' : page.id;
 		renderNav(currentNav);
 		closeMobileNav();
-		document.title = page.title + ' — متابعة المشاريع';
+		document.title = page.title + PS.t(' — متابعة المشاريع');
 		const main = document.getElementById('ps-main');
 		// Conteneur NEUF à chaque page : les écouteurs d'événements posés par la page
 		// précédente disparaissent avec son conteneur (pas d'accumulation).
 		const view = document.createElement('div');
 		view.className = 'ps-view';
-		view.innerHTML = '<div class="ps-loading" role="status">جاري التحميل…</div>';
+		view.innerHTML = ('<div class="ps-loading" role="status">' + PS.t('جاري التحميل…') + '</div>');
 		main.replaceChildren(view);
 		try {
 			const res = page.render(view, r.params);

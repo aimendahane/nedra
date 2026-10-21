@@ -8,7 +8,7 @@ PS.format = (function () {
 	'use strict';
 
 	/** Mois tels qu'utilisés en Tunisie/Libye dans le fichier d'origine. */
-	const MONTHS = ['جانفي', 'فيفري', 'مارس', 'أفريل', 'ماي', 'جوان', 'جويلية', 'أوت', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+	const MONTHS = [PS.t('جانفي'), PS.t('فيفري'), PS.t('مارس'), PS.t('أفريل'), PS.t('ماي'), PS.t('جوان'), PS.t('جويلية'), PS.t('أوت'), PS.t('سبتمبر'), PS.t('أكتوبر'), PS.t('نوفمبر'), PS.t('ديسمبر')];
 
 	/** « 2026-10-19 » → « 19/10/2026 » (chiffres latins, comme le fichier Excel). */
 	function date(iso) {

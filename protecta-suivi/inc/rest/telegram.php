@@ -27,7 +27,7 @@ function ps_register_telegram_routes(): void {
 			'permission_callback' => ps_rest_permission(),
 			'callback'            => static function () {
 				if ( ! ps_tg_enabled() ) {
-					return new WP_Error( 'ps_tg_off', 'إشعارات Telegram غير مفعّلة. اطلب من الإدارة إعدادها (الإعدادات ← عام).', array( 'status' => 409 ) );
+					return new WP_Error( 'ps_tg_off', ps__( 'إشعارات Telegram غير مفعّلة. اطلب من الإدارة إعدادها (الإعدادات ← عام).' ), array( 'status' => 409 ) );
 				}
 				return rest_ensure_response( array( 'url' => ps_tg_link_url( get_current_user_id() ), 'bot' => ps_tg_bot() ) );
 			},
@@ -67,11 +67,11 @@ function ps_register_telegram_routes(): void {
 				$u = wp_get_current_user();
 				ps_tg_poll();
 				if ( '' === ps_tg_chat_id( $u->ID ) ) {
-					return new WP_Error( 'ps_tg_unlinked', 'اربط حسابك أولًا: 🔔 ← «ربط Telegram».', array( 'status' => 409 ) );
+					return new WP_Error( 'ps_tg_unlinked', ps__( 'اربط حسابك أولًا: 🔔 ← «ربط Telegram».' ), array( 'status' => 409 ) );
 				}
-				return ps_tg_send_user( $u, '✅ <b>رسالة تجريبية</b>' . "\n" . 'إشعارات Telegram تعمل.', home_url( '/' ) )
+				return ps_tg_send_user( $u, '✅ <b>' . ps__( 'رسالة تجريبية' ) . '</b>' . "\n" . ps__( 'إشعارات Telegram تعمل.' ), home_url( '/' ) )
 					? rest_ensure_response( array( 'ok' => true ) )
-					: new WP_Error( 'ps_tg_send', 'تعذّر الإرسال إلى Telegram.', array( 'status' => 500 ) );
+					: new WP_Error( 'ps_tg_send', ps__( 'تعذّر الإرسال إلى Telegram.' ), array( 'status' => 500 ) );
 			},
 		)
 	);

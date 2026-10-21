@@ -36,7 +36,7 @@ function ps_digest_run( bool $force = false ): array {
 			++$skip;
 			continue;
 		}
-		ps_digest_send_to_user( $u, false, $facts ) ? ++$sent : ++$skip;
+		ps_with_lang( $u, static fn() => ps_digest_send_to_user( $u, false, $facts ) ) ? ++$sent : ++$skip; // langue du destinataire
 	}
 	return array( 'status' => 'sent', 'sent' => $sent, 'skipped' => $skip );
 }
@@ -65,11 +65,11 @@ function ps_digest_send_to_user( WP_User $u, bool $force = false, ?array $facts 
 		return false;
 	}
 	// Telegram (1.2.0) : version courte du résumé pour un compte lié (pas pour le bouton d'essai vers une autre adresse).
-	$tg = $own && '' !== ps_tg_chat_id( $u->ID ) && ps_tg_send_user( $u, ps_tg_digest_html( $u, $tasks, $admin ), home_url( '/#/taches' ), 'فتح مهامي' );
+	$tg = $own && '' !== ps_tg_chat_id( $u->ID ) && ps_tg_send_user( $u, ps_tg_digest_html( $u, $tasks, $admin ), home_url( '/#/taches' ), ps__( 'فتح مهامي' ) );
 	if ( ! is_email( $to ) ) {
 		return $tg;
 	}
-	$subject = ( $admin ? 'ملخص الفريق' : 'مهامك اليوم' ) . ' — ' . wp_date( 'd/m/Y' ) . ' — متابعة المشاريع';
+	$subject = ( $admin ? ps__( 'ملخص الفريق' ) : ps__( 'مهامك اليوم' ) ) . ' — ' . wp_date( 'd/m/Y' ) . ps__( ' — متابعة المشاريع' );
 	$body    = ps_digest_html( $u, $tasks, $admin, $admin ? ps_stats_kpis( array_values( array_filter( $facts, fn( $f ) => (int) current_time( 'Y' ) === $f['year'] ) ) ) : null );
 	return true === ps_mail_send( $to, $subject, $body ); // erreur détaillée : ps_mail_last_error()
 }
@@ -79,7 +79,7 @@ function ps_digest_send_to_user( WP_User $u, bool $force = false, ?array $facts 
  */
 function ps_digest_html( WP_User $u, array $tasks, bool $admin, ?array $kpis ): string {
 	$app   = esc_url( home_url( '/' ) );
-	$label = fn( $id ) => $id ? esc_html( ps_list_label( $id ) ) : '';
+	$label = fn( $id ) => $id ? esc_html( ps_list_label_t( $id ) ) : '';
 	$row   = static function ( string $text, string $sub, string $hash ) use ( $app ) {
 		return '<li style="margin:0 0 8px"><a href="' . $app . $hash . '" style="color:#385B9A;font-weight:bold;text-decoration:none">' . $text . '</a><br><span style="color:#5D6878;font-size:13px">' . $sub . '</span></li>';
 	};
@@ -91,28 +91,28 @@ function ps_digest_html( WP_User $u, array $tasks, bool $admin, ?array $kpis ): 
 	};
 	$who = fn( $r ) => $admin && ! empty( $r['employeeId'] ) ? ' · ' . $label( $r['employeeId'] ) : '';
 
-	$h  = '<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;color:#1F2733;max-width:640px;margin:auto;border-top:4px solid #E8571F;padding:16px">';
-	$h .= '<h2 style="color:#385B9A;margin:0 0 4px">متابعة المشاريع والعروض</h2>';
-	$h .= '<p style="margin:0 0 12px">صباح الخير ' . esc_html( $u->display_name ) . '، ' . ( $admin ? 'هذا ملخص الفريق لليوم ' : 'هذه مهامك لليوم ' ) . esc_html( wp_date( 'd/m/Y' ) ) . '.</p>';
+	$h  = '<div dir="' . ps_dir() . '" style="font-family:Tahoma,Arial,sans-serif;color:#1F2733;max-width:640px;margin:auto;border-top:4px solid #E8571F;padding:16px">';
+	$h .= '<h2 style="color:#385B9A;margin:0 0 4px">' . ps__( 'متابعة المشاريع والعروض' ) . '</h2>';
+	$h .= '<p style="margin:0 0 12px">' . ps__( 'صباح الخير' ) . ' ' . esc_html( $u->display_name ) . ps__( '، ' ) . ( $admin ? ps__( 'هذا ملخص الفريق لليوم ' ) : ps__( 'هذه مهامك لليوم ' ) ) . esc_html( wp_date( 'd/m/Y' ) ) . '.</p>';
 
 	if ( $admin && $kpis ) {
 		$h .= '<table style="border-collapse:collapse;width:100%;font-size:14px;margin-bottom:8px"><tr>';
-		foreach ( array( 'المشاريع' => $kpis['projects'], 'المؤكدة' => $kpis['confirmed'], 'نسبة النجاح' => null === $kpis['successRate'] ? '—' : $kpis['successRate'] . '%', 'عروض متأخرة' => $kpis['lateOffers'], 'تسليمات متأخرة' => $kpis['lateDeliveries'] ) as $k => $v ) {
+		foreach ( array( ps__( 'المشاريع' ) => $kpis['projects'], ps__( 'المؤكدة' ) => $kpis['confirmed'], ps__( 'نسبة النجاح' ) => null === $kpis['successRate'] ? '—' : $kpis['successRate'] . '%', ps__( 'عروض متأخرة' ) => $kpis['lateOffers'], ps__( 'تسليمات متأخرة' ) => $kpis['lateDeliveries'] ) as $k => $v ) {
 			$h .= '<td style="border:1px solid #DDE2EC;padding:8px;text-align:center"><div style="color:#5D6878;font-size:12px">' . esc_html( $k ) . '</div><strong style="font-size:18px">' . esc_html( (string) $v ) . '</strong></td>';
 		}
-		$h .= '</tr></table><p style="color:#5D6878;font-size:12px;margin:0">مؤشرات سنة ' . esc_html( current_time( 'Y' ) ) . '</p>';
+		$h .= '</tr></table><p style="color:#5D6878;font-size:12px;margin:0">' . ps__( 'مؤشرات سنة' ) . ' ' . esc_html( current_time( 'Y' ) ) . '</p>';
 	}
 
-	$h .= $block( 'مهام مُسندة', $tasks['assigned'], fn( $r ) => $row( esc_html( $r['title'] ), ( $r['dueDate'] ? 'الأجل ' . esc_html( $r['dueDate'] ) . ( $r['late'] ? ' · متأخرة' : '' ) : 'بدون أجل' ) . ( $r['createdByName'] ? ' · من ' . esc_html( $r['createdByName'] ) : '' ) . $who( $r ), '#/taches' ) );
-	$h .= $block( 'عروض متأخرة — لازم قرار', $tasks['lateOffers'], fn( $r ) => $row( esc_html( $r['projectNo'] . ' — ' . ps_list_label( $r['itemTypeId'] ) . ' — ' . $r['projectName'] ), 'الأجل ' . esc_html( $r['dueDate'] ) . ' · متأخر ' . (int) $r['daysLate'] . ' يوم' . $who( $r ), '#/projet?id=' . (int) $r['projectId'] ) );
-	$h .= $block( 'متابعات مبرمجة اليوم أو فائتة', $tasks['followupsDue'], fn( $r ) => $row( esc_html( $r['projectNo'] . ' — ' . $r['projectName'] ), 'التاريخ ' . esc_html( $r['nextDate'] ) . $who( $r ), '#/projet?id=' . (int) $r['projectId'] . '&tab=followups' ) );
-	$h .= $block( 'تسليمات هذا الأسبوع', $tasks['deliveries'], fn( $r ) => $row( esc_html( $r['projectNo'] . ' — ' . ps_list_label( $r['itemTypeId'] ) ), 'أجل التسليم ' . esc_html( $r['deliveryDueDate'] ) . ( $r['late'] ? ' · متأخر ' . (int) $r['delayDays'] . ' يوم' : '' ) . $who( $r ), '#/livraison' ) );
-	$h .= $block( 'مشاريع بدون متابعة منذ أكثر من ' . (int) ps_setting( 'followup_alert_days' ) . ' أيام', $tasks['noFollowup'], fn( $r ) => $row( esc_html( $r['projectNo'] . ' — ' . $r['projectName'] ), $r['lastDate'] ? 'آخر متابعة ' . esc_html( $r['lastDate'] ) : 'لا توجد متابعة' . $who( $r ), '#/projet?id=' . (int) $r['projectId'] . '&tab=followups' ) );
+	$h .= $block( ps__( 'مهام مُسندة' ), $tasks['assigned'], fn( $r ) => $row( esc_html( $r['title'] ), ( $r['dueDate'] ? ps__( 'الأجل ' ) . esc_html( $r['dueDate'] ) . ( $r['late'] ? ps__( ' · متأخرة' ) : '' ) : ps__( 'بدون أجل' ) ) . ( $r['createdByName'] ? ps__( ' · من ' ) . esc_html( $r['createdByName'] ) : '' ) . $who( $r ), '#/taches' ) );
+	$h .= $block( ps__( 'عروض متأخرة — لازم قرار' ), $tasks['lateOffers'], fn( $r ) => $row( esc_html( $r['projectNo'] . ' — ' . ps_list_label_t( $r['itemTypeId'] ) . ' — ' . $r['projectName'] ), ps__( 'الأجل ' ) . esc_html( $r['dueDate'] ) . ps__( ' · متأخر ' ) . (int) $r['daysLate'] . ps__( ' يوم' ) . $who( $r ), '#/projet?id=' . (int) $r['projectId'] ) );
+	$h .= $block( ps__( 'متابعات مبرمجة اليوم أو فائتة' ), $tasks['followupsDue'], fn( $r ) => $row( esc_html( $r['projectNo'] . ' — ' . $r['projectName'] ), ps__( 'التاريخ ' ) . esc_html( $r['nextDate'] ) . $who( $r ), '#/projet?id=' . (int) $r['projectId'] . '&tab=followups' ) );
+	$h .= $block( ps__( 'تسليمات هذا الأسبوع' ), $tasks['deliveries'], fn( $r ) => $row( esc_html( $r['projectNo'] . ' — ' . ps_list_label_t( $r['itemTypeId'] ) ), ps__( 'أجل التسليم ' ) . esc_html( $r['deliveryDueDate'] ) . ( $r['late'] ? ps__( ' · متأخر ' ) . (int) $r['delayDays'] . ps__( ' يوم' ) : '' ) . $who( $r ), '#/livraison' ) );
+	$h .= $block( ps__( 'مشاريع بدون متابعة منذ أكثر من ' ) . (int) ps_setting( 'followup_alert_days' ) . ps__( ' أيام' ), $tasks['noFollowup'], fn( $r ) => $row( esc_html( $r['projectNo'] . ' — ' . $r['projectName'] ), $r['lastDate'] ? ps__( 'آخر متابعة ' ) . esc_html( $r['lastDate'] ) : ps__( 'لا توجد متابعة' ) . $who( $r ), '#/projet?id=' . (int) $r['projectId'] . '&tab=followups' ) );
 
 	if ( ! array_sum( array_map( 'count', $tasks ) ) ) {
-		$h .= '<p style="color:#2B8A3E">✔ لا توجد مهام متأخرة اليوم.</p>';
+		$h .= '<p style="color:#2B8A3E">' . ps__( '✔ لا توجد مهام متأخرة اليوم.' ) . '</p>';
 	}
-	$h .= '<p style="margin-top:24px"><a href="' . $app . '" style="background:#385B9A;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">فتح التطبيق</a></p>';
-	$h .= '<p style="color:#868e96;font-size:12px;margin-top:20px">لإيقاف هذا البريد: اطلب من الإدارة إلغاء «البريد الصباحي» في حسابك.</p></div>';
+	$h .= '<p style="margin-top:24px"><a href="' . $app . '" style="background:#385B9A;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">' . ps__( 'فتح التطبيق' ) . '</a></p>';
+	$h .= '<p style="color:#868e96;font-size:12px;margin-top:20px">' . ps__( 'لإيقاف هذا البريد: اطلب من الإدارة إلغاء «البريد الصباحي» في حسابك.' ) . '</p></div>';
 	return $h;
 }

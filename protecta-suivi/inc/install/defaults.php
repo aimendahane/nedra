@@ -23,20 +23,20 @@ defined( 'ABSPATH' ) || exit;
  */
 function ps_list_labels(): array {
 	return array(
-		'urgency'         => 'درجة الاستعجال',
-		'employee'        => 'الموظفون',
-		'followup_status' => 'حالة المتابعة',
-		'item_type'       => 'الأصناف',
-		'place'           => 'المكان',
-		'category'        => 'التصنيف',
-		'importance'      => 'الأهمية',
-		'source'          => 'مصدر الطلب',
-		'offer_status'    => 'حالة العرض',
-		'not_sent_reason' => 'سبب عدم الإرسال',
-		'loss_reason'     => 'سبب الرفض أو الخسارة',
-		'delivery_status' => 'حالة التسليم',
-		'availability'    => 'المتوفر',
-		'currency'        => 'العملات',
+		'urgency'         => ps__( 'درجة الاستعجال' ),
+		'employee'        => ps__( 'الموظفون' ),
+		'followup_status' => ps__( 'حالة المتابعة' ),
+		'item_type'       => ps__( 'الأصناف' ),
+		'place'           => ps__( 'المكان' ),
+		'category'        => ps__( 'التصنيف' ),
+		'importance'      => ps__( 'الأهمية' ),
+		'source'          => ps__( 'مصدر الطلب' ),
+		'offer_status'    => ps__( 'حالة العرض' ),
+		'not_sent_reason' => ps__( 'سبب عدم الإرسال' ),
+		'loss_reason'     => ps__( 'سبب الرفض أو الخسارة' ),
+		'delivery_status' => ps__( 'حالة التسليم' ),
+		'availability'    => ps__( 'المتوفر' ),
+		'currency'        => ps__( 'العملات' ),
 	);
 }
 
@@ -45,10 +45,10 @@ function ps_list_labels(): array {
  */
 function ps_followup_types(): array {
 	return array(
-		'ongoing'   => 'جارية',
-		'rejected'  => 'مرفوض',
-		'confirmed' => 'مؤكد',
-		'delivered' => 'مسلّم',
+		'ongoing'   => ps__( 'جارية' ),
+		'rejected'  => ps__( 'مرفوض' ),
+		'confirmed' => ps__( 'مؤكد' ),
+		'delivered' => ps__( 'مسلّم' ),
 	);
 }
 

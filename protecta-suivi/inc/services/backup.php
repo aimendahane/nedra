@@ -141,14 +141,14 @@ function ps_backup_rotate(): void {
 function ps_backup_restore( array $data, int $user_id ) {
 	global $wpdb;
 	if ( 'protecta-suivi-backup' !== ( $data['format'] ?? '' ) || ! isset( $data['tables'] ) || ! is_array( $data['tables'] ) ) {
-		return new WP_Error( 'ps_restore_format', 'الملف ليس نسخة احتياطية لهذا التطبيق', array( 'status' => 422 ) );
+		return new WP_Error( 'ps_restore_format', ps__( 'الملف ليس نسخة احتياطية لهذا التطبيق' ), array( 'status' => 422 ) );
 	}
 	if ( (int) ( $data['db_version'] ?? 0 ) > ps_target_db_version() ) {
-		return new WP_Error( 'ps_restore_version', 'النسخة الاحتياطية من إصدار أحدث للتطبيق: حدّث القالب أولًا', array( 'status' => 422 ) );
+		return new WP_Error( 'ps_restore_version', ps__( 'النسخة الاحتياطية من إصدار أحدث للتطبيق: حدّث القالب أولًا' ), array( 'status' => 422 ) );
 	}
 	$backup = ps_backup_write_auto( 'before-restore' );
 	if ( false === $backup ) {
-		return new WP_Error( 'ps_restore_backup', 'تعذّرت النسخة الاحتياطية التلقائية قبل الاسترجاع: لم يتم أي تغيير', array( 'status' => 500 ) );
+		return new WP_Error( 'ps_restore_backup', ps__( 'تعذّرت النسخة الاحتياطية التلقائية قبل الاسترجاع: لم يتم أي تغيير' ), array( 'status' => 500 ) );
 	}
 
 	// Comptes : correspondance identifiant de la sauvegarde → identifiant local (par nom d'utilisateur).
@@ -207,7 +207,7 @@ function ps_backup_restore( array $data, int $user_id ) {
 	if ( $wpdb->last_error ) {
 		$err = $wpdb->last_error;
 		$wpdb->query( 'ROLLBACK' );
-		return new WP_Error( 'ps_restore_db', 'فشل الاسترجاع، لم يتغير شيء: ' . $err, array( 'status' => 500 ) );
+		return new WP_Error( 'ps_restore_db', ps__( 'فشل الاسترجاع، لم يتغير شيء: ' ) . $err, array( 'status' => 500 ) );
 	}
 	$wpdb->query( 'COMMIT' );
 

@@ -41,19 +41,19 @@ function ps_notify_enabled( ?bool $set = null ): bool {
 /** Libellés des champs d'un صنف pour les messages. */
 function ps_notify_item_fields(): array {
 	return array(
-		'offer_status_id'      => 'حالة العرض',
-		'offer_date'           => 'تاريخ تقديم العرض',
-		'not_sent_reason_id'   => 'سبب عدم الإرسال',
-		'delivery_status_id'   => 'حالة التسليم',
-		'delivery_due_date'    => 'أجل التسليم',
-		'delivery_actual_date' => 'تاريخ التسليم الفعلي',
-		'employee_id'          => 'الموظف المسؤول',
-		'due_date'             => 'الأجل المطلوب',
-		'quantity'             => 'الكمية',
-		'item_type_id'         => 'الصنف',
-		'offer_invoice_no'     => 'فاتورة العرض',
-		'supplier_invoice_no'  => 'فاتورة المورد',
-		'availability_id'      => 'المتوفر',
+		'offer_status_id'      => ps__( 'حالة العرض' ),
+		'offer_date'           => ps__( 'تاريخ تقديم العرض' ),
+		'not_sent_reason_id'   => ps__( 'سبب عدم الإرسال' ),
+		'delivery_status_id'   => ps__( 'حالة التسليم' ),
+		'delivery_due_date'    => ps__( 'أجل التسليم' ),
+		'delivery_actual_date' => ps__( 'تاريخ التسليم الفعلي' ),
+		'employee_id'          => ps__( 'الموظف المسؤول' ),
+		'due_date'             => ps__( 'الأجل المطلوب' ),
+		'quantity'             => ps__( 'الكمية' ),
+		'item_type_id'         => ps__( 'الصنف' ),
+		'offer_invoice_no'     => ps__( 'فاتورة العرض' ),
+		'supplier_invoice_no'  => ps__( 'فاتورة المورد' ),
+		'availability_id'      => ps__( 'المتوفر' ),
 	);
 }
 
@@ -61,10 +61,11 @@ function ps_notify_item_fields(): array {
  * Ajoute un changement au tampon.
  *
  * @param string   $kind     created | deleted | status | followup | file | item | update
- * @param string   $line     Texte lisible (« حالة العرض (UPS): قيد الإعداد ← مرسل »).
+ * @param string|callable $line Texte lisible (« حالة العرض (UPS): قيد الإعداد ← مرسل »), ou fonction qui le compose :
+ *                              elle est appelée à l'envoi, dans la langue de CHAQUE destinataire (1.3.0).
  * @param int|null $item_id  صنف concerné : son employé sera prévenu aussi.
  */
-function ps_notify_collect( int $project_id, string $kind, string $line, ?int $actor_id = null, ?int $item_id = null ): void {
+function ps_notify_collect( int $project_id, string $kind, $line, ?int $actor_id = null, ?int $item_id = null ): void {
 	if ( ! ps_notify_enabled() || $project_id <= 0 ) {
 		return;
 	}
@@ -75,8 +76,10 @@ function ps_notify_collect( int $project_id, string $kind, string $line, ?int $a
 	$b = &$buf[ $project_id ];
 	$b['actors'][ (int) ( $actor_id ?? get_current_user_id() ) ] = true;
 	$b['kinds'][ $kind ] = true;
-	if ( '' !== $line && ! in_array( $line, $b['lines'], true ) ) {
-		$b['lines'][] = $line;
+	$fn  = is_callable( $line ) ? $line : static fn() => (string) $line;
+	$key = ps_with_lang( 'ar', $fn ); // dédoublonnage sur le texte arabe
+	if ( '' !== $key && ! isset( $b['lines'][ $key ] ) ) {
+		$b['lines'][ $key ] = $fn;
 	}
 	if ( $item_id ) {
 		$b['items'][ $item_id ] = true;
@@ -90,44 +93,47 @@ function ps_notify_from_log( ?int $project_id, string $action, string $entity, ?
 	if ( ! $project_id || ! ps_notify_enabled() || in_array( $action, array( 'import', 'merge' ), true ) || 'task' === $entity ) {
 		return;
 	}
-	$arrow  = static fn( $o, $n ) => ( null === $o || '' === $o ? '—' : $o ) . ' ← ' . ( null === $n || '' === $n ? '—' : $n );
-	$labels = ps_validation_fields();
+	// Les textes sont composés à l'envoi, dans la langue de chaque destinataire (valeurs par défaut des listes
+	// traduites, valeurs saisies inchangées) : on passe des fonctions, pas des chaînes.
+	$v     = static fn( $x ) => null === $x || '' === $x ? '—' : ps__( (string) $x );
+	$arrow = static fn( $o, $n ) => $v( $o ) . ' ← ' . $v( $n );
+	$t     = static fn( string $ar ) => static fn() => ps__( $ar );
 	switch ( $entity ) {
 		case 'project':
 			if ( 'create' === $action ) {
-				ps_notify_collect( $project_id, 'created', 'مشروع جديد', $user_id );
+				ps_notify_collect( $project_id, 'created', $t( 'مشروع جديد' ), $user_id );
 			} elseif ( 'delete' === $action ) {
-				ps_notify_collect( $project_id, 'deleted', 'حُذف المشروع (في سلة المحذوفات)', $user_id );
+				ps_notify_collect( $project_id, 'deleted', $t( 'حُذف المشروع (في سلة المحذوفات)' ), $user_id );
 			} elseif ( 'restore' === $action ) {
-				ps_notify_collect( $project_id, 'update', 'استُرجع المشروع', $user_id );
+				ps_notify_collect( $project_id, 'update', $t( 'استُرجع المشروع' ), $user_id );
 			} elseif ( $field ) {
 				$kind = 'followup_status_id' === $field ? 'status' : 'update';
-				ps_notify_collect( $project_id, $kind, ( $labels[ $field ] ?? $field ) . ': ' . $arrow( $old, $new ), $user_id );
+				ps_notify_collect( $project_id, $kind, static fn() => ( ps_validation_fields()[ $field ] ?? $field ) . ': ' . $arrow( $old, $new ), $user_id );
 			}
 			break;
 		case 'item':
-			$type = $entity_id ? ps_list_label( (int) ps_notify_item_type( (int) $entity_id ) ) : '';
+			$type = $entity_id ? (string) ps_list_label( (int) ps_notify_item_type( (int) $entity_id ) ) : '';
 			if ( 'create' === $action ) {
-				ps_notify_collect( $project_id, 'item', 'صنف جديد: ' . (string) $new, $user_id, $entity_id );
+				ps_notify_collect( $project_id, 'item', static fn() => ps__( 'صنف جديد: ' ) . $v( $new ), $user_id, $entity_id );
 			} elseif ( 'delete' === $action ) {
-				ps_notify_collect( $project_id, 'item', 'حُذف صنف: ' . (string) $old, $user_id );
+				ps_notify_collect( $project_id, 'item', static fn() => ps__( 'حُذف صنف: ' ) . $v( $old ), $user_id );
 			} elseif ( $field ) {
 				$kind = in_array( $field, array( 'offer_status_id', 'delivery_status_id' ), true ) ? 'status' : 'item';
 				// Nouvel employé du صنف → il est prévenu.
-				ps_notify_collect( $project_id, $kind, ( ps_notify_item_fields()[ $field ] ?? $field ) . ( $type ? ' (' . $type . ')' : '' ) . ': ' . $arrow( $old, $new ), $user_id, 'employee_id' === $field ? $entity_id : null );
+				ps_notify_collect( $project_id, $kind, static fn() => ( ps_notify_item_fields()[ $field ] ?? $field ) . ( '' !== $type ? ' (' . ps__( $type ) . ')' : '' ) . ': ' . $arrow( $old, $new ), $user_id, 'employee_id' === $field ? $entity_id : null );
 			}
 			break;
 		case 'file':
-			ps_notify_collect( $project_id, 'file', ( 'delete' === $action ? 'حُذف ملف: ' . $old : 'ملف جديد: ' . $new ), $user_id );
+			ps_notify_collect( $project_id, 'file', static fn() => 'delete' === $action ? ps__( 'حُذف ملف: ' ) . $old : ps__( 'ملف جديد: ' ) . $new, $user_id );
 			break;
 		case 'followup':
-			ps_notify_collect( $project_id, 'followup', 'تعديل في سجل المتابعة', $user_id );
+			ps_notify_collect( $project_id, 'followup', $t( 'تعديل في سجل المتابعة' ), $user_id );
 			break;
 		case 'party':
-			ps_notify_collect( $project_id, 'update', 'تعديل الأطراف المتدخلة', $user_id );
+			ps_notify_collect( $project_id, 'update', $t( 'تعديل الأطراف المتدخلة' ), $user_id );
 			break;
 		case 'competitor':
-			ps_notify_collect( $project_id, 'update', 'تعديل المنافسين', $user_id );
+			ps_notify_collect( $project_id, 'update', $t( 'تعديل المنافسين' ), $user_id );
 			break;
 	}
 }
@@ -182,28 +188,39 @@ function ps_notify_flush(): int {
 		}
 		$kind  = current( array_intersect( $order, array_keys( $b['kinds'] ) ) ) ?: 'update';
 		$actor = (int) array_key_first( $b['actors'] );
-		$lines = isset( $b['kinds']['created'] ) ? array( 'مشروع جديد' ) : $b['lines'];
 		$title = $p['project_no'] . ' — ' . $p['name'];
-		$body  = implode( "\n", array_slice( $lines, 0, 6 ) ) . ( count( $lines ) > 6 ? "\n" . sprintf( 'و %d تغييرات أخرى', count( $lines ) - 6 ) : '' );
 		foreach ( $users as $u ) {
-			$wpdb->insert(
-				ps_table( 'notifications' ),
-				array( 'user_id' => $u->ID, 'project_id' => (int) $pid, 'actor_id' => $actor ?: null, 'kind' => $kind, 'title' => mb_substr( $title, 0, 255 ), 'body' => $body, 'created_at' => $now )
-			);
-			++$created;
-			if ( get_user_meta( $u->ID, 'ps_instant_email', true ) ) {
-				ps_notify_email( $u, (int) $pid, $title, $lines, $actor );
-			}
-			// Telegram (1.2.0) : tout compte lié reçoit ses notifications.
-			if ( '' !== ps_tg_chat_id( $u->ID ) ) {
-				$who = $actor ? get_userdata( $actor ) : null;
-				ps_tg_send_user( $u, ps_tg_notification_html( $title, $lines, $who ? $who->display_name : null ), home_url( '/#/projet?id=' . (int) $pid ), 'فتح المشروع' );
-			}
+			// Textes dans la langue du destinataire (1.3.0).
+			ps_with_lang( $u, static function () use ( $u, $b, $pid, $title, $kind, $actor, $now, &$created ) {
+				$lines = isset( $b['kinds']['created'] ) ? array( ps__( 'مشروع جديد' ) ) : array_values( array_map( static fn( $fn ) => $fn(), $b['lines'] ) );
+				$body  = implode( "\n", array_slice( $lines, 0, 6 ) ) . ( count( $lines ) > 6 ? "\n" . sprintf( ps__( 'و %d تغييرات أخرى' ), count( $lines ) - 6 ) : '' );
+				ps_notify_deliver( $u, (int) $pid, $title, $lines, $body, $kind, $actor, $now );
+				++$created;
+			} );
 		}
 	}
 	return $created;
 }
 add_action( 'shutdown', 'ps_notify_flush' );
+
+/**
+ * Enregistre la notification d'un destinataire (cloche) puis l'envoie par e-mail / Telegram selon ses choix.
+ */
+function ps_notify_deliver( WP_User $u, int $pid, string $title, array $lines, string $body, string $kind, int $actor, string $now ): void {
+	global $wpdb;
+	$wpdb->insert(
+		ps_table( 'notifications' ),
+		array( 'user_id' => $u->ID, 'project_id' => $pid, 'actor_id' => $actor ?: null, 'kind' => $kind, 'title' => mb_substr( $title, 0, 255 ), 'body' => $body, 'created_at' => $now )
+	);
+	if ( get_user_meta( $u->ID, 'ps_instant_email', true ) ) {
+		ps_notify_email( $u, $pid, $title, $lines, $actor );
+	}
+	// Telegram (1.2.0) : tout compte lié reçoit ses notifications.
+	if ( '' !== ps_tg_chat_id( $u->ID ) ) {
+		$who = $actor ? get_userdata( $actor ) : null;
+		ps_tg_send_user( $u, ps_tg_notification_html( $title, $lines, $who ? $who->display_name : null ), home_url( '/#/projet?id=' . $pid ), 'فتح المشروع' );
+	}
+}
 
 /**
  * E-mail immédiat (préférence de l'utilisateur). Un échec n'empêche rien.
@@ -214,12 +231,12 @@ function ps_notify_email( WP_User $u, int $project_id, string $title, array $lin
 	}
 	$who  = $actor_id ? get_userdata( $actor_id ) : null;
 	$link = esc_url( home_url( '/#/projet?id=' . $project_id ) );
-	$h    = '<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;color:#1F2733;max-width:640px;margin:auto;border-top:4px solid #E8571F;padding:16px">';
+	$h    = '<div dir="' . ps_dir() . '" style="font-family:Tahoma,Arial,sans-serif;color:#1F2733;max-width:640px;margin:auto;border-top:4px solid #E8571F;padding:16px">';
 	$h   .= '<h2 style="color:#385B9A;margin:0 0 8px">' . esc_html( $title ) . '</h2>';
 	$h   .= $who ? '<p style="margin:0 0 8px;color:#5D6878">' . esc_html( $who->display_name ) . '</p>' : '';
 	$h   .= '<ul style="padding-right:18px">' . implode( '', array_map( fn( $l ) => '<li>' . esc_html( $l ) . '</li>', array_slice( $lines, 0, 20 ) ) ) . '</ul>';
-	$h   .= '<p style="margin-top:20px"><a href="' . $link . '" style="background:#385B9A;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">فتح المشروع</a></p>';
-	$h   .= '<p style="color:#868e96;font-size:12px">لإيقاف هذا البريد: 🔔 ← «بريد فوري عند كل تغيير».</p></div>';
+	$h   .= '<p style="margin-top:20px"><a href="' . $link . '" style="background:#385B9A;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">' . ps__( 'فتح المشروع' ) . '</a></p>';
+	$h   .= '<p style="color:#868e96;font-size:12px">' . ps__( 'لإيقاف هذا البريد: 🔔 ← «بريد فوري عند كل تغيير».' ) . '</p></div>';
 	ps_mail_send( $u->user_email, '🔔 ' . $title, $h );
 }
 

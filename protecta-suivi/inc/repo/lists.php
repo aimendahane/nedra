@@ -96,11 +96,11 @@ function ps_list_value_input( string $list_key, array $b, ?array $existing ) {
 	if ( array_key_exists( 'label', $b ) || ! $existing ) {
 		$label = ps_clean_text( $b['label'] ?? null );
 		if ( null === $label ) {
-			$errors['label'] = 'اكتب الاسم';
+			$errors['label'] = ps__( 'اكتب الاسم' );
 		} else {
 			foreach ( ps_list_values( $list_key ) as $v ) {
 				if ( ( ! $existing || $v['id'] !== (int) $existing['id'] ) && ps_normalize_text( $v['label'] ) === ps_normalize_text( $label ) ) {
-					$errors['label'] = 'الاسم موجود في هذه القائمة';
+					$errors['label'] = ps__( 'الاسم موجود في هذه القائمة' );
 				}
 			}
 			$set['label'] = $label;
@@ -112,7 +112,7 @@ function ps_list_value_input( string $list_key, array $b, ?array $existing ) {
 			$code = 'place' === $list_key || 'currency' === $list_key ? strtoupper( preg_replace( '/[^A-Za-z0-9]/', '', $code ) ) : sanitize_key( $code );
 			foreach ( ps_list_values( $list_key ) as $v ) {
 				if ( ( ! $existing || $v['id'] !== (int) $existing['id'] ) && $v['code'] && strtoupper( $v['code'] ) === strtoupper( $code ) ) {
-					$errors['code'] = 'الرمز مستعمل';
+					$errors['code'] = ps__( 'الرمز مستعمل' );
 				}
 			}
 		}
@@ -125,7 +125,7 @@ function ps_list_value_input( string $list_key, array $b, ?array $existing ) {
 	if ( 'followup_status' === $list_key && ( array_key_exists( 'type', $b ) || ! $existing ) ) {
 		$type = (string) ( $b['type'] ?? '' );
 		if ( ! isset( ps_followup_types()[ $type ] ) ) {
-			$errors['type'] = 'اختر النوع (جارية / مرفوض / مؤكد / مسلّم)';
+			$errors['type'] = ps__( 'اختر النوع (جارية / مرفوض / مؤكد / مسلّم)' );
 		}
 		$set['type'] = $type;
 	}
@@ -133,12 +133,12 @@ function ps_list_value_input( string $list_key, array $b, ?array $existing ) {
 		$hide = ! empty( $b['hidden'] ) ? 1 : 0;
 		$meta = $existing && $existing['meta'] ? (array) json_decode( $existing['meta'], true ) : array();
 		if ( $existing && $existing['is_system'] && $hide !== (int) $existing['is_hidden'] ) {
-			$errors['hidden'] = ! empty( $meta['import_only'] ) ? '«غير محدد» مخفية دائمًا (للمشاريع المستوردة فقط)' : 'قيمة أساسية في الحسابات: لا يمكن إخفاؤها';
+			$errors['hidden'] = ! empty( $meta['import_only'] ) ? ps__( '«غير محدد» مخفية دائمًا (للمشاريع المستوردة فقط)' ) : ps__( 'قيمة أساسية في الحسابات: لا يمكن إخفاؤها' );
 		}
 		$set['is_hidden'] = $hide;
 	}
 	if ( $errors ) {
-		return new WP_Error( 'ps_validation', 'يرجى تصحيح الخانات', array( 'status' => 422, 'errors' => $errors ) );
+		return new WP_Error( 'ps_validation', ps__( 'يرجى تصحيح الخانات' ), array( 'status' => 422, 'errors' => $errors ) );
 	}
 	return $set;
 }

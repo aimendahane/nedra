@@ -30,14 +30,14 @@ PS.items = (function () {
 
 		if (code === 'not_sent') {
 			ask = ui.modal({
-				title: 'لم يُرسل — سبب عدم الإرسال',
-				body: html`<label class="ps-field ps-field--required"><span class="ps-field__label">سبب عدم الإرسال *</span><select data-q="reason">${ui.raw(L.options('not_sent_reason', row.notSentReasonId, { emptyLabel: 'اختر…' }))}</select></label>
-					<label class="ps-field ps-mt"><span class="ps-field__label">ملاحظة (اختياري)</span><textarea data-q="note" rows="2">${row.notSentNote || ''}</textarea></label>`,
-				buttons: [{ id: 'ok', label: 'حفظ', kind: 'primary' }, { id: 'cancel', label: 'إلغاء' }],
+				title: PS.t('لم يُرسل — سبب عدم الإرسال'),
+				body: html`<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('سبب عدم الإرسال *')}</span><select data-q="reason">${ui.raw(L.options('not_sent_reason', row.notSentReasonId, { emptyLabel: PS.t('اختر…') }))}</select></label>
+					<label class="ps-field ps-mt"><span class="ps-field__label">${PS.t('ملاحظة (اختياري)')}</span><textarea data-q="note" rows="2">${row.notSentNote || ''}</textarea></label>`,
+				buttons: [{ id: 'ok', label: PS.t('حفظ'), kind: 'primary' }, { id: 'cancel', label: PS.t('إلغاء') }],
 				onButton: function (id, box) {
 					if (id !== 'ok') return true;
 					const reason = box.querySelector('[data-q="reason"]').value;
-					if (!reason) { box.querySelector('[data-q="reason"]').focus(); ui.toast('اختر سبب عدم الإرسال', 'error'); return false; }
+					if (!reason) { box.querySelector('[data-q="reason"]').focus(); ui.toast(PS.t('اختر سبب عدم الإرسال'), 'error'); return false; }
 					changes.notSentReasonId = Number(reason);
 					changes.notSentNote = box.querySelector('[data-q="note"]').value;
 					return true;
@@ -45,10 +45,10 @@ PS.items = (function () {
 			}).then(function (r) { return r === 'ok' ? changes : null; });
 		} else if ((code === 'sent' || code === 'accepted' || code === 'rejected') && !row.projectSentDate) {
 			ask = ui.modal({
-				title: 'تاريخ إرسال العرض',
-				body: html`<p>المشروع <strong>${row.projectNo}</strong> بدون تاريخ إرسال العرض. هذا التاريخ إجباري عند إرسال العرض.</p>
-					<label class="ps-field ps-field--required"><span class="ps-field__label">تاريخ إرسال العرض *</span><input type="date" data-q="date" value="${PS.config.today}" min="${row.receivedDate || ''}"></label>`,
-				buttons: [{ id: 'ok', label: 'حفظ', kind: 'primary' }, { id: 'cancel', label: 'إلغاء' }],
+				title: PS.t('تاريخ إرسال العرض'),
+				body: html`<p>${PS.t('المشروع')} <strong>${row.projectNo}</strong> ${PS.t('بدون تاريخ إرسال العرض. هذا التاريخ إجباري عند إرسال العرض.')}</p>
+					<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('تاريخ إرسال العرض *')}</span><input type="date" data-q="date" value="${PS.config.today}" min="${row.receivedDate || ''}"></label>`,
+				buttons: [{ id: 'ok', label: PS.t('حفظ'), kind: 'primary' }, { id: 'cancel', label: PS.t('إلغاء') }],
 				onButton: function (id, box) {
 					if (id !== 'ok') return true;
 					const d = box.querySelector('[data-q="date"]').value;
@@ -62,7 +62,7 @@ PS.items = (function () {
 		return ask.then(function (ch) {
 			if (!ch) return null;
 			return PS.api.put('items/' + row.id, ch).then(function (updated) {
-				ui.toast('تم الحفظ', 'success');
+				ui.toast(PS.t('تم الحفظ'), 'success');
 				PS.router.refreshCounts();
 				return updated;
 			}).catch(function (e) {
@@ -87,23 +87,23 @@ PS.items = (function () {
 
 	function filters() {
 		const p = st.params;
-		const empOpts = ui.raw('<option value="">كل الموظفين</option>' + (PS.config.user.employeeId ? '<option value="me"' + (p.employeeId === 'me' ? ' selected' : '') + '>أصنافي فقط</option>' : '') + L.options('employee', p.employeeId, { noEmpty: true }));
-		const stOpts = ui.raw('<option value="">كل الحالات</option>' + L.values('offer_status').map(function (v) { return '<option value="' + v.code + '"' + (p.offerStatus === v.code ? ' selected' : '') + '>' + ui.esc(v.label) + '</option>'; }).join(''));
+		const empOpts = ui.raw(('<option value="">' + PS.t('كل الموظفين') + '</option>') + (PS.config.user.employeeId ? '<option value="me"' + (p.employeeId === 'me' ? ' selected' : '') + ('>' + PS.t('أصنافي فقط') + '</option>') : '') + L.options('employee', p.employeeId, { noEmpty: true }));
+		const stOpts = ui.raw(('<option value="">' + PS.t('كل الحالات') + '</option>') + L.values('offer_status').map(function (v) { return '<option value="' + v.code + '"' + (p.offerStatus === v.code ? ' selected' : '') + '>' + ui.esc(v.label) + '</option>'; }).join(''));
 		return html`<div class="ps-card ps-toolbar"><div class="ps-toolbar__row">
-			<input type="search" class="ps-input ps-search" placeholder="🔍 بحث: مشروع، شركة، صنف، فاتورة" value="${p.q || ''}" data-search>
-			<select class="ps-input ps-input--auto" data-filter="employeeId" aria-label="الموظف">${empOpts}</select>
-			<select class="ps-input ps-input--auto" data-filter="offerStatus" aria-label="الحالة">${stOpts}</select>
-			${p.notSentReasonId ? html`<span class="ps-chip">سبب: ${L.label(Number(p.notSentReasonId))} <button type="button" class="ps-chip__x" data-clear="notSentReasonId">×</button></span>` : ''}
-			${p.itemTypeId ? html`<span class="ps-chip">الصنف: ${L.label(Number(p.itemTypeId))} <button type="button" class="ps-chip__x" data-clear="itemTypeId">×</button></span>` : ''}
-			<label class="ps-check"><input type="checkbox" data-filter="late" ${p.late ? ui.raw('checked') : ''}> ⚠ لازم قرار فقط</label>
+			<input type="search" class="ps-input ps-search" placeholder="🔍 ${PS.t('بحث: مشروع، شركة، صنف، فاتورة')}" value="${p.q || ''}" data-search>
+			<select class="ps-input ps-input--auto" data-filter="employeeId" aria-label="${PS.t('الموظف')}">${empOpts}</select>
+			<select class="ps-input ps-input--auto" data-filter="offerStatus" aria-label="${PS.t('الحالة')}">${stOpts}</select>
+			${p.notSentReasonId ? html`<span class="ps-chip">${PS.t('سبب:')} ${L.label(Number(p.notSentReasonId))} <button type="button" class="ps-chip__x" data-clear="notSentReasonId">×</button></span>` : ''}
+			${p.itemTypeId ? html`<span class="ps-chip">${PS.t('الصنف:')} ${L.label(Number(p.itemTypeId))} <button type="button" class="ps-chip__x" data-clear="itemTypeId">×</button></span>` : ''}
+			<label class="ps-check"><input type="checkbox" data-filter="late" ${p.late ? ui.raw('checked') : ''}> ⚠ ${PS.t('لازم قرار فقط')}</label>
 			${PS.router.can('ps_export') ? html`<button type="button" class="ps-btn" data-export="csv">⬇ CSV</button><button type="button" class="ps-btn" data-export="xlsx">⬇ Excel</button>` : ''}
 		</div></div>`;
 	}
 
 	function statusCell(r) {
 		if (!r.canEdit) return html`${L.offerBadge(r.offerStatusCode)}${r.offerStatusCode === 'not_sent' && r.notSentReasonId ? html`<div class="ps-small ps-muted">${L.label(r.notSentReasonId)}</div>` : ''}`;
-		return html`<select class="ps-input ps-input--sm" data-field="offerStatusId" aria-label="حالة العرض">${ui.raw(L.options('offer_status', r.offerStatusId, { noEmpty: true }))}</select>
-			${r.offerStatusCode === 'not_sent' ? html`<button type="button" class="ps-link ps-small" data-reason>${r.notSentReasonId ? L.label(r.notSentReasonId) : 'سبب؟'}</button>` : ''}`;
+		return html`<select class="ps-input ps-input--sm" data-field="offerStatusId" aria-label="${PS.t('حالة العرض')}">${ui.raw(L.options('offer_status', r.offerStatusId, { noEmpty: true }))}</select>
+			${r.offerStatusCode === 'not_sent' ? html`<button type="button" class="ps-link ps-small" data-reason>${r.notSentReasonId ? L.label(r.notSentReasonId) : PS.t('سبب؟')}</button>` : ''}`;
 	}
 
 	function input(r, field, type, cls) {
@@ -118,7 +118,7 @@ PS.items = (function () {
 			<td>${L.label(r.itemTypeId)}${r.quantity ? html` <span class="ps-muted">×${F.number(r.quantity)}</span>` : ''}</td>
 			<td>${L.label(r.employeeId)}</td>
 			<td>${L.badge(r.urgencyId)}</td>
-			<td>${F.date(r.dueDate)}${r.computed.late ? html` <span class="ps-badge ps-badge--danger">لازم قرار</span>` : ''}</td>
+			<td>${F.date(r.dueDate)}${r.computed.late ? html` <span class="ps-badge ps-badge--danger">${PS.t('لازم قرار')}</span>` : ''}</td>
 			<td>${input(r, 'offerDate', 'date')}</td>
 			<td>${statusCell(r)}</td>
 			<td>${input(r, 'offerInvoiceNo', 'text', 'ps-input--code')}</td>
@@ -129,9 +129,9 @@ PS.items = (function () {
 	function cardHtml(r) {
 		const cls = r.computed.rowColor === 'late' ? 'is-late' : r.computed.rowColor === 'done' ? 'is-done' : '';
 		return html`<div class="ps-icard ${cls}" data-row="${r.id}">
-			<div class="ps-pcard__top"><a class="ps-mono" href="#/projet?id=${r.projectId}">${r.projectNo}</a> ${L.badge(r.urgencyId)} ${r.computed.late ? html`<span class="ps-badge ps-badge--danger">لازم قرار</span>` : ''}</div>
+			<div class="ps-pcard__top"><a class="ps-mono" href="#/projet?id=${r.projectId}">${r.projectNo}</a> ${L.badge(r.urgencyId)} ${r.computed.late ? html`<span class="ps-badge ps-badge--danger">${PS.t('لازم قرار')}</span>` : ''}</div>
 			<div class="ps-pcard__name">${L.label(r.itemTypeId)} — ${r.projectName}</div>
-			<div class="ps-small ps-muted">${L.label(r.employeeId)} · الأجل ${F.date(r.dueDate)}</div>
+			<div class="ps-small ps-muted">${L.label(r.employeeId)} · ${PS.t('الأجل')} ${F.date(r.dueDate)}</div>
 			<div class="ps-icard__edit">${statusCell(r)}</div>
 		</div>`;
 	}
@@ -140,14 +140,14 @@ PS.items = (function () {
 		const d = st.data;
 		const box = st.main.querySelector('[data-results]');
 		const counter = st.main.querySelector('[data-decision]');
-		counter.innerHTML = html`<button type="button" class="ps-decision ${d.needDecisionAll ? 'is-on' : ''}" data-action="only-late">⚠ لازم قرار: <strong>${d.needDecisionAll}</strong>${PS.config.user.employeeId ? html` <span class="ps-muted">(منها ${d.needDecisionMine} لك)</span>` : ''}</button>`.html;
+		counter.innerHTML = html`<button type="button" class="ps-decision ${d.needDecisionAll ? 'is-on' : ''}" data-action="only-late">⚠ ${PS.t('لازم قرار:')} <strong>${d.needDecisionAll}</strong>${PS.config.user.employeeId ? html` <span class="ps-muted">(${PS.t('منها')} ${d.needDecisionMine} ${PS.t('لك')})</span>` : ''}</button>`.html;
 		if (!d.rows.length) {
-			box.innerHTML = ui.empty('📨', 'لا توجد أصناف تطابق الفلاتر.').html;
+			box.innerHTML = ui.empty('📨', PS.t('لا توجد أصناف تطابق الفلاتر.')).html;
 			return;
 		}
-		box.innerHTML = html`<p class="ps-muted ps-small" role="status">${d.total} صنف · <span class="ps-legend ps-legend--late"></span> متأخر (لازم قرار) · <span class="ps-legend ps-legend--done"></span> مقبول</p>
+		box.innerHTML = html`<p class="ps-muted ps-small" role="status">${d.total} ${PS.t('صنف ·')} <span class="ps-legend ps-legend--late"></span> ${PS.t('متأخر (لازم قرار) ·')} <span class="ps-legend ps-legend--done"></span> ${PS.t('مقبول')}</p>
 			<div class="ps-table-wrap ps-desktop-only"><table class="ps-table ps-table--list ps-table--edit">
-				<thead><tr><th>رقم المشروع</th><th>الصنف</th><th>الموظف المسؤول</th><th>الاستعجال</th><th>الأجل المطلوب</th><th>تاريخ تقديم العرض</th><th>الحالة</th><th>رقم فاتورة العرض</th><th>ملاحظات</th></tr></thead>
+				<thead><tr><th>${PS.t('رقم المشروع')}</th><th>${PS.t('الصنف')}</th><th>${PS.t('الموظف المسؤول')}</th><th>${PS.t('الاستعجال')}</th><th>${PS.t('الأجل المطلوب')}</th><th>${PS.t('تاريخ تقديم العرض')}</th><th>${PS.t('الحالة')}</th><th>${PS.t('رقم فاتورة العرض')}</th><th>${PS.t('ملاحظات')}</th></tr></thead>
 				<tbody>${d.rows.map(rowHtml)}</tbody></table></div>
 			<div class="ps-cards ps-mobile-only">${d.rows.map(cardHtml)}</div>`.html;
 	}
@@ -213,15 +213,15 @@ PS.items = (function () {
 	}
 
 	function render() {
-		st.main.innerHTML = html`<div class="ps-page-head"><h1>متابعة العروض</h1><div data-decision class="ps-page-head__actions"></div></div>
-			${filters()}<div data-results><div class="ps-loading">جاري التحميل…</div></div>`.html;
+		st.main.innerHTML = html`<div class="ps-page-head"><h1>${PS.t('متابعة العروض')}</h1><div data-decision class="ps-page-head__actions"></div></div>
+			${filters()}<div data-results><div class="ps-loading">${PS.t('جاري التحميل…')}</div></div>`.html;
 		bind();
 		return load();
 	}
 
 	PS.router.register({
 		id: 'offres',
-		title: 'متابعة العروض',
+		title: PS.t('متابعة العروض'),
 		icon: '📨',
 		cap: 'ps_access',
 		order: 40,

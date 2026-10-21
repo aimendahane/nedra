@@ -50,14 +50,14 @@ PS.session = (function () {
 
 	/* ---- Mode nuit ---- */
 	const THEMES = ['auto', 'dark', 'light'];
-	const THEME_LABELS = { auto: 'تلقائي (حسب الجهاز)', dark: 'الوضع الليلي', light: 'الوضع النهاري' };
+	const THEME_LABELS = { auto: PS.t('تلقائي (حسب الجهاز)'), dark: PS.t('الوضع الليلي'), light: PS.t('الوضع النهاري') };
 	const THEME_ICONS = { auto: 'auto', dark: 'moon', light: 'sun' };
 
 	function showThemeIcon(theme) {
 		const icon = document.getElementById('ps-theme-icon');
 		if (icon) icon.innerHTML = PS.icons.svg(THEME_ICONS[theme] || THEME_ICONS.auto);
 		const btn = document.getElementById('ps-theme-toggle');
-		if (btn) btn.title = THEME_LABELS[theme] + ' — اضغط للتغيير';
+		if (btn) btn.title = THEME_LABELS[theme] + PS.t(' — اضغط للتغيير');
 	}
 
 	function setTheme(theme) {
@@ -69,8 +69,29 @@ PS.session = (function () {
 		PS.ui.toast(THEME_LABELS[theme]);
 	}
 
+	/* ---- Langue de l'interface (1.3.0) ---- */
+	function initLang() {
+		const btn = document.getElementById('ps-lang');
+		const panel = document.getElementById('ps-lang-panel');
+		if (!btn || !panel) return;
+		btn.addEventListener('click', function (e) {
+			e.stopPropagation();
+			panel.hidden = !panel.hidden;
+			btn.setAttribute('aria-expanded', String(!panel.hidden));
+		});
+		panel.addEventListener('click', function (e) {
+			const b = e.target.closest('[data-lang]');
+			if (!b || b.dataset.lang === PS.i18n.lang) { panel.hidden = true; return; }
+			// Enregistré sur le compte, puis rechargement : textes, sens d'écriture et graphiques changent ensemble.
+			PS.api.post('me/prefs', { lang: b.dataset.lang }).then(function () { window.location.reload(); })
+				.catch(function (er) { PS.ui.toast(er.message, 'error'); });
+		});
+		document.addEventListener('click', function () { panel.hidden = true; btn.setAttribute('aria-expanded', 'false'); });
+	}
+
 	function init() {
 		watch();
+		initLang();
 		const btnLogout = document.getElementById('ps-logout');
 		if (btnLogout) btnLogout.addEventListener('click', logout);
 		const btnTheme = document.getElementById('ps-theme-toggle');

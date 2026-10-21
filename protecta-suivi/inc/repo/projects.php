@@ -94,6 +94,11 @@ function ps_list_label( $id ): ?string {
 	return ( 'place' === $r['list_key'] && $r['code'] ) ? $r['code'] . ' – ' . $r['label'] : $r['label'];
 }
 
+/** Libellé de liste dans la langue de l'interface (valeurs par défaut traduites ; e-mails, exports). */
+function ps_list_label_t( $id ): string {
+	return ps__( (string) ps_list_label( $id ) );
+}
+
 /** Code d'une valeur de liste. */
 function ps_list_code( $id ): ?string {
 	return $id ? ( ps_lists_by_id()[ (int) $id ]['code'] ?? null ) : null;
@@ -275,7 +280,7 @@ function ps_project_save( array $in, ?array $existing, int $user_id ) {
 	} catch ( Throwable $e ) {
 		$wpdb->query( 'ROLLBACK' );
 		error_log( '[protecta-suivi] save error: ' . $e->getMessage() ); // phpcs:ignore
-		return new WP_Error( 'ps_save_failed', 'تعذّر حفظ المشروع: ' . $e->getMessage(), array( 'status' => 500 ) );
+		return new WP_Error( 'ps_save_failed', ps__( 'تعذّر حفظ المشروع: ' ) . $e->getMessage(), array( 'status' => 500 ) );
 	}
 }
 
@@ -310,13 +315,13 @@ function ps_project_insert( array $f, int $user_id, string $now ) {
 			return (int) $wpdb->insert_id;
 		}
 		if ( str_contains( $wpdb->last_error, 'offer_no' ) ) {
-			return new WP_Error( 'ps_offer_no', 'رقم العرض مستعمل' );
+			return new WP_Error( 'ps_offer_no', ps__( 'رقم العرض مستعمل' ) );
 		}
 		if ( ! str_contains( $wpdb->last_error, 'Duplicate' ) ) {
 			return new WP_Error( 'ps_db', $wpdb->last_error );
 		}
 	}
-	return new WP_Error( 'ps_numbering', 'تعذّر توليد رقم المشروع، حاول مرة أخرى' );
+	return new WP_Error( 'ps_numbering', ps__( 'تعذّر توليد رقم المشروع، حاول مرة أخرى' ) );
 }
 
 /**

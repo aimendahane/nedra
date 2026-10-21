@@ -77,19 +77,19 @@ function ps_item_update( array $item, array $project, array $body, int $user_id 
 			if ( $v ) {
 				$row = $lists[ $v ] ?? null;
 				if ( ! $row || $row['list_key'] !== $list_key ) {
-					$errors[ $key ] = 'قيمة غير موجودة في القائمة';
+					$errors[ $key ] = ps__( 'قيمة غير موجودة في القائمة' );
 				} elseif ( $row['is_hidden'] && (int) $item[ $col ] !== $v ) {
-					$errors[ $key ] = 'هذه القيمة لم تعد متاحة';
+					$errors[ $key ] = ps__( 'هذه القيمة لم تعد متاحة' );
 				} elseif ( 'delivery_status' === $list_key && 'late' === $row['code'] ) {
-					$errors[ $key ] = '«متأخر» تُحسب تلقائيًا ولا تُختار';
+					$errors[ $key ] = ps__( '«متأخر» تُحسب تلقائيًا ولا تُختار' );
 				}
 			} elseif ( 'offer_status_id' === $col ) {
-				$errors[ $key ] = 'اختر حالة العرض';
+				$errors[ $key ] = ps__( 'اختر حالة العرض' );
 			}
 		} elseif ( 'date' === $type ) {
 			$v = ps_clean_text( $v );
 			if ( null !== $v && ! ps_is_valid_date( $v ) ) {
-				$errors[ $key ] = 'تاريخ غير صحيح';
+				$errors[ $key ] = ps__( 'تاريخ غير صحيح' );
 			}
 		} else {
 			$v = ps_clean_text( $v, 'textarea' === $type );
@@ -103,7 +103,7 @@ function ps_item_update( array $item, array $project, array $body, int $user_id 
 
 	// « لم يُرسل » → سبب عدم الإرسال obligatoire.
 	if ( 'not_sent' === $offer_code && ! $new['not_sent_reason_id'] && ! isset( $errors['notSentReasonId'] ) ) {
-		$errors['notSentReasonId'] = 'اختر سبب عدم الإرسال';
+		$errors['notSentReasonId'] = ps__( 'اختر سبب عدم الإرسال' );
 	}
 
 	// Offre envoyée → تاريخ إرسال العرض du projet obligatoire (décision n°5).
@@ -111,14 +111,14 @@ function ps_item_update( array $item, array $project, array $body, int $user_id 
 	if ( in_array( $offer_code, array( 'sent', 'accepted', 'rejected' ), true ) && empty( $project['sent_date'] ) ) {
 		$project_sent = ps_clean_text( $body['projectSentDate'] ?? null );
 		if ( null === $project_sent || ! ps_is_valid_date( $project_sent ) ) {
-			$errors['projectSentDate'] = 'تاريخ إرسال العرض إجباري عند إرسال العرض';
+			$errors['projectSentDate'] = ps__( 'تاريخ إرسال العرض إجباري عند إرسال العرض' );
 		} elseif ( ! empty( ps_validation_rules()['sent_after_received'] ) && $project_sent < $project['received_date'] ) {
-			$errors['projectSentDate'] = 'تاريخ الإرسال لازم يكون بعد تاريخ الاستلام أو نفس اليوم';
+			$errors['projectSentDate'] = ps__( 'تاريخ الإرسال لازم يكون بعد تاريخ الاستلام أو نفس اليوم' );
 		}
 	}
 
 	if ( $errors ) {
-		return new WP_Error( 'ps_validation', 'يرجى تصحيح الخانات المعلّمة', array( 'status' => 422, 'errors' => $errors ) );
+		return new WP_Error( 'ps_validation', ps__( 'يرجى تصحيح الخانات المعلّمة' ), array( 'status' => 422, 'errors' => $errors ) );
 	}
 
 	if ( 'sent' === $changed_to && empty( $new['offer_date'] ) ) {
@@ -145,7 +145,7 @@ function ps_item_update( array $item, array $project, array $body, int $user_id 
 	}
 	if ( $wpdb->last_error ) {
 		$wpdb->query( 'ROLLBACK' );
-		return new WP_Error( 'ps_save_failed', 'تعذّر الحفظ', array( 'status' => 500 ) );
+		return new WP_Error( 'ps_save_failed', ps__( 'تعذّر الحفظ' ), array( 'status' => 500 ) );
 	}
 	$wpdb->query( 'COMMIT' );
 	return true;

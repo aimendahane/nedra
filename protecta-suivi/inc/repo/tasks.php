@@ -21,9 +21,9 @@ defined( 'ABSPATH' ) || exit;
 /** Statuts possibles. */
 function ps_task_statuses(): array {
 	return array(
-		'open'      => 'مفتوحة',
-		'done'      => 'تمت',
-		'cancelled' => 'ملغاة',
+		'open'      => ps__( 'مفتوحة' ),
+		'done'      => ps__( 'تمت' ),
+		'cancelled' => ps__( 'ملغاة' ),
 	);
 }
 
@@ -145,7 +145,7 @@ function ps_task_input( array $b, ?array $existing = null ) {
 		$emp = ps_clean_id( $emp );
 		$row = $emp ? ps_list_value_raw( $emp ) : null;
 		if ( ! $row || 'employee' !== $row['list_key'] ) {
-			$errors['employeeId'] = 'اختر الموظف';
+			$errors['employeeId'] = ps__( 'اختر الموظف' );
 		} else {
 			$set['employee_id'] = $emp;
 		}
@@ -154,9 +154,9 @@ function ps_task_input( array $b, ?array $existing = null ) {
 	if ( false !== $title ) {
 		$title = ps_clean_text( $title );
 		if ( null === $title ) {
-			$errors['title'] = 'اكتب المهمة';
+			$errors['title'] = ps__( 'اكتب المهمة' );
 		} elseif ( mb_strlen( $title ) > 255 ) {
-			$errors['title'] = 'المهمة طويلة جدًا (255 حرفًا كحد أقصى) — ضع التفاصيل في الملاحظة';
+			$errors['title'] = ps__( 'المهمة طويلة جدًا (255 حرفًا كحد أقصى) — ضع التفاصيل في الملاحظة' );
 		} else {
 			$set['title'] = $title;
 		}
@@ -169,7 +169,7 @@ function ps_task_input( array $b, ?array $existing = null ) {
 	if ( false !== $due ) {
 		$due = ps_clean_text( $due );
 		if ( null !== $due && ! ps_is_valid_date( $due ) ) {
-			$errors['dueDate'] = 'تاريخ غير صالح';
+			$errors['dueDate'] = ps__( 'تاريخ غير صالح' );
 		} else {
 			$set['due_date'] = $due;
 		}
@@ -178,13 +178,13 @@ function ps_task_input( array $b, ?array $existing = null ) {
 	if ( false !== $pid ) {
 		$pid = ps_clean_id( $pid );
 		if ( $pid && ! $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . ps_table( 'projects' ) . ' WHERE id = %d AND deleted_at IS NULL', $pid ) ) ) {
-			$errors['projectId'] = 'المشروع غير موجود';
+			$errors['projectId'] = ps__( 'المشروع غير موجود' );
 		} else {
 			$set['project_id'] = $pid;
 		}
 	}
 	if ( $errors ) {
-		return new WP_Error( 'ps_validation', 'يرجى تصحيح الخانات المعلّمة', array( 'status' => 422, 'errors' => $errors ) );
+		return new WP_Error( 'ps_validation', ps__( 'يرجى تصحيح الخانات المعلّمة' ), array( 'status' => 422, 'errors' => $errors ) );
 	}
 	return $set;
 }
@@ -198,7 +198,7 @@ function ps_task_create( array $b, int $user_id, ?array $voice = null ) {
 	global $wpdb;
 	// Message vocal seul : un titre par défaut suffit.
 	if ( $voice && '' === trim( (string) ( $b['title'] ?? '' ) ) ) {
-		$b['title'] = '🎙 رسالة صوتية';
+		$b['title'] = ps__( '🎙 رسالة صوتية' );
 	}
 	$set = ps_task_input( $b );
 	if ( is_wp_error( $set ) ) {
@@ -215,7 +215,7 @@ function ps_task_create( array $b, int $user_id, ?array $voice = null ) {
 	$wpdb->insert( ps_table( 'tasks' ), $set + array( 'status' => 'open', 'created_by' => $user_id, 'created_at' => $now, 'updated_at' => $now ) );
 	$id = (int) $wpdb->insert_id;
 	if ( ! $id ) {
-		return new WP_Error( 'ps_db', 'تعذّر الحفظ', array( 'status' => 500 ) );
+		return new WP_Error( 'ps_db', ps__( 'تعذّر الحفظ' ), array( 'status' => 500 ) );
 	}
 	ps_log( $set['project_id'] ?? null, 'create', 'task', $id, null, null, $set['title'] . ' → ' . ps_list_label( $set['employee_id'] ), $user_id );
 	ps_task_notify( ps_task_row( $id ) );
@@ -235,25 +235,25 @@ function ps_task_update( array $task, string $action, array $b, int $user_id ) {
 	switch ( $action ) {
 		case 'done':
 			if ( 'open' !== $task['status'] ) {
-				return new WP_Error( 'ps_state', 'المهمة ليست مفتوحة', array( 'status' => 409 ) );
+				return new WP_Error( 'ps_state', ps__( 'المهمة ليست مفتوحة' ), array( 'status' => 409 ) );
 			}
 			$set = array( 'status' => 'done', 'done_by' => $user_id, 'done_at' => $now, 'done_note' => ps_clean_text( $b['doneNote'] ?? null, true ) );
 			break;
 		case 'reopen':
 			if ( 'done' !== $task['status'] ) {
-				return new WP_Error( 'ps_state', 'المهمة غير منجزة', array( 'status' => 409 ) );
+				return new WP_Error( 'ps_state', ps__( 'المهمة غير منجزة' ), array( 'status' => 409 ) );
 			}
 			$set = array( 'status' => 'open', 'done_by' => null, 'done_at' => null );
 			break;
 		case 'cancel':
 			if ( 'open' !== $task['status'] ) {
-				return new WP_Error( 'ps_state', 'المهمة ليست مفتوحة', array( 'status' => 409 ) );
+				return new WP_Error( 'ps_state', ps__( 'المهمة ليست مفتوحة' ), array( 'status' => 409 ) );
 			}
 			$set = array( 'status' => 'cancelled' );
 			break;
 		case 'edit':
 			if ( 'open' !== $task['status'] ) {
-				return new WP_Error( 'ps_state', 'لا يمكن تعديل مهمة منجزة أو ملغاة', array( 'status' => 409 ) );
+				return new WP_Error( 'ps_state', ps__( 'لا يمكن تعديل مهمة منجزة أو ملغاة' ), array( 'status' => 409 ) );
 			}
 			$set = ps_task_input( $b, $task );
 			if ( is_wp_error( $set ) ) {
@@ -261,7 +261,7 @@ function ps_task_update( array $task, string $action, array $b, int $user_id ) {
 			}
 			break;
 		default:
-			return new WP_Error( 'ps_validation', 'إجراء غير معروف', array( 'status' => 422 ) );
+			return new WP_Error( 'ps_validation', ps__( 'إجراء غير معروف' ), array( 'status' => 422 ) );
 	}
 	foreach ( $set as $col => $v ) {
 		if ( (string) $task[ $col ] !== (string) $v && 'done_at' !== $col ) {
@@ -305,22 +305,28 @@ function ps_task_notify( ?array $task ): int {
 		if ( $creator && $u->ID === $creator->ID ) {
 			continue;
 		}
-		ps_task_telegram( $u, $task, $creator );
-		if ( ! is_email( $u->user_email ) ) {
-			continue;
-		}
-		$h  = '<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;color:#1F2733;max-width:640px;margin:auto;border-top:4px solid #E8571F;padding:16px">';
-		$h .= '<h2 style="color:#385B9A;margin:0 0 8px">مهمة جديدة</h2>';
-		$h .= '<p style="font-size:16px;font-weight:bold;margin:0 0 8px">' . esc_html( $task['title'] ) . '</p>';
-		$h .= $task['due_date'] ? '<p style="margin:0 0 4px">الأجل: <strong>' . esc_html( wp_date( 'd/m/Y', strtotime( $task['due_date'] . ' 12:00:00' ) ) ) . '</strong></p>' : '';
-		$h .= $creator ? '<p style="margin:0 0 4px">من: ' . esc_html( $creator->display_name ) . '</p>' : '';
-		$h .= $task['note'] ? '<p style="white-space:pre-line;background:#F4F6FA;padding:10px;border-radius:6px">' . esc_html( $task['note'] ) . '</p>' : '';
-		$h .= '<p style="margin-top:20px"><a href="' . $app . '" style="background:#385B9A;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">فتح مهامي</a></p></div>';
-		if ( true === ps_mail_send( $u->user_email, 'مهمة جديدة: ' . $task['title'], $h ) ) {
-			++$sent;
-		}
+		// Dans la langue du destinataire (1.3.0).
+		$sent += (int) ps_with_lang( $u, static fn() => ps_task_notify_user( $u, $task, $creator, $app ) );
 	}
 	return $sent;
+}
+
+/**
+ * Prévient UN employé d'une nouvelle tâche : Telegram (s'il est lié) puis e-mail. @return bool e-mail parti.
+ */
+function ps_task_notify_user( WP_User $u, array $task, ?WP_User $creator, string $app ): bool {
+	ps_task_telegram( $u, $task, $creator );
+	if ( ! is_email( $u->user_email ) ) {
+		return false;
+	}
+	$h  = '<div dir="' . ps_dir() . '" style="font-family:Tahoma,Arial,sans-serif;color:#1F2733;max-width:640px;margin:auto;border-top:4px solid #E8571F;padding:16px">';
+	$h .= '<h2 style="color:#385B9A;margin:0 0 8px">' . ps__( 'مهمة جديدة' ) . '</h2>';
+	$h .= '<p style="font-size:16px;font-weight:bold;margin:0 0 8px">' . esc_html( $task['title'] ) . '</p>';
+	$h .= $task['due_date'] ? '<p style="margin:0 0 4px">' . ps__( 'الأجل:' ) . ' <strong>' . esc_html( wp_date( 'd/m/Y', strtotime( $task['due_date'] . ' 12:00:00' ) ) ) . '</strong></p>' : '';
+	$h .= $creator ? '<p style="margin:0 0 4px">' . ps__( 'من:' ) . ' ' . esc_html( $creator->display_name ) . '</p>' : '';
+	$h .= $task['note'] ? '<p style="white-space:pre-line;background:#F4F6FA;padding:10px;border-radius:6px">' . esc_html( $task['note'] ) . '</p>' : '';
+	$h .= '<p style="margin-top:20px"><a href="' . $app . '" style="background:#385B9A;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">' . ps__( 'فتح مهامي' ) . '</a></p></div>';
+	return true === ps_mail_send( $u->user_email, ps__( 'مهمة جديدة: ' ) . $task['title'], $h );
 }
 
 /**
@@ -330,11 +336,11 @@ function ps_task_telegram( WP_User $u, array $task, ?WP_User $creator ): void {
 	if ( '' === ps_tg_chat_id( $u->ID ) || ! ps_tg_enabled() ) {
 		return;
 	}
-	$h  = '📌 <b>مهمة جديدة</b>' . "\n" . '<b>' . esc_html( $task['title'] ) . '</b>' . "\n";
-	$h .= $task['due_date'] ? '📅 الأجل: ' . esc_html( wp_date( 'd/m/Y', strtotime( $task['due_date'] . ' 12:00:00' ) ) ) . "\n" : '';
-	$h .= $creator ? '👤 من: ' . esc_html( $creator->display_name ) . "\n" : '';
+	$h  = '📌 <b>' . ps__( 'مهمة جديدة' ) . '</b>' . "\n" . '<b>' . esc_html( $task['title'] ) . '</b>' . "\n";
+	$h .= $task['due_date'] ? ps__( '📅 الأجل: ' ) . esc_html( wp_date( 'd/m/Y', strtotime( $task['due_date'] . ' 12:00:00' ) ) ) . "\n" : '';
+	$h .= $creator ? ps__( '👤 من: ' ) . esc_html( $creator->display_name ) . "\n" : '';
 	$h .= $task['note'] ? "\n" . esc_html( $task['note'] ) : '';
-	ps_tg_send_user( $u, $h, home_url( '/#/taches' ), 'فتح مهامي' );
+	ps_tg_send_user( $u, $h, home_url( '/#/taches' ), ps__( 'فتح مهامي' ) );
 	if ( ! empty( $task['voice_path'] ) ) {
 		ps_tg_send_voice( $u, ps_storage_dir( 'files/' . $task['voice_path'] ), (string) $task['voice_mime'], '🎙 ' . esc_html( $task['title'] ) );
 	}
@@ -367,10 +373,10 @@ const PS_VOICE_MAX_BYTES   = 12 * MB_IN_BYTES;
  */
 function ps_task_store_voice( array $upload, int $seconds ) {
 	if ( ! empty( $upload['error'] ) || empty( $upload['tmp_name'] ) || ( ! is_uploaded_file( $upload['tmp_name'] ) && ! defined( 'PS_TESTING' ) ) ) {
-		return new WP_Error( 'ps_voice', 'فشل رفع الرسالة الصوتية', array( 'status' => 400 ) );
+		return new WP_Error( 'ps_voice', ps__( 'فشل رفع الرسالة الصوتية' ), array( 'status' => 400 ) );
 	}
 	if ( (int) $upload['size'] <= 0 || (int) $upload['size'] > PS_VOICE_MAX_BYTES ) {
-		return new WP_Error( 'ps_voice_size', 'الرسالة الصوتية كبيرة جدًا (5 دقائق كحد أقصى)', array( 'status' => 400 ) );
+		return new WP_Error( 'ps_voice_size', ps__( 'الرسالة الصوتية كبيرة جدًا (5 دقائق كحد أقصى)' ), array( 'status' => 400 ) );
 	}
 	$mime = function_exists( 'finfo_open' ) ? (string) finfo_file( finfo_open( FILEINFO_MIME_TYPE ), $upload['tmp_name'] ) : '';
 	$ext  = null;
@@ -381,20 +387,20 @@ function ps_task_store_voice( array $upload, int $seconds ) {
 		}
 	}
 	if ( ! $ext ) {
-		return new WP_Error( 'ps_voice_type', 'صيغة الصوت غير مدعومة', array( 'status' => 400 ) );
+		return new WP_Error( 'ps_voice_type', ps__( 'صيغة الصوت غير مدعومة' ), array( 'status' => 400 ) );
 	}
 	if ( ! ps_ensure_storage() ) {
-		return new WP_Error( 'ps_storage', 'تعذّر إنشاء مجلد الملفات', array( 'status' => 500 ) );
+		return new WP_Error( 'ps_storage', ps__( 'تعذّر إنشاء مجلد الملفات' ), array( 'status' => 500 ) );
 	}
 	$sub = 'voice/' . current_time( 'Y/m' );
 	if ( ! wp_mkdir_p( ps_storage_dir( 'files/' . $sub ) ) ) {
-		return new WP_Error( 'ps_storage', 'تعذّر إنشاء مجلد الملفات', array( 'status' => 500 ) );
+		return new WP_Error( 'ps_storage', ps__( 'تعذّر إنشاء مجلد الملفات' ), array( 'status' => 500 ) );
 	}
 	$stored = $sub . '/' . bin2hex( random_bytes( 16 ) ) . '.' . $ext;
 	$dest   = ps_storage_dir( 'files/' . $stored );
 	$moved  = defined( 'PS_TESTING' ) ? copy( $upload['tmp_name'], $dest ) : move_uploaded_file( $upload['tmp_name'], $dest );
 	if ( ! $moved ) {
-		return new WP_Error( 'ps_storage', 'تعذّر حفظ الرسالة الصوتية', array( 'status' => 500 ) );
+		return new WP_Error( 'ps_storage', ps__( 'تعذّر حفظ الرسالة الصوتية' ), array( 'status' => 500 ) );
 	}
 	return array(
 		'voice_path'    => $stored,

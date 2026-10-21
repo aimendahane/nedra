@@ -44,7 +44,8 @@ function ps_recap( array $filters, ?string $today = null ): array {
 	$k     = ps_stats_kpis( $facts );
 	$p     = ps_stats_kpis( $prevf );
 	$lists = ps_lists_by_id();
-	$label = fn( $id ) => $id ? ( $lists[ (int) $id ]['label'] ?? '—' ) : 'غير محدد';
+	// Libellés dans la langue de l'interface (valeurs par défaut traduites, valeurs saisies inchangées).
+	$label = fn( $id ) => $id ? ps__( $lists[ (int) $id ]['label'] ?? '—' ) : ps__( 'غير محدد' );
 
 	// Comparaison N-1 de chaque indicateur.
 	$compare = array();
@@ -100,7 +101,7 @@ function ps_recap( array $filters, ?string $today = null ): array {
 		}
 	}
 	if ( $other ) {
-		$category[] = array( 'id' => null, 'label' => 'أخرى', 'count' => $other, 'pct' => $pct( $other ), 'other' => true );
+		$category[] = array( 'id' => null, 'label' => ps__( 'أخرى' ), 'count' => $other, 'pct' => $pct( $other ), 'other' => true );
 	}
 
 	// حسب حالة المتابعة : toutes les حالات de la liste (ordre des réglages), avec couleur.
@@ -109,7 +110,7 @@ function ps_recap( array $filters, ?string $today = null ): array {
 	foreach ( ps_list_values( 'followup_status' ) as $v ) {
 		$n = $by_fs[ $v['id'] ] ?? 0;
 		if ( $n || ! $v['hidden'] ) {
-			$status[] = array( 'id' => $v['id'], 'label' => $v['label'], 'color' => $v['color'], 'type' => $v['type'], 'count' => $n, 'pct' => $pct( $n ) );
+			$status[] = array( 'id' => $v['id'], 'label' => ps__( $v['label'] ), 'color' => $v['color'], 'type' => $v['type'], 'count' => $n, 'pct' => $pct( $n ) );
 		}
 	}
 
@@ -118,7 +119,7 @@ function ps_recap( array $filters, ?string $today = null ): array {
 	$urgency = array();
 	foreach ( ps_list_values( 'urgency' ) as $v ) {
 		$n         = $by_urg[ $v['id'] ] ?? 0;
-		$urgency[] = array( 'id' => $v['id'], 'code' => $v['code'], 'label' => $v['label'], 'color' => $v['color'], 'count' => $n, 'pct' => $pct( $n ) );
+		$urgency[] = array( 'id' => $v['id'], 'code' => $v['code'], 'label' => ps__( $v['label'] ), 'color' => $v['color'], 'count' => $n, 'pct' => $pct( $n ) );
 	}
 
 	// حسب الموظف المتابع : عدد، مؤكدة، مرفوضة، مسلّمة، لم تُرسل، نسبة النجاح.
@@ -233,7 +234,7 @@ function ps_recap( array $filters, ?string $today = null ): array {
 	$ns_total = count( $ns_items );
 	$reasons  = array();
 	foreach ( $count_by( $ns_items, fn( $it ) => (int) $it['not_sent_reason'] ) as $id => $n ) {
-		$reasons[] = array( 'id' => $id ?: null, 'label' => $id ? $label( $id ) : 'بدون سبب', 'count' => $n, 'pct' => $ns_total ? round( $n / $ns_total * 100, 1 ) : 0.0 );
+		$reasons[] = array( 'id' => $id ?: null, 'label' => $id ? $label( $id ) : ps__( 'بدون سبب' ), 'count' => $n, 'pct' => $ns_total ? round( $n / $ns_total * 100, 1 ) : 0.0 );
 	}
 	$ns_types = array();
 	foreach ( $count_by( $ns_items, fn( $it ) => (int) $it['type'] ) as $id => $n ) {

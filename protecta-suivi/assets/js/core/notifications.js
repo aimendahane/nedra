@@ -23,7 +23,7 @@ PS.notifications = (function () {
 		if (!c) return;
 		c.hidden = !n;
 		c.textContent = n > 99 ? '99+' : String(n || '');
-		el('ps-bell').setAttribute('aria-label', n ? 'الإشعارات (' + n + ' جديدة)' : 'الإشعارات');
+		el('ps-bell').setAttribute('aria-label', n ? PS.t('الإشعارات (') + n + PS.t(' جديدة)') : PS.t('الإشعارات'));
 	}
 
 	function refresh() {
@@ -32,14 +32,14 @@ PS.notifications = (function () {
 
 	function renderPanel(unread) {
 		const prefs = PS.config.user.prefs || {};
-		el('ps-bell-panel').innerHTML = html`<div class="ps-bell__head"><strong>الإشعارات</strong>
-			${unread ? html`<button type="button" class="ps-btn ps-btn--small ps-btn--ghost" data-bell-all>تعليم الكل كمقروء</button>` : ''}</div>
+		el('ps-bell-panel').innerHTML = html`<div class="ps-bell__head"><strong>${PS.t('الإشعارات')}</strong>
+			${unread ? html`<button type="button" class="ps-btn ps-btn--small ps-btn--ghost" data-bell-all>${PS.t('تعليم الكل كمقروء')}</button>` : ''}</div>
 			${items.length ? html`<ul class="ps-bell__list">${items.map(function (n) {
 				return html`<li><button type="button" class="ps-bell__item ${n.read ? '' : 'is-unread'}" data-bell-id="${n.id}" data-bell-project="${n.projectId || ''}">
 					<span class="ps-bell__title">${n.title}</span><span class="ps-bell__body">${n.body || ''}</span>
 					<span class="ps-bell__meta">${n.actorName ? n.actorName + ' · ' : ''}${PS.format.dateTime(n.createdAt)}</span></button></li>`;
-			})}</ul>` : html`<p class="ps-muted ps-bell__foot">لا توجد إشعارات بعد. ستصلك هنا تغييرات المشاريع التي تتابعها.</p>`}
-			<label class="ps-check ps-bell__foot"><input type="checkbox" data-bell-mail ${prefs.instantEmail ? ui.raw('checked') : ''}> بريد فوري عند كل تغيير</label>
+			})}</ul>` : html`<p class="ps-muted ps-bell__foot">${PS.t('لا توجد إشعارات بعد. ستصلك هنا تغييرات المشاريع التي تتابعها.')}</p>`}
+			<label class="ps-check ps-bell__foot"><input type="checkbox" data-bell-mail ${prefs.instantEmail ? ui.raw('checked') : ''}> ${PS.t('بريد فوري عند كل تغيير')}</label>
 			<div class="ps-bell__foot ps-bell__tg" data-bell-tg></div>`.html;
 		renderTelegram();
 	}
@@ -55,8 +55,8 @@ PS.notifications = (function () {
 			if (!tg || !tg.enabled) { box.hidden = true; return; }
 			box.hidden = false;
 			box.innerHTML = tg.linked
-				? html`<span class="ps-tg-ok">✈ مربوط بـ Telegram</span> <button type="button" class="ps-link" data-tg-unlink>فك الربط</button>`.html
-				: html`<button type="button" class="ps-btn ps-btn--small ps-btn--tg" data-tg-link>✈ ربط Telegram</button> <span class="ps-muted">لتصلك الإشعارات على هاتفك</span>`.html;
+				? html`<span class="ps-tg-ok">✈ ${PS.t('مربوط بـ Telegram')}</span> <button type="button" class="ps-link" data-tg-unlink>${PS.t('فك الربط')}</button>`.html
+				: html`<button type="button" class="ps-btn ps-btn--small ps-btn--tg" data-tg-link>✈ ${PS.t('ربط Telegram')}</button> <span class="ps-muted">${PS.t('لتصلك الإشعارات على هاتفك')}</span>`.html;
 		};
 		if (tg) return draw();
 		PS.api.get('me/telegram', { passive: true }).then(function (r) { tg = r; draw(); }).catch(function () {});
@@ -67,7 +67,7 @@ PS.notifications = (function () {
 		const win = window.open('about:blank', '_blank');
 		PS.api.post('me/telegram/link').then(function (r) {
 			if (win) win.location.href = r.url; else window.location.href = r.url;
-			ui.toast('اضغط «Start» في Telegram ثم ارجع هنا', 'info');
+			ui.toast(PS.t('اضغط «Start» في Telegram ثم ارجع هنا'), 'info');
 			let n = 0;
 			clearInterval(tgTimer);
 			tgTimer = setInterval(function () {
@@ -77,7 +77,7 @@ PS.notifications = (function () {
 					clearInterval(tgTimer);
 					tg = s;
 					renderTelegram();
-					ui.toast('✔ تم ربط حسابك بـ Telegram', 'success');
+					ui.toast(PS.t('✔ تم ربط حسابك بـ Telegram'), 'success');
 				}).catch(function () {});
 			}, 3000);
 		}).catch(function (e) { if (win) win.close(); ui.toast(e.message, 'error'); });
@@ -87,7 +87,7 @@ PS.notifications = (function () {
 		const panel = el('ps-bell-panel');
 		panel.hidden = false;
 		el('ps-bell').setAttribute('aria-expanded', 'true');
-		panel.innerHTML = '<p class="ps-muted ps-bell__foot">جاري التحميل…</p>';
+		panel.innerHTML = ('<p class="ps-muted ps-bell__foot">' + PS.t('جاري التحميل…') + '</p>');
 		PS.api.get('notifications?limit=30').then(function (r) {
 			items = r.items;
 			setCount(r.unread);
@@ -120,7 +120,7 @@ PS.notifications = (function () {
 			}
 			if (e.target.closest('[data-tg-link]')) return linkTelegram();
 			if (e.target.closest('[data-tg-unlink]')) {
-				return PS.api.post('me/telegram/unlink').then(function (s) { tg = s; renderTelegram(); ui.toast('تم فك الربط', 'success'); });
+				return PS.api.post('me/telegram/unlink').then(function (s) { tg = s; renderTelegram(); ui.toast(PS.t('تم فك الربط'), 'success'); });
 			}
 			if (e.target.closest('[data-bell-all]')) {
 				PS.api.post('notifications/read', { all: true }).then(function () { open(); }).catch(function (er) { ui.toast(er.message, 'error'); });
@@ -131,7 +131,7 @@ PS.notifications = (function () {
 			if (!cb) return;
 			PS.api.post('me/prefs', { instantEmail: cb.checked }).then(function (u) {
 				PS.config.user.prefs = u.prefs;
-				ui.toast(cb.checked ? 'ستصلك رسالة بريد عند كل تغيير' : 'أُوقف البريد الفوري', 'success');
+				ui.toast(cb.checked ? PS.t('ستصلك رسالة بريد عند كل تغيير') : PS.t('أُوقف البريد الفوري'), 'success');
 			}).catch(function (er) { ui.toast(er.message, 'error'); });
 		});
 		document.addEventListener('click', close);

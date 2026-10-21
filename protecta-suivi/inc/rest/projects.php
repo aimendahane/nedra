@@ -100,13 +100,13 @@ function ps_register_project_routes(): void {
 }
 
 function ps_rest_not_found(): WP_Error {
-	return new WP_Error( 'ps_not_found', 'المشروع غير موجود', array( 'status' => 404 ) );
+	return new WP_Error( 'ps_not_found', ps__( 'المشروع غير موجود' ), array( 'status' => 404 ) );
 }
 
 function ps_rest_projects_list( WP_REST_Request $r ) {
 	$args = $r->get_params();
 	if ( ! empty( $args['trash'] ) && ! current_user_can( 'ps_delete' ) ) {
-		return new WP_Error( 'ps_forbidden', 'ليس لديك صلاحية لهذه العملية.', array( 'status' => 403 ) );
+		return new WP_Error( 'ps_forbidden', ps__( 'ليس لديك صلاحية لهذه العملية.' ), array( 'status' => 403 ) );
 	}
 	return rest_ensure_response( ps_projects_list( $args ) );
 }
@@ -127,7 +127,7 @@ function ps_rest_project_get( WP_REST_Request $r ) {
 function ps_rest_project_check( array $in, ?array $existing, bool $confirm_duplicates ) {
 	$errors = ps_validate_project( $in, $existing );
 	if ( $errors ) {
-		return new WP_Error( 'ps_validation', 'يرجى تصحيح الخانات المعلّمة', array( 'status' => 422, 'errors' => $errors ) );
+		return new WP_Error( 'ps_validation', ps__( 'يرجى تصحيح الخانات المعلّمة' ), array( 'status' => 422, 'errors' => $errors ) );
 	}
 	// En modification, l'avertissement ne revient que si le nom, la société ou la date changent.
 	$relevant = ! $existing
@@ -138,7 +138,7 @@ function ps_rest_project_check( array $in, ?array $existing, bool $confirm_dupli
 	if ( ! $confirm_duplicates && $relevant ) {
 		$dups = ps_find_duplicate_projects( $in, $existing ? (int) $existing['fields']['id'] : null );
 		if ( $dups ) {
-			return new WP_Error( 'ps_duplicates', 'يوجد مشروع مشابه لنفس الشركة', array( 'status' => 409, 'duplicates' => $dups ) );
+			return new WP_Error( 'ps_duplicates', ps__( 'يوجد مشروع مشابه لنفس الشركة' ), array( 'status' => 409, 'duplicates' => $dups ) );
 		}
 	}
 	return null;
@@ -167,7 +167,7 @@ function ps_rest_project_update( WP_REST_Request $r ) {
 	}
 	$uid = get_current_user_id();
 	if ( ! ps_project_edit_reason( $existing['fields'], $uid ) ) {
-		return new WP_Error( 'ps_forbidden', 'لا يمكنك تعديل هذا المشروع (فقط المسؤول عنه، الإدارة، أو من أنشأه خلال 24 ساعة).', array( 'status' => 403 ) );
+		return new WP_Error( 'ps_forbidden', ps__( 'لا يمكنك تعديل هذا المشروع (فقط المسؤول عنه، الإدارة، أو من أنشأه خلال 24 ساعة).' ), array( 'status' => 403 ) );
 	}
 	$body = (array) $r->get_json_params();
 	$in   = ps_project_input( $body );
@@ -208,11 +208,11 @@ function ps_rest_projects_bulk_source( WP_REST_Request $r ) {
 	$source = (int) $r->get_param( 'sourceId' );
 	$row    = ps_lists_by_id()[ $source ] ?? null;
 	if ( ! $row || 'source' !== $row['list_key'] || 'unspecified' === $row['code'] ) {
-		return new WP_Error( 'ps_validation', 'اختر مصدرًا صحيحًا', array( 'status' => 422 ) );
+		return new WP_Error( 'ps_validation', ps__( 'اختر مصدرًا صحيحًا' ), array( 'status' => 422 ) );
 	}
 	$ids = array_filter( array_map( 'intval', (array) $r->get_param( 'ids' ) ) );
 	if ( ! $ids ) {
-		return new WP_Error( 'ps_validation', 'لم يتم اختيار أي مشروع', array( 'status' => 422 ) );
+		return new WP_Error( 'ps_validation', ps__( 'لم يتم اختيار أي مشروع' ), array( 'status' => 422 ) );
 	}
 	return rest_ensure_response( array( 'updated' => ps_projects_bulk_source( $ids, $source, get_current_user_id() ) ) );
 }

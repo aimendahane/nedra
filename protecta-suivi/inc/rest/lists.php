@@ -50,7 +50,7 @@ function ps_rest_list_quick_add( WP_REST_Request $r ) {
 	$label = ps_clean_text( $r->get_param( 'label' ) );
 	$code  = ps_clean_text( $r->get_param( 'code' ) );
 	if ( null === $label ) {
-		return new WP_Error( 'ps_validation', 'اكتب الاسم', array( 'status' => 422 ) );
+		return new WP_Error( 'ps_validation', ps__( 'اكتب الاسم' ), array( 'status' => 422 ) );
 	}
 	$code = null === $code ? null : strtoupper( preg_replace( '/[^A-Za-z0-9]/', '', $code ) );
 	foreach ( ps_list_values( $key ) as $v ) {
@@ -58,7 +58,7 @@ function ps_rest_list_quick_add( WP_REST_Request $r ) {
 		$same_code  = $code && $v['code'] && strtoupper( $v['code'] ) === $code;
 		if ( $same_label || $same_code ) {
 			if ( $v['hidden'] ) {
-				return new WP_Error( 'ps_exists_hidden', 'هذه القيمة موجودة لكنها مخفية؛ اطلب من الإدارة إظهارها', array( 'status' => 409 ) );
+				return new WP_Error( 'ps_exists_hidden', ps__( 'هذه القيمة موجودة لكنها مخفية؛ اطلب من الإدارة إظهارها' ), array( 'status' => 409 ) );
 			}
 			return rest_ensure_response( array( 'value' => $v, 'existed' => true ) );
 		}

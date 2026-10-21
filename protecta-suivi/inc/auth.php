@@ -80,7 +80,7 @@ add_filter( 'authenticate', 'ps_login_block_if_locked', 99, 2 );
 function ps_login_block_if_locked( $user, $username ) {
 	if ( '' !== (string) $username && ps_login_is_locked( (string) $username ) ) {
 		$minutes = (int) ps_setting( 'login_window_minutes' );
-		return new WP_Error( 'ps_locked', sprintf( 'محاولات كثيرة. حاول مرة أخرى بعد %d دقيقة.', $minutes ) );
+		return new WP_Error( 'ps_locked', sprintf( ps__( 'محاولات كثيرة. حاول مرة أخرى بعد %d دقيقة.' ), $minutes ) );
 	}
 	return $user;
 }
@@ -89,7 +89,7 @@ function ps_login_block_if_locked( $user, $username ) {
 add_filter( 'authenticate', 'ps_login_block_disabled', 98, 2 );
 function ps_login_block_disabled( $user ) {
 	if ( $user instanceof WP_User && get_user_meta( $user->ID, 'ps_disabled', true ) ) {
-		return new WP_Error( 'ps_disabled', 'هذا الحساب معطّل. اتصل بالإدارة.' );
+		return new WP_Error( 'ps_disabled', ps__( 'هذا الحساب معطّل. اتصل بالإدارة.' ) );
 	}
 	return $user;
 }
@@ -212,7 +212,7 @@ add_filter( 'xmlrpc_enabled', '__return_false' );
 add_filter( 'rest_pre_dispatch', 'ps_protect_wp_users_endpoint', 10, 3 );
 function ps_protect_wp_users_endpoint( $result, $server, $request ) {
 	if ( str_starts_with( $request->get_route(), '/wp/v2/users' ) && ! current_user_can( 'list_users' ) ) {
-		return new WP_Error( 'rest_forbidden', 'غير مسموح', array( 'status' => 401 ) );
+		return new WP_Error( 'rest_forbidden', ps__( 'غير مسموح' ), array( 'status' => 401 ) );
 	}
 	return $result;
 }
@@ -249,4 +249,4 @@ function ps_clean_head(): void {
 
 // Application interne : pas d'indexation par les moteurs de recherche.
 add_filter( 'wp_robots', fn( $r ) => array( 'noindex' => true, 'nofollow' => true ) );
-add_filter( 'pre_get_document_title', fn() => 'متابعة المشاريع والعروض — Protecta Group' );
+add_filter( 'pre_get_document_title', fn() => ps__( 'متابعة المشاريع والعروض — Protecta Group' ) );

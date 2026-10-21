@@ -690,7 +690,76 @@ async function step8() {
 	await browser.close();
 }
 
-const STEPS = { step2, step3, step4, step5, step6, step7, step8 };
+/* Version 1.3.0 : langues العربية / English / Français (page de connexion, menu de l'en-tête, sens d'écriture). */
+async function step9(browser) {
+	console.log('1.3.0 — langues : English et Français');
+	const AR = /[؀-ۿ]/;
+	{
+		const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 } });
+		const page = await ctx.newPage();
+		page.on('pageerror', (e) => { failures++; console.log('  ✘ erreur JavaScript : ' + e.message); });
+		await page.goto(BASE + '/');
+		check('connexion : choix العربية / English / Français', (await page.textContent('.ps-langs')).includes('English') && (await page.textContent('.ps-langs')).includes('Français'));
+		await Promise.all([page.waitForLoadState('networkidle'), page.click('.ps-langs a[lang=en]')]);
+		check('connexion en English : <html dir="ltr" lang="en">', await page.evaluate(() => document.documentElement.dir === 'ltr' && document.documentElement.lang === 'en'));
+		check('bouton « Log in »', (await page.textContent('button[type=submit]')).includes('Log in'));
+		await page.screenshot({ path: SHOTS + '/s9-01-connexion-en.png' });
+		await page.fill('input[name=log]', 'idara');
+		await page.fill('input[name=pwd]', PASS);
+		await Promise.all([page.waitForLoadState('networkidle'), page.click('button[type=submit]')]);
+		await page.waitForSelector('.ps-nav__link');
+		const nav = await page.$$eval('.ps-nav__link', (l) => l.map((a) => a.textContent.trim()));
+		check('après connexion : application en anglais (menu)', nav.some((t) => t.includes('My tasks')) && nav.some((t) => t.includes('Settings')), nav.join(' | '));
+		check('menu latéral sans texte arabe (hors noms saisis)', !nav.some((t) => AR.test(t)), nav.join(' | '));
+		for (const [hash, shot] of [['#/projets', 's9-02-projets-en'], ['#/offres', 's9-03-offres-en'], ['#/recap', 's9-04-recap-en'], ['#/taches', 's9-05-taches-en'], ['#/parametres', 's9-06-parametres-en']]) {
+			await go(page, hash);
+			await page.waitForTimeout(hash === '#/recap' ? 1500 : 400);
+			const h1 = (await page.textContent('.ps-main h1').catch(() => '')) || '';
+			check(hash + ' : titre traduit « ' + h1.trim() + ' »', h1.trim() !== '' && !AR.test(h1), h1);
+			check(hash + ' : pas de défilement horizontal', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
+			await page.screenshot({ path: SHOTS + '/' + shot + '.png', fullPage: hash === '#/recap' });
+		}
+		await go(page, '#/projet');
+		await page.waitForSelector('[data-bind="name"]');
+		const labels = await page.$$eval('.ps-main label', (l) => l.map((x) => { const c = x.cloneNode(true); c.querySelectorAll('select, input, textarea, .ps-ac').forEach((e) => e.remove()); return c.textContent.trim(); }).filter(Boolean));
+		const arabic = labels.filter((t) => AR.test(t));
+		check('fiche « New project » : libellés des champs traduits', arabic.length === 0, arabic.slice(0, 5).join(' | '));
+		const opts = await page.$$eval('[data-bind="sourceId"] option', (o) => o.map((x) => x.textContent.trim()));
+		check('listes par défaut traduites (مباشر → Direct)', opts.includes('Direct'), opts.join(' | '));
+		await page.screenshot({ path: SHOTS + '/s9-07-fiche-en.png', fullPage: true });
+
+		// Passage en français depuis le menu de l'en-tête.
+		await page.click('#ps-lang');
+		await Promise.all([page.waitForNavigation(), page.click('#ps-lang-panel [data-lang=fr]')]);
+		await page.waitForSelector('.ps-nav__link');
+		check('menu de l\'en-tête → Français : <html lang="fr" dir="ltr">', await page.evaluate(() => document.documentElement.lang === 'fr' && document.documentElement.dir === 'ltr'));
+		const navFr = await page.$$eval('.ps-nav__link', (l) => l.map((a) => a.textContent.trim()));
+		check('menu en français (Mes tâches, Paramètres)', navFr.some((t) => t.includes('Mes tâches')) && navFr.some((t) => t.includes('Paramètres')), navFr.join(' | '));
+		await go(page, '#/recap');
+		await page.waitForTimeout(1500);
+		await page.screenshot({ path: SHOTS + '/s9-08-recap-fr.png', fullPage: true });
+		await page.click('#ps-lang');
+		await Promise.all([page.waitForNavigation(), page.click('#ps-lang-panel [data-lang=ar]')]);
+		await page.waitForSelector('.ps-nav__link');
+		check('retour à العربية : dir="rtl"', await page.evaluate(() => document.documentElement.dir === 'rtl' && document.documentElement.lang === 'ar'));
+		await ctx.close();
+	}
+	{
+		// La langue est celle du COMPTE : un autre compte reste en arabe.
+		const { ctx, page } = await newPage(browser, 'mowadhaf', true);
+		check('autre compte : toujours en العربية', await page.evaluate(() => document.documentElement.dir === 'rtl'));
+		await page.evaluate(() => PS.api.post('me/prefs', { lang: 'en' }));
+		await page.reload();
+		await page.waitForSelector('.ps-nav__link');
+		await page.click('#ps-menu-toggle').catch(() => {});
+		await page.waitForTimeout(500);
+		check('mobile en English : pas de défilement horizontal', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
+		await page.screenshot({ path: SHOTS + '/s9-09-mobile-en.png' });
+		await ctx.close();
+	}
+}
+
+const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9 };
 
 (async () => {
 	const browser = await chromium.launch();

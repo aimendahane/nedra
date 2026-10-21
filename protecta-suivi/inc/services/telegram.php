@@ -45,7 +45,7 @@ function ps_tg_bot(): string {
 function ps_tg_api( string $method, array $params = array(), ?array $file = null, ?string $token = null ) {
 	$token = $token ?? ps_tg_token();
 	if ( '' === $token ) {
-		return new WP_Error( 'ps_tg_token', 'لم يتم إعداد بوت Telegram' );
+		return new WP_Error( 'ps_tg_token', ps__( 'لم يتم إعداد بوت Telegram' ) );
 	}
 	$args = array( 'timeout' => 20 );
 	if ( $file ) {
@@ -64,7 +64,7 @@ function ps_tg_api( string $method, array $params = array(), ?array $file = null
 	}
 	$res = wp_remote_post( 'https://api.telegram.org/bot' . $token . '/' . $method, $args );
 	if ( is_wp_error( $res ) ) {
-		return new WP_Error( 'ps_tg_http', 'تعذّر الاتصال بـ Telegram: ' . $res->get_error_message() );
+		return new WP_Error( 'ps_tg_http', ps__( 'تعذّر الاتصال بـ Telegram: ' ) . $res->get_error_message() );
 	}
 	$data = json_decode( (string) wp_remote_retrieve_body( $res ), true );
 	if ( empty( $data['ok'] ) ) {
@@ -79,7 +79,7 @@ function ps_tg_api( string $method, array $params = array(), ?array $file = null
 function ps_tg_save_token( string $token ) {
 	$token = trim( $token );
 	if ( ! preg_match( '/^\d{5,}:[A-Za-z0-9_-]{30,}$/', $token ) ) {
-		return new WP_Error( 'ps_tg_token', 'رمز البوت غير صالح (انسخه كاملًا من @BotFather)' );
+		return new WP_Error( 'ps_tg_token', ps__( 'رمز البوت غير صالح (انسخه كاملًا من @BotFather)' ) );
 	}
 	$me = ps_tg_api( 'getMe', array(), null, $token );
 	if ( is_wp_error( $me ) ) {
@@ -143,15 +143,15 @@ function ps_tg_poll(): int {
 				update_user_meta( $user->ID, 'ps_tg_chat_id', $chat );
 				delete_user_meta( $user->ID, 'ps_tg_code' );
 				++$linked;
-				ps_tg_api( 'sendMessage', array( 'chat_id' => $chat, 'parse_mode' => 'HTML', 'text' => '✅ <b>' . esc_html( $user->display_name ) . '</b>' . "\n" . 'تم ربط حسابك بتطبيق «متابعة المشاريع والعروض». ستصلك هنا الإشعارات والمهام.' . "\n" . 'لإيقافها: /stop' ) );
+				ps_with_lang( $user, static fn() => ps_tg_api( 'sendMessage', array( 'chat_id' => $chat, 'parse_mode' => 'HTML', 'text' => '✅ <b>' . esc_html( $user->display_name ) . '</b>' . "\n" . ps__( 'تم ربط حسابك بتطبيق «متابعة المشاريع والعروض». ستصلك هنا الإشعارات والمهام.' ) . "\n" . ps__( 'لإيقافها: /stop' ) ) ) );
 			} else {
-				ps_tg_api( 'sendMessage', array( 'chat_id' => $chat, 'text' => '⚠️ رابط الربط غير صالح أو منتهي. أعد المحاولة من التطبيق (🔔 ← ربط Telegram).' ) );
+				ps_tg_api( 'sendMessage', array( 'chat_id' => $chat, 'text' => ps__( '⚠️ رابط الربط غير صالح أو منتهي. أعد المحاولة من التطبيق (🔔 ← ربط Telegram).' ) ) );
 			}
 		} elseif ( '/stop' === $text ) {
 			foreach ( get_users( array( 'meta_key' => 'ps_tg_chat_id', 'meta_value' => $chat ) ) as $user ) {
 				ps_tg_unlink( $user->ID );
 			}
-			ps_tg_api( 'sendMessage', array( 'chat_id' => $chat, 'text' => '🔕 تم إيقاف الإشعارات وفك ربط الحساب.' ) );
+			ps_tg_api( 'sendMessage', array( 'chat_id' => $chat, 'text' => ps__( '🔕 تم إيقاف الإشعارات وفك ربط الحساب.' ) ) );
 		}
 	}
 	return $linked;
@@ -179,7 +179,7 @@ function ps_tg_send_user( WP_User $u, string $html, ?string $url = null, string 
 		return false;
 	}
 	$p = array( 'chat_id' => $chat, 'text' => mb_substr( $html, 0, 4000 ), 'parse_mode' => 'HTML', 'disable_web_page_preview' => true );
-	if ( $url && ( $kb = ps_tg_button( $button, $url ) ) ) {
+	if ( $url && ( $kb = ps_tg_button( ps__( $button ), $url ) ) ) {
 		$p['reply_markup'] = $kb;
 	}
 	$r = ps_tg_api( 'sendMessage', $p );
@@ -221,13 +221,13 @@ function ps_tg_notification_html( string $title, array $lines, ?string $actor ):
 
 /** Résumé du matin pour Telegram (mêmes blocs que مهامي, version courte). */
 function ps_tg_digest_html( WP_User $u, array $tasks, bool $admin ): string {
-	$h  = '☀️ <b>' . esc_html( ( $admin ? 'ملخص الفريق' : 'مهامك اليوم' ) . ' — ' . wp_date( 'd/m/Y' ) ) . '</b>' . "\n";
+	$h  = '☀️ <b>' . esc_html( ( $admin ? ps__( 'ملخص الفريق' ) : ps__( 'مهامك اليوم' ) ) . ' — ' . wp_date( 'd/m/Y' ) ) . '</b>' . "\n";
 	$bl = array(
-		'assigned'     => array( '📌 مهام مُسندة', fn( $r ) => $r['title'] . ( $r['dueDate'] ? ' · ' . $r['dueDate'] : '' ) ),
-		'lateOffers'   => array( '⚠️ عروض متأخرة — لازم قرار', fn( $r ) => $r['projectNo'] . ' — ' . $r['projectName'] . ' (' . (int) $r['daysLate'] . ' يوم)' ),
-		'followupsDue' => array( '📞 متابعات اليوم', fn( $r ) => $r['projectNo'] . ' — ' . $r['projectName'] ),
-		'deliveries'   => array( '🚚 تسليمات الأسبوع', fn( $r ) => $r['projectNo'] . ' — ' . $r['deliveryDueDate'] ),
-		'noFollowup'   => array( '🕒 بدون متابعة', fn( $r ) => $r['projectNo'] . ' — ' . $r['projectName'] ),
+		'assigned'     => array( ps__( '📌 مهام مُسندة' ), fn( $r ) => $r['title'] . ( $r['dueDate'] ? ' · ' . $r['dueDate'] : '' ) ),
+		'lateOffers'   => array( ps__( '⚠️ عروض متأخرة — لازم قرار' ), fn( $r ) => $r['projectNo'] . ' — ' . $r['projectName'] . ' (' . (int) $r['daysLate'] . ps__( ' يوم)' ) ),
+		'followupsDue' => array( ps__( '📞 متابعات اليوم' ), fn( $r ) => $r['projectNo'] . ' — ' . $r['projectName'] ),
+		'deliveries'   => array( ps__( '🚚 تسليمات الأسبوع' ), fn( $r ) => $r['projectNo'] . ' — ' . $r['deliveryDueDate'] ),
+		'noFollowup'   => array( ps__( '🕒 بدون متابعة' ), fn( $r ) => $r['projectNo'] . ' — ' . $r['projectName'] ),
 	);
 	$any = false;
 	foreach ( $bl as $k => list( $label, $fmt ) ) {
@@ -243,5 +243,5 @@ function ps_tg_digest_html( WP_User $u, array $tasks, bool $admin ): string {
 			$h .= '… +' . ( count( $tasks[ $k ] ) - 8 ) . "\n";
 		}
 	}
-	return $any ? $h : $h . "\n✔ لا توجد مهام متأخرة اليوم.";
+	return $any ? $h : $h . ps__( "\n✔ لا توجد مهام متأخرة اليوم." );
 }

@@ -228,10 +228,10 @@ function ps_dir_merge( string $kind, int $from, int $into, int $user_id ) {
 	$src = ps_dir_get( $kind, $from );
 	$dst = ps_dir_get( $kind, ps_dir_resolve( $kind, $into ) );
 	if ( ! $src || ! $dst || $src['merged_into_id'] ) {
-		return new WP_Error( 'ps_not_found', 'الفيشة غير موجودة أو مدموجة مسبقًا', array( 'status' => 404 ) );
+		return new WP_Error( 'ps_not_found', ps__( 'الفيشة غير موجودة أو مدموجة مسبقًا' ), array( 'status' => 404 ) );
 	}
 	if ( (int) $src['id'] === (int) $dst['id'] ) {
-		return new WP_Error( 'ps_validation', 'لا يمكن دمج الفيشة في نفسها', array( 'status' => 422 ) );
+		return new WP_Error( 'ps_validation', ps__( 'لا يمكن دمج الفيشة في نفسها' ), array( 'status' => 422 ) );
 	}
 	$link = 'companies' === $kind ? ps_table( 'project_parties' ) : ps_table( 'project_competitors' );
 	$col  = 'companies' === $kind ? 'company_id' : 'competitor_id';
@@ -249,7 +249,7 @@ function ps_dir_merge( string $kind, int $from, int $into, int $user_id ) {
 	ps_log( null, 'merge', $kind, (int) $src['id'], null, $src['name'], $dst['name'], $user_id );
 	if ( $wpdb->last_error ) {
 		$wpdb->query( 'ROLLBACK' );
-		return new WP_Error( 'ps_db', 'تعذّر الدمج', array( 'status' => 500 ) );
+		return new WP_Error( 'ps_db', ps__( 'تعذّر الدمج' ), array( 'status' => 500 ) );
 	}
 	$wpdb->query( 'COMMIT' );
 	return count( $rows );

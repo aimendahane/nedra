@@ -18,22 +18,22 @@ PS.settingsTabs = PS.settingsTabs || {};
 	function form(u, roles) {
 		const v = u || { role: 'ps_employee', dailyEmail: true };
 		return html`<form class="ps-grid" data-user-form>
-			${u ? '' : html`<label class="ps-field ps-field--required"><span class="ps-field__label">اسم المستخدم (للدخول) *</span><input name="login" data-key="login" dir="ltr" autocomplete="off"></label>`}
-			<label class="ps-field ps-field--required"><span class="ps-field__label">الاسم الكامل *</span><input name="name" data-key="name" value="${v.name || ''}"></label>
-			<label class="ps-field ps-field--required"><span class="ps-field__label">البريد الإلكتروني *</span><input name="email" type="email" data-key="email" dir="ltr" value="${v.email || ''}"></label>
-			<label class="ps-field ${u ? '' : 'ps-field--required'}"><span class="ps-field__label">${u ? 'كلمة سر جديدة (اختياري)' : 'كلمة السر *'}</span><input name="password" type="text" data-key="password" dir="ltr" autocomplete="new-password" placeholder="8 أحرف على الأقل"></label>
-			${u && u.isWpAdmin ? '' : html`<label class="ps-field ps-field--required"><span class="ps-field__label">الدور *</span><select name="role" data-key="role">${Object.keys(roles).map(function (r) { return html`<option value="${r}" ${v.role === r ? ui.raw('selected') : ''}>${roles[r]}</option>`; })}</select></label>`}
-			<label class="ps-field"><span class="ps-field__label">الموظف المرتبط (من القائمة)</span><select name="employeeId" data-key="employeeId">${ui.raw(L.options('employee', v.employeeId, { emptyLabel: '— بدون —' }))}</select></label>
-			<label class="ps-check"><input type="checkbox" name="dailyEmail" ${v.dailyEmail ? ui.raw('checked') : ''}> البريد الصباحي (ملخص المهام)</label>
+			${u ? '' : html`<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('اسم المستخدم (للدخول) *')}</span><input name="login" data-key="login" dir="ltr" autocomplete="off"></label>`}
+			<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('الاسم الكامل *')}</span><input name="name" data-key="name" value="${v.name || ''}"></label>
+			<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('البريد الإلكتروني *')}</span><input name="email" type="email" data-key="email" dir="ltr" value="${v.email || ''}"></label>
+			<label class="ps-field ${u ? '' : 'ps-field--required'}"><span class="ps-field__label">${u ? PS.t('كلمة سر جديدة (اختياري)') : PS.t('كلمة السر *')}</span><input name="password" type="text" data-key="password" dir="ltr" autocomplete="new-password" placeholder="8 ${PS.t('أحرف على الأقل')}"></label>
+			${u && u.isWpAdmin ? '' : html`<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('الدور *')}</span><select name="role" data-key="role">${Object.keys(roles).map(function (r) { return html`<option value="${r}" ${v.role === r ? ui.raw('selected') : ''}>${roles[r]}</option>`; })}</select></label>`}
+			<label class="ps-field"><span class="ps-field__label">${PS.t('الموظف المرتبط (من القائمة)')}</span><select name="employeeId" data-key="employeeId">${ui.raw(L.options('employee', v.employeeId, { emptyLabel: PS.t('— بدون —') }))}</select></label>
+			<label class="ps-check"><input type="checkbox" name="dailyEmail" ${v.dailyEmail ? ui.raw('checked') : ''}> ${PS.t('البريد الصباحي (ملخص المهام)')}</label>
 		</form>`;
 	}
 
 	function edit(u, roles, reload) {
 		ui.modal({
-			title: u ? 'تعديل الحساب: ' + u.login : 'حساب جديد',
+			title: u ? PS.t('تعديل الحساب: ') + u.login : PS.t('حساب جديد'),
 			body: form(u, roles),
 			wide: true,
-			buttons: [{ id: 'ok', label: 'حفظ', kind: 'primary' }, { id: 'cancel', label: 'إلغاء' }],
+			buttons: [{ id: 'ok', label: PS.t('حفظ'), kind: 'primary' }, { id: 'cancel', label: PS.t('إلغاء') }],
 			onButton: function (id, box, close) {
 				if (id !== 'ok') return true;
 				const f = box.querySelector('[data-user-form]');
@@ -43,7 +43,7 @@ PS.settingsTabs = PS.settingsTabs || {};
 				if (f.password.value) body.password = f.password.value;
 				(u ? PS.api.put('users/' + u.id, body) : PS.api.post('users', body)).then(function () {
 					close('ok');
-					ui.toast('تم الحفظ', 'success');
+					ui.toast(PS.t('تم الحفظ'), 'success');
 					reload();
 				}).catch(function (e) {
 					if (e.data && e.data.data && e.data.data.errors) ui.showErrors(f, e.data.data.errors);
@@ -59,18 +59,18 @@ PS.settingsTabs = PS.settingsTabs || {};
 		return Promise.all([PS.api.get('users'), L.load()]).then(function (res) {
 			const d = res[0];
 			box.innerHTML = html`<section class="ps-card">
-				<div class="ps-page-head"><h2 class="ps-card__title">حسابات الفريق (${d.users.length})</h2><div class="ps-page-head__actions"><button type="button" class="ps-btn ps-btn--primary" data-new>+ حساب جديد</button></div></div>
-				<p class="ps-muted ps-small">لا يُحذف أي حساب: الحساب المعطّل لا يستطيع الدخول ويبقى تاريخه في المشاريع.</p>
+				<div class="ps-page-head"><h2 class="ps-card__title">${PS.t('حسابات الفريق (')}${d.users.length})</h2><div class="ps-page-head__actions"><button type="button" class="ps-btn ps-btn--primary" data-new>+ ${PS.t('حساب جديد')}</button></div></div>
+				<p class="ps-muted ps-small">${PS.t('لا يُحذف أي حساب: الحساب المعطّل لا يستطيع الدخول ويبقى تاريخه في المشاريع.')}</p>
 				<div class="ps-table-wrap"><table class="ps-table ps-table--compact">
-					<thead><tr><th>الاسم</th><th>اسم الدخول</th><th>البريد</th><th>الدور</th><th>الموظف المرتبط</th><th>البريد الصباحي</th><th>آخر نشاط</th><th>الحالة</th><th></th></tr></thead>
+					<thead><tr><th>${PS.t('الاسم')}</th><th>${PS.t('اسم الدخول')}</th><th>${PS.t('البريد')}</th><th>${PS.t('الدور')}</th><th>${PS.t('الموظف المرتبط')}</th><th>${PS.t('البريد الصباحي')}</th><th>${PS.t('آخر نشاط')}</th><th>${PS.t('الحالة')}</th><th></th></tr></thead>
 					<tbody>${d.users.map(function (u) {
 						return html`<tr class="${u.disabled ? 'ps-row-muted' : ''}" data-id="${u.id}">
 							<td><strong>${u.name}</strong></td><td dir="ltr">${u.login}</td><td dir="ltr">${u.email}</td><td>${u.roleLabel}</td>
-							<td>${u.employeeId ? L.label(u.employeeId) : html`<span class="ps-text-danger ps-small">غير مرتبط</span>`}</td>
+							<td>${u.employeeId ? L.label(u.employeeId) : html`<span class="ps-text-danger ps-small">${PS.t('غير مرتبط')}</span>`}</td>
 							<td>${u.dailyEmail ? '✔' : '—'}</td><td class="ps-nowrap">${u.lastLogin || '—'}</td>
-							<td>${u.disabled ? ui.badge('معطّل', '#e03131') : ui.badge('نشط', '#2b8a3e')}</td>
-							<td class="ps-nowrap"><button type="button" class="ps-btn ps-btn--small" data-edit>تعديل</button>
-								${u.isWpAdmin || u.id === PS.config.user.id ? '' : html`<button type="button" class="ps-btn ps-btn--small ${u.disabled ? '' : 'ps-btn--danger'}" data-toggle>${u.disabled ? 'تفعيل' : 'تعطيل'}</button>`}</td>
+							<td>${u.disabled ? ui.badge(PS.t('معطّل'), '#e03131') : ui.badge(PS.t('نشط'), '#2b8a3e')}</td>
+							<td class="ps-nowrap"><button type="button" class="ps-btn ps-btn--small" data-edit>${PS.t('تعديل')}</button>
+								${u.isWpAdmin || u.id === PS.config.user.id ? '' : html`<button type="button" class="ps-btn ps-btn--small ${u.disabled ? '' : 'ps-btn--danger'}" data-toggle>${u.disabled ? PS.t('تفعيل') : PS.t('تعطيل')}</button>`}</td>
 						</tr>`;
 					})}</tbody></table></div>
 			</section>`.html;
@@ -81,9 +81,9 @@ PS.settingsTabs = PS.settingsTabs || {};
 				const u = d.users.find(function (x) { return String(x.id) === tr.dataset.id; });
 				if (e.target.closest('[data-edit]')) edit(u, d.roles, reload);
 				if (e.target.closest('[data-toggle]')) {
-					ui.confirm(u.disabled ? 'إعادة تفعيل حساب ' + u.name + '؟' : 'تعطيل حساب ' + u.name + '؟ سيتم إخراجه فورًا.', u.disabled ? 'تفعيل' : 'تعطيل', u.disabled ? 'primary' : 'danger').then(function (ok) {
+					ui.confirm(u.disabled ? PS.t('إعادة تفعيل حساب ') + u.name + PS.t('؟') : PS.t('تعطيل حساب ') + u.name + PS.t('؟ سيتم إخراجه فورًا.'), u.disabled ? PS.t('تفعيل') : PS.t('تعطيل'), u.disabled ? 'primary' : 'danger').then(function (ok) {
 						if (!ok) return;
-						PS.api.put('users/' + u.id, { disabled: !u.disabled }).then(function () { ui.toast('تم', 'success'); reload(); })
+						PS.api.put('users/' + u.id, { disabled: !u.disabled }).then(function () { ui.toast(PS.t('تم'), 'success'); reload(); })
 							.catch(function (er) { ui.toast(PS.settingsTabs.errMsg(er), 'error'); });
 					});
 				}

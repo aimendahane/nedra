@@ -30,11 +30,11 @@ defined( 'ABSPATH' ) || exit;
 function ps_import_parse( string $json ) {
 	$data = json_decode( $json, true );
 	if ( ! is_array( $data ) ) {
-		return new WP_Error( 'ps_import_format', 'الملف ليس JSON صالحًا', array( 'status' => 422 ) );
+		return new WP_Error( 'ps_import_format', ps__( 'الملف ليس JSON صالحًا' ), array( 'status' => 422 ) );
 	}
 	$projects = isset( $data['p'] ) && is_array( $data['p'] ) ? $data['p'] : ( array_is_list( $data ) ? $data : null );
 	if ( null === $projects ) {
-		return new WP_Error( 'ps_import_format', 'الملف لا يحتوي على مشاريع النسخة الأولى (المفتاح «p»)', array( 'status' => 422 ) );
+		return new WP_Error( 'ps_import_format', ps__( 'الملف لا يحتوي على مشاريع النسخة الأولى (المفتاح «p»)' ), array( 'status' => 422 ) );
 	}
 	return array_values( array_filter( $projects, 'is_array' ) );
 }
@@ -67,7 +67,7 @@ function ps_import_prototype( array $projects, array $options, bool $dry_run, in
 	if ( ! $dry_run ) {
 		$backup = ps_backup_write_auto( 'before-import' );
 		if ( false === $backup ) {
-			$ctx['report']['warnings'][] = 'تعذّرت النسخة الاحتياطية التلقائية: لم يتم الاستيراد.';
+			$ctx['report']['warnings'][] = ps__( 'تعذّرت النسخة الاحتياطية التلقائية: لم يتم الاستيراد.' );
 			return $ctx['report'];
 		}
 		$ctx['report']['backup'] = basename( $backup );
@@ -84,7 +84,7 @@ function ps_import_prototype( array $projects, array $options, bool $dry_run, in
 	} catch ( Throwable $e ) {
 		$wpdb->query( 'ROLLBACK' );
 		ps_lists_by_id( true );
-		$ctx['report']['warnings'][] = 'خطأ أثناء الاستيراد، لم يتم حفظ أي شيء: ' . $e->getMessage();
+		$ctx['report']['warnings'][] = ps__( 'خطأ أثناء الاستيراد، لم يتم حفظ أي شيء: ' ) . $e->getMessage();
 		$ctx['report']['imported']   = 0;
 		return $ctx['report'];
 	}
@@ -99,7 +99,7 @@ function ps_import_valid_no( $no ): bool {
 
 /** Compte une conversion « avant → après » pour le rapport. */
 function ps_import_count( array &$ctx, string $kind, string $from, string $to ): void {
-	$k                                         = ( '' === $from ? '(فارغ)' : $from ) . ' ← ' . $to;
+	$k                                         = ( '' === $from ? ps__( '(فارغ)' ) : $from ) . ' ← ' . $to;
 	$ctx['report']['conversions'][ $kind ][ $k ] = ( $ctx['report']['conversions'][ $kind ][ $k ] ?? 0 ) + 1;
 }
 
@@ -165,11 +165,11 @@ function ps_import_one( array $p, int $index, array &$ctx ): void {
 	$ts   = is_numeric( $p['id'] ?? null ) && (float) $p['id'] > 1e12 ? (int) ( (float) $p['id'] / 1000 ) : null; // id = Date.now() en ms
 	if ( ! ps_is_valid_date( $recv ) ) {
 		$recv = $ts ? wp_date( 'Y-m-d', $ts ) : ( ! empty( $p['year'] ) ? (int) $p['year'] . '-01-01' : ps_today() );
-		$ctx['report']['warnings'][] = "$label: تاريخ الاستلام غير موجود ← $recv";
+		$ctx['report']['warnings'][] = sprintf( ps__( '%1$s: تاريخ الاستلام غير موجود ← %2$s' ), $label, $recv );
 	}
 	$sent = ps_is_valid_date( $p['sent'] ?? '' ) ? $p['sent'] : null;
 	if ( $sent && $sent < $recv ) {
-		$ctx['report']['warnings'][] = "$label: تاريخ الإرسال قبل تاريخ الاستلام (تم الإبقاء عليه)";
+		$ctx['report']['warnings'][] = sprintf( ps__( '%s: تاريخ الإرسال قبل تاريخ الاستلام (تم الإبقاء عليه)' ), $label );
 	}
 	$created = $ts && $ts > strtotime( '2015-01-01' ) && $ts <= time() ? wp_date( 'Y-m-d H:i:s', $ts ) : ps_now();
 
@@ -183,10 +183,10 @@ function ps_import_one( array $p, int $index, array &$ctx ): void {
 	if ( $is_tenders( $p['emp'] ?? '' ) || $is_tenders( $p['resp'] ?? '' ) ) {
 		$source   = ps_list_id_by_code( 'source', 'tenders' );
 		$follower = $follower ?: $resp;
-		ps_import_count( $ctx, 'source', 'موظف «موقع العطاءات»', 'مصدر «موقع العطاءات»' );
+		ps_import_count( $ctx, 'source', ps__( 'موظف «موقع العطاءات»' ), ps__( 'مصدر «موقع العطاءات»' ) );
 	} else {
 		$source = ps_list_id_by_code( 'source', 'unspecified' );
-		ps_import_count( $ctx, 'source', 'مشروع قديم', 'غير محدد' );
+		ps_import_count( $ctx, 'source', ps__( 'مشروع قديم' ), ps__( 'غير محدد' ) );
 	}
 
 	// Urgence (عاجل → U ou VU selon le choix).
@@ -195,7 +195,7 @@ function ps_import_one( array $p, int $index, array &$ctx ): void {
 	if ( '' !== $urg_txt ) {
 		$urgency = ps_normalize_text( $urg_txt ) === ps_normalize_text( 'عاجل' ) ? ps_list_id_by_code( 'urgency', $ctx['urgent'] ) : ps_import_list( 'urgency', $urg_txt, $ctx, false );
 		if ( ! $urgency ) {
-			$ctx['report']['warnings'][] = "$label: درجة استعجال غير معروفة «{$urg_txt}» (تركت فارغة)";
+			$ctx['report']['warnings'][] = sprintf( ps__( '%1$s: درجة استعجال غير معروفة «%2$s» (تركت فارغة)' ), $label, $urg_txt );
 		} else {
 			ps_import_count( $ctx, 'urgency', $urg_txt, ps_list_code( $urgency ) );
 		}
@@ -207,7 +207,7 @@ function ps_import_one( array $p, int $index, array &$ctx ): void {
 	if ( ! $fu ) {
 		$fu = ps_list_default_id( 'followup_status' );
 		if ( '' !== $fu_txt ) {
-			$ctx['report']['warnings'][] = "$label: حالة متابعة غير معروفة «{$fu_txt}» ← في دراسة";
+			$ctx['report']['warnings'][] = sprintf( ps__( '%1$s: حالة متابعة غير معروفة «%2$s» ← في دراسة' ), $label, $fu_txt );
 		}
 	}
 	ps_import_count( $ctx, 'followup', $fu_txt, ps_list_label( $fu ) );
@@ -219,7 +219,7 @@ function ps_import_one( array $p, int $index, array &$ctx ): void {
 		$seq  = (int) $m[2];
 		if ( $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $t WHERE year = %d AND seq = %d", $year, $seq ) ) ) {
 			$seq = 1 + (int) $wpdb->get_var( $wpdb->prepare( "SELECT MAX(seq) FROM $t WHERE year = %d", $year ) );
-			$ctx['report']['warnings'][] = "$no: الرقم مستعمل ← " . sprintf( 'PRJ-%d-%03d', $year, $seq );
+			$ctx['report']['warnings'][] = sprintf( ps__( '%1$s: الرقم مستعمل ← %2$s' ), $no, sprintf( 'PRJ-%d-%03d', $year, $seq ) );
 			$no = sprintf( 'PRJ-%d-%03d', $year, $seq );
 		}
 	} else {
@@ -230,7 +230,7 @@ function ps_import_one( array $p, int $index, array &$ctx ): void {
 
 	$offer_no = ps_clean_text( $p['offno'] ?? null );
 	if ( $offer_no && $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $t WHERE offer_no = %s", $offer_no ) ) ) {
-		$ctx['report']['warnings'][] = "$label: رقم العرض {$offer_no} مستعمل ← {$offer_no}-" . $seq;
+		$ctx['report']['warnings'][] = sprintf( ps__( '%1$s: رقم العرض %2$s مستعمل ← %3$s' ), $label, $offer_no, $offer_no . '-' . $seq );
 		$offer_no .= '-' . $seq;
 	}
 
@@ -342,7 +342,7 @@ function ps_import_one( array $p, int $index, array &$ctx ): void {
 			)
 		);
 		if ( 'not_sent' === $st ) {
-			$ctx['report']['warnings'][] = "$label: صنف «لم يُرسل» بدون سبب (يُكمّل من صفحة العروض)";
+			$ctx['report']['warnings'][] = sprintf( ps__( '%s: صنف «لم يُرسل» بدون سبب (يُكمّل من صفحة العروض)' ), $label );
 		}
 	}
 

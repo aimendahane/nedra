@@ -77,9 +77,9 @@ PS.ui = (function () {
 			const wrap = document.createElement('div');
 			wrap.className = 'ps-modal';
 			wrap.innerHTML = html`<div class="ps-modal__box ${o.wide ? 'ps-modal__box--wide' : ''}" role="dialog" aria-modal="true" aria-labelledby="ps-modal-title">
-				<div class="ps-modal__head"><h2 id="ps-modal-title">${o.title || ''}</h2><button type="button" class="ps-icon-btn" data-close aria-label="إغلاق">✕</button></div>
+				<div class="ps-modal__head"><h2 id="ps-modal-title">${o.title || ''}</h2><button type="button" class="ps-icon-btn" data-close aria-label="${PS.t('إغلاق')}">✕</button></div>
 				<div class="ps-modal__body">${o.body || ''}</div>
-				<div class="ps-modal__foot">${(o.buttons || [{ id: 'ok', label: 'حسنًا', kind: 'primary' }]).map(function (b) {
+				<div class="ps-modal__foot">${(o.buttons || [{ id: 'ok', label: PS.t('حسنًا'), kind: 'primary' }]).map(function (b) {
 					return html`<button type="button" class="ps-btn ${b.kind ? 'ps-btn--' + b.kind : ''}" data-btn="${b.id}">${b.label}</button>`;
 				})}</div></div>`.html;
 			const prevFocus = document.activeElement;
@@ -107,9 +107,9 @@ PS.ui = (function () {
 
 	function confirm(text, okLabel, kind) {
 		return modal({
-			title: 'تأكيد',
+			title: PS.t('تأكيد'),
 			body: html`<p>${text}</p>`,
-			buttons: [{ id: 'ok', label: okLabel || 'تأكيد', kind: kind || 'primary' }, { id: 'cancel', label: 'إلغاء' }],
+			buttons: [{ id: 'ok', label: okLabel || PS.t('تأكيد'), kind: kind || 'primary' }, { id: 'cancel', label: PS.t('إلغاء') }],
 		}).then(function (r) { return r === 'ok'; });
 	}
 

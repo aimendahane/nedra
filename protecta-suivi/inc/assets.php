@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
  * Fichiers JS du cœur, dans l'ordre de chargement.
  */
 function ps_core_scripts(): array {
-	return array( 'format', 'ui', 'icons', 'api', 'lists', 'session', 'router', 'notifications' );
+	return array( 'i18n', 'format', 'ui', 'icons', 'api', 'lists', 'session', 'router', 'notifications' );
 }
 
 /**
@@ -53,7 +53,7 @@ function ps_enqueue_assets(): void {
 		wp_enqueue_script( 'ps-page-' . $name, PS_URL . '/assets/js/pages/' . $name . '.js', 'recap' === $name ? array_merge( $router, array( 'ps-chartjs' ) ) : $router, $v, true );
 	}
 
-	wp_add_inline_script( 'ps-core-format', 'window.PS = window.PS || {}; PS.config = ' . wp_json_encode( ps_client_config(), JSON_UNESCAPED_UNICODE ) . ';', 'before' );
+	wp_add_inline_script( 'ps-core-i18n', 'window.PS = window.PS || {}; PS.config = ' . wp_json_encode( ps_client_config(), JSON_UNESCAPED_UNICODE ) . ';', 'before' );
 }
 
 /**
@@ -63,6 +63,13 @@ function ps_enqueue_assets(): void {
 function ps_client_config(): array {
 	return array(
 		'version'  => PS_VERSION,
+		// Langue de l'interface (1.3.0) : dictionnaire de la langue en cours seulement.
+		'i18n'     => array(
+			'lang'      => ps_lang(),
+			'dir'       => ps_dir(),
+			'dict'      => (object) ps_dict( ps_lang() ),
+			'languages' => array_map( fn( $l ) => $l['label'], ps_languages() ),
+		),
 		'restUrl'  => esc_url_raw( rest_url( PS_REST_NS . '/' ) ),
 		'nonce'    => wp_create_nonce( 'wp_rest' ),
 		'homeUrl'  => esc_url_raw( home_url( '/' ) ),
@@ -100,6 +107,7 @@ function ps_current_user_payload(): array {
 			'theme'        => in_array( $theme, array( 'light', 'dark' ), true ) ? $theme : 'auto',
 			'dailyEmail'   => (bool) get_user_meta( $u->ID, 'ps_daily_email', true ),
 			'instantEmail' => (bool) get_user_meta( $u->ID, 'ps_instant_email', true ), // 1.0.2
+			'lang'         => ps_lang(), // 1.3.0
 		),
 	);
 }

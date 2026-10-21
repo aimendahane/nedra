@@ -68,6 +68,9 @@ function ps_rest_save_prefs( WP_REST_Request $req ) {
 	if ( null !== $req->get_param( 'dailyEmail' ) ) {
 		update_user_meta( $uid, 'ps_daily_email', $req->get_param( 'dailyEmail' ) ? 1 : 0 );
 	}
+	if ( null !== $req->get_param( 'lang' ) && isset( ps_languages()[ (string) $req->get_param( 'lang' ) ] ) ) {
+		update_user_meta( $uid, 'ps_lang', (string) $req->get_param( 'lang' ) ); // 1.3.0
+	}
 	if ( null !== $req->get_param( 'instantEmail' ) ) {
 		update_user_meta( $uid, 'ps_instant_email', $req->get_param( 'instantEmail' ) ? 1 : 0 );
 	}

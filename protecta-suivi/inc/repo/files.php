@@ -52,36 +52,36 @@ function ps_files_for_project( int $project_id ): array {
 function ps_file_store( int $project_id, array $upload, int $user_id ) {
 	global $wpdb;
 	if ( ! empty( $upload['error'] ) || empty( $upload['tmp_name'] ) || ! is_uploaded_file( $upload['tmp_name'] ) && ! defined( 'PS_TESTING' ) ) {
-		return new WP_Error( 'ps_upload', 'فشل رفع الملف', array( 'status' => 400 ) );
+		return new WP_Error( 'ps_upload', ps__( 'فشل رفع الملف' ), array( 'status' => 400 ) );
 	}
 	$max = wp_max_upload_size();
 	if ( (int) $upload['size'] > $max ) {
-		return new WP_Error( 'ps_upload_size', 'الملف كبير جدًا (الحد الأقصى ' . size_format( $max ) . ')', array( 'status' => 400 ) );
+		return new WP_Error( 'ps_upload_size', ps__( 'الملف كبير جدًا (الحد الأقصى ' ) . size_format( $max ) . ')', array( 'status' => 400 ) );
 	}
 	$name    = sanitize_file_name( wp_basename( (string) $upload['name'] ) );
 	$ext     = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
 	$allowed = ps_allowed_file_types();
 	if ( ! isset( $allowed[ $ext ] ) ) {
-		return new WP_Error( 'ps_upload_type', 'نوع الملف غير مسموح (PDF، Excel، Word، صور)', array( 'status' => 400 ) );
+		return new WP_Error( 'ps_upload_type', ps__( 'نوع الملف غير مسموح (PDF، Excel، Word، صور)' ), array( 'status' => 400 ) );
 	}
 	$mime = function_exists( 'finfo_open' ) ? (string) finfo_file( finfo_open( FILEINFO_MIME_TYPE ), $upload['tmp_name'] ) : $allowed[ $ext ][0];
 	if ( ! in_array( $mime, $allowed[ $ext ], true ) ) {
-		return new WP_Error( 'ps_upload_type', 'محتوى الملف لا يطابق نوعه', array( 'status' => 400 ) );
+		return new WP_Error( 'ps_upload_type', ps__( 'محتوى الملف لا يطابق نوعه' ), array( 'status' => 400 ) );
 	}
 
 	if ( ! ps_ensure_storage() ) {
-		return new WP_Error( 'ps_storage', 'تعذّر إنشاء مجلد الملفات', array( 'status' => 500 ) );
+		return new WP_Error( 'ps_storage', ps__( 'تعذّر إنشاء مجلد الملفات' ), array( 'status' => 500 ) );
 	}
 	$sub = current_time( 'Y/m' );
 	$dir = ps_storage_dir( 'files/' . $sub );
 	if ( ! is_dir( $dir ) && ! wp_mkdir_p( $dir ) ) {
-		return new WP_Error( 'ps_storage', 'تعذّر إنشاء مجلد الملفات', array( 'status' => 500 ) );
+		return new WP_Error( 'ps_storage', ps__( 'تعذّر إنشاء مجلد الملفات' ), array( 'status' => 500 ) );
 	}
 	$stored = $sub . '/' . bin2hex( random_bytes( 16 ) ) . '.' . $ext;
 	$dest   = ps_storage_dir( 'files/' . $stored );
 	$moved  = defined( 'PS_TESTING' ) ? copy( $upload['tmp_name'], $dest ) : move_uploaded_file( $upload['tmp_name'], $dest );
 	if ( ! $moved ) {
-		return new WP_Error( 'ps_storage', 'تعذّر حفظ الملف', array( 'status' => 500 ) );
+		return new WP_Error( 'ps_storage', ps__( 'تعذّر حفظ الملف' ), array( 'status' => 500 ) );
 	}
 
 	$original = ps_clean_text( wp_basename( (string) $upload['name'] ) ) ?? $name;

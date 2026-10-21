@@ -41,7 +41,7 @@ function ps_register_data_routes(): void {
 				$name = basename( (string) $r->get_param( 'name' ) );
 				$path = ps_storage_dir( 'backups' ) . '/' . $name;
 				if ( ! preg_match( '/^[A-Za-z0-9._-]+\.json$/', $name ) || ! is_file( $path ) ) {
-					return new WP_Error( 'ps_not_found', 'الملف غير موجود', array( 'status' => 404 ) );
+					return new WP_Error( 'ps_not_found', ps__( 'الملف غير موجود' ), array( 'status' => 404 ) );
 				}
 				ps_send_download( (string) file_get_contents( $path ), $name, 'application/json; charset=utf-8' );
 			},
@@ -56,12 +56,12 @@ function ps_rest_uploaded_json( WP_REST_Request $r ) {
 	$files = $r->get_file_params();
 	if ( ! empty( $files['file']['tmp_name'] ) && empty( $files['file']['error'] ) ) {
 		if ( (int) $files['file']['size'] > 50 * MB_IN_BYTES ) {
-			return new WP_Error( 'ps_upload_size', 'الملف كبير جدًا', array( 'status' => 400 ) );
+			return new WP_Error( 'ps_upload_size', ps__( 'الملف كبير جدًا' ), array( 'status' => 400 ) );
 		}
 		return (string) file_get_contents( $files['file']['tmp_name'] );
 	}
 	$json = $r->get_param( 'json' );
-	return is_string( $json ) && '' !== $json ? $json : new WP_Error( 'ps_upload', 'اختر ملف JSON', array( 'status' => 400 ) );
+	return is_string( $json ) && '' !== $json ? $json : new WP_Error( 'ps_upload', ps__( 'اختر ملف JSON' ), array( 'status' => 400 ) );
 }
 
 function ps_rest_export_projects( WP_REST_Request $r ) {
@@ -88,7 +88,7 @@ function ps_rest_send_table( array $headers, array $rows, string $name, string $
 
 function ps_rest_backup_restore( WP_REST_Request $r ) {
 	if ( 'استرجاع' !== trim( (string) $r->get_param( 'confirm' ) ) ) {
-		return new WP_Error( 'ps_confirm', 'اكتب «استرجاع» للتأكيد', array( 'status' => 422 ) );
+		return new WP_Error( 'ps_confirm', ps__( 'اكتب «استرجاع» للتأكيد' ), array( 'status' => 422 ) );
 	}
 	$json = ps_rest_uploaded_json( $r );
 	if ( is_wp_error( $json ) ) {
@@ -96,7 +96,7 @@ function ps_rest_backup_restore( WP_REST_Request $r ) {
 	}
 	$data = json_decode( $json, true );
 	if ( ! is_array( $data ) ) {
-		return new WP_Error( 'ps_restore_format', 'الملف ليس JSON صالحًا', array( 'status' => 422 ) );
+		return new WP_Error( 'ps_restore_format', ps__( 'الملف ليس JSON صالحًا' ), array( 'status' => 422 ) );
 	}
 	$res = ps_backup_restore( $data, get_current_user_id() );
 	return is_wp_error( $res ) ? $res : rest_ensure_response( $res );

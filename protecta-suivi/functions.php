@@ -10,6 +10,7 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/inc/config.php';
 require_once __DIR__ . '/inc/settings.php';
+require_once __DIR__ . '/inc/i18n.php';
 require_once __DIR__ . '/inc/calculs.php';
 require_once __DIR__ . '/inc/storage.php';
 require_once __DIR__ . '/inc/roles.php';

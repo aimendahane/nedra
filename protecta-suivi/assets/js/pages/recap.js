@@ -93,10 +93,10 @@
 						const v = chart.data.datasets[m.index].data[i];
 						if (!v) return;
 						if (horizontal) {
-							// Barres de droite à gauche (axe inversé) : la valeur se place à gauche du bout.
-							ctx.textAlign = 'right';
+							// Arabe : barres de droite à gauche (axe inversé), valeur à gauche du bout ; EN/FR : l'inverse.
+							ctx.textAlign = PS.i18n.rtl ? 'right' : 'left';
 							ctx.textBaseline = 'middle';
-							ctx.fillText(String(v), el.x - 6, el.y);
+							ctx.fillText(String(v), el.x + (PS.i18n.rtl ? -6 : 6), el.y);
 						} else {
 							ctx.textAlign = 'center';
 							ctx.textBaseline = 'bottom';
@@ -116,20 +116,22 @@
 			maintainAspectRatio: false,
 			// Courte animation d'apparition (aucune si l'utilisateur préfère moins d'animations).
 			animation: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? false : { duration: 650, easing: 'easeOutQuart' },
-			locale: 'ar',
+			locale: PS.i18n.lang,
 			layout: { padding: { top: 22, left: 8, right: 8 } },
 			plugins: {
-				legend: { rtl: true, labels: { color: t.text, font: { family: t.font, size: 13 }, boxWidth: 12, boxHeight: 12, usePointStyle: true, pointStyle: 'rectRounded', padding: 16 } },
-				tooltip: { rtl: true, textDirection: 'rtl', titleFont: { family: t.font, weight: '700' }, bodyFont: { family: t.font }, padding: 12, cornerRadius: 10, boxPadding: 6, usePointStyle: true },
+				legend: { rtl: PS.i18n.rtl, labels: { color: t.text, font: { family: t.font, size: 13 }, boxWidth: 12, boxHeight: 12, usePointStyle: true, pointStyle: 'rectRounded', padding: 16 } },
+				tooltip: { rtl: PS.i18n.rtl, textDirection: PS.i18n.dir, titleFont: { family: t.font, weight: '700' }, bodyFont: { family: t.font }, padding: 12, cornerRadius: 10, boxPadding: 6, usePointStyle: true },
 			},
 		}, extra || {});
 	}
 
 	function axes(horizontal, stacked) {
 		const t = theme();
-		const cat = { stacked: !!stacked, reverse: !horizontal, grid: { display: false }, ticks: { color: t.text, font: { family: t.font, size: 12 }, autoSkip: false } };
-		const val = { stacked: !!stacked, beginAtZero: true, reverse: !!horizontal, grid: { color: t.grid }, border: { display: false }, ticks: { color: t.muted, font: { family: t.font }, precision: 0 } };
-		return horizontal ? { y: Object.assign(cat, { reverse: false, position: 'right' }), x: val } : { x: cat, y: Object.assign(val, { position: 'right' }) };
+		const rtl = PS.i18n.rtl; // sens de lecture : de droite à gauche en arabe seulement
+		const cat = { stacked: !!stacked, reverse: !horizontal && rtl, grid: { display: false }, ticks: { color: t.text, font: { family: t.font, size: 12 }, autoSkip: false } };
+		const val = { stacked: !!stacked, beginAtZero: true, reverse: !!horizontal && rtl, grid: { color: t.grid }, border: { display: false }, ticks: { color: t.muted, font: { family: t.font }, precision: 0 } };
+		const side = rtl ? 'right' : 'left';
+		return horizontal ? { y: Object.assign(cat, { reverse: false, position: side }), x: val } : { x: cat, y: Object.assign(val, { position: side }) };
 	}
 
 	function makeChart(canvas, config) {
@@ -165,15 +167,15 @@
 	 * → la flèche reste ↑/↓ mais la couleur suit le sens (vert = bon, rouge = mauvais).
 	 */
 	function delta(c, isRate, inverse) {
-		if (!c || c.diff === null || c.diff === undefined) return html`<span class="ps-kpi__cmp ps-muted">— لا مقارنة</span>`;
+		if (!c || c.diff === null || c.diff === undefined) return html`<span class="ps-kpi__cmp ps-muted">— ${PS.t('لا مقارنة')}</span>`;
 		const prevYear = st.data.previousYear;
 		const arrow = c.dir === 'up' ? '↑' : c.dir === 'down' ? '↓' : '=';
 		let txt;
-		if (isRate) txt = (c.diff > 0 ? '+' : '') + c.diff.toFixed(1) + ' نقطة';
-		else if (c.pct === null) txt = c.diff ? 'جديد' : '';
+		if (isRate) txt = (c.diff > 0 ? '+' : '') + c.diff.toFixed(1) + PS.t(' نقطة');
+		else if (c.pct === null) txt = c.diff ? PS.t('جديد') : '';
 		else txt = (c.pct > 0 ? '+' : '') + c.pct.toFixed(1) + ' %';
 		const tone = c.dir === 'up' ? (inverse ? 'bad' : 'good') : c.dir === 'down' ? (inverse ? 'good' : 'bad') : '';
-		return html`<span class="ps-kpi__cmp ps-kpi__cmp--${c.dir} ${tone ? 'ps-kpi__cmp--' + tone : ''}" title="${prevYear}: ${c.prev === null ? '—' : c.prev}">${arrow} ${txt} <span class="ps-muted">مقارنة بـ ${prevYear}</span></span>`;
+		return html`<span class="ps-kpi__cmp ps-kpi__cmp--${c.dir} ${tone ? 'ps-kpi__cmp--' + tone : ''}" title="${prevYear}: ${c.prev === null ? '—' : c.prev}">${arrow} ${txt} <span class="ps-muted">${PS.t('مقارنة بـ')} ${prevYear}</span></span>`;
 	}
 
 	function kpi(label, value, cmp, opts) {
@@ -193,25 +195,25 @@
 			const arrow = c && c.dir === 'up' ? '↑' : c && c.dir === 'down' ? '↓' : '';
 			return html`<div class="ps-kpi__money"><strong>${F.number(amounts[cur], 0)}</strong> ${L.code(Number(cur))} <span class="ps-kpi__cmp ps-kpi__cmp--${c ? c.dir : ''} ${c && c.dir === 'up' ? 'ps-kpi__cmp--good' : c && c.dir === 'down' ? 'ps-kpi__cmp--bad' : ''}">${arrow}${c && c.pct !== null ? ' ' + Math.abs(c.pct).toFixed(1) + ' %' : ''}</span></div>`;
 		}) : html`<span class="ps-muted">—</span>`;
-		return html`<div class="ps-kpi ps-kpi--wide"><span class="ps-kpi__label">${label} <span class="ps-muted ps-small">(كل عملة على حدة)</span></span>${lines}</div>`;
+		return html`<div class="ps-kpi ps-kpi--wide"><span class="ps-kpi__label">${label} <span class="ps-muted ps-small">(${PS.t('كل عملة على حدة')})</span></span>${lines}</div>`;
 	}
 
 	function kpiGrid(d) {
 		const k = d.kpis;
 		const c = d.compare;
 		return html`<div class="ps-kpis">
-			${kpi('عدد المشاريع', k.projects, c.projects, { sub: k.cancelled ? 'ملغى: ' + k.cancelled + ' (غير محسوبة)' : 'ملغى: 0', link: 'projets' })}
-			${kpi('المؤكدة', k.confirmed, c.confirmed, { cls: 'ps-kpi--good', link: 'projets|followupType=confirmed' })}
-			${kpi('المرفوضة', k.rejected, c.rejected, { inverse: true, cls: 'ps-kpi--bad', link: 'projets|followupType=rejected' })}
-			${kpi('قيد الدراسة', k.ongoing, c.ongoing, { link: 'projets|followupType=ongoing' })}
-			${kpi('العروض المرسلة', k.sent, c.sent)}
-			${kpi('لم تُرسل', k.notSent, c.notSent, { inverse: true, link: 'projets|offerStatus=not_sent' })}
-			${kpi('نسبة النجاح', F.percent(k.successRate), c.successRate, { rate: true, cls: 'ps-kpi--hero', sub: 'المؤكدة ÷ المرسلة' })}
-			${kpi('نسبة الإرسال', F.percent(k.sendRate), c.sendRate, { rate: true, sub: 'المرسلة ÷ (المرسلة + لم تُرسل)' })}
-			${kpi('العروض المتأخرة', k.lateOffers, c.lateOffers, { inverse: true, cls: k.lateOffers ? 'ps-kpi--bad' : '', link: 'offres|late=1' })}
-			${kpi('التسليمات المتأخرة', k.lateDeliveries, c.lateDeliveries, { inverse: true, cls: k.lateDeliveries ? 'ps-kpi--bad' : '', link: 'livraison|deliveryLate=1' })}
-			${amountsKpi('مبالغ العروض', k.amounts, c.amounts)}
-			${amountsKpi('مبالغ المشاريع المؤكدة', k.confirmedAmounts, c.confirmedAmounts)}
+			${kpi(PS.t('عدد المشاريع'), k.projects, c.projects, { sub: k.cancelled ? PS.t('ملغى: ') + k.cancelled + PS.t(' (غير محسوبة)') : PS.t('ملغى: 0'), link: 'projets' })}
+			${kpi(PS.t('المؤكدة'), k.confirmed, c.confirmed, { cls: 'ps-kpi--good', link: 'projets|followupType=confirmed' })}
+			${kpi(PS.t('المرفوضة'), k.rejected, c.rejected, { inverse: true, cls: 'ps-kpi--bad', link: 'projets|followupType=rejected' })}
+			${kpi(PS.t('قيد الدراسة'), k.ongoing, c.ongoing, { link: 'projets|followupType=ongoing' })}
+			${kpi(PS.t('العروض المرسلة'), k.sent, c.sent)}
+			${kpi(PS.t('لم تُرسل'), k.notSent, c.notSent, { inverse: true, link: 'projets|offerStatus=not_sent' })}
+			${kpi(PS.t('نسبة النجاح'), F.percent(k.successRate), c.successRate, { rate: true, cls: 'ps-kpi--hero', sub: PS.t('المؤكدة ÷ المرسلة') })}
+			${kpi(PS.t('نسبة الإرسال'), F.percent(k.sendRate), c.sendRate, { rate: true, sub: PS.t('المرسلة ÷ (المرسلة + لم تُرسل)') })}
+			${kpi(PS.t('العروض المتأخرة'), k.lateOffers, c.lateOffers, { inverse: true, cls: k.lateOffers ? 'ps-kpi--bad' : '', link: 'offres|late=1' })}
+			${kpi(PS.t('التسليمات المتأخرة'), k.lateDeliveries, c.lateDeliveries, { inverse: true, cls: k.lateDeliveries ? 'ps-kpi--bad' : '', link: 'livraison|deliveryLate=1' })}
+			${amountsKpi(PS.t('مبالغ العروض'), k.amounts, c.amounts)}
+			${amountsKpi(PS.t('مبالغ المشاريع المؤكدة'), k.confirmedAmounts, c.confirmedAmounts)}
 		</div>`;
 	}
 
@@ -225,7 +227,7 @@
 
 	function chartBox(id, height, tableHtml) {
 		return html`<div class="ps-chart" style="height:${height}px"><canvas id="${id}" role="img"></canvas></div>
-			${tableHtml ? html`<details class="ps-chart-table ps-no-print"><summary>عرض كجدول</summary>${tableHtml}</details>` : ''}`;
+			${tableHtml ? html`<details class="ps-chart-table ps-no-print"><summary>${PS.t('عرض كجدول')}</summary>${tableHtml}</details>` : ''}`;
 	}
 
 	function simpleTable(headers, rows) {
@@ -234,18 +236,18 @@
 	}
 
 	function statusTable(d) {
-		return simpleTable(['الحالة', 'العدد', '%'], d.byFollowupStatus.map(function (s) {
+		return simpleTable([PS.t('الحالة'), PS.t('العدد'), '%'], d.byFollowupStatus.map(function (s) {
 			return html`<tr class="ps-drill" data-drill="projets|followupStatusId=${s.id}"><td>${ui.badge(s.label, s.color)}</td><td>${s.count}</td><td>${s.pct.toFixed(1)}</td></tr>`;
 		}));
 	}
 
 	function urgencyTable(d) {
-		return simpleTable(['الاستعجال', 'العدد', '%'], d.byUrgency.map(function (u) {
+		return simpleTable([PS.t('الاستعجال'), PS.t('العدد'), '%'], d.byUrgency.map(function (u) {
 			return html`<tr class="ps-drill" data-drill="projets|urgencyId=${u.id}"><td>${ui.badge(u.code, u.color)} <span class="ps-muted ps-small">${u.label}</span></td><td>${u.count}</td><td>${u.pct.toFixed(1)}</td></tr>`;
 		}));
 	}
 
-	const EMP_COLS = [['label', 'الموظف'], ['count', 'العدد'], ['confirmed', 'مؤكدة'], ['rejected', 'مرفوضة'], ['delivered', 'مسلّمة'], ['notSent', 'لم تُرسل'], ['successRate', 'نسبة النجاح']];
+	const EMP_COLS = [['label', PS.t('الموظف')], ['count', PS.t('العدد')], ['confirmed', PS.t('مؤكدة')], ['rejected', PS.t('مرفوضة')], ['delivered', PS.t('مسلّمة')], ['notSent', PS.t('لم تُرسل')], ['successRate', PS.t('نسبة النجاح')]];
 
 	function employeeTable(d) {
 		const sort = st.empSort || { key: 'count', dir: -1 };
@@ -262,28 +264,28 @@
 	}
 
 	function sourceTable(d) {
-		return simpleTable(['مصدر الطلب', 'العدد', 'مؤكدة', 'نسبة النجاح'], d.bySource.map(function (s) {
-			return html`<tr class="ps-drill ${s.unspecified ? 'ps-row-muted' : ''}" data-drill="projets|sourceId=${s.unspecified ? 'unspecified' : s.id}"><td>${s.label}${s.unspecified ? html` <span class="ps-small ps-muted">(مشاريع مستوردة — خارج نسبة النجاح)</span>` : ''}</td><td>${s.count}</td><td>${s.confirmed}</td><td>${s.unspecified ? '—' : F.percent(s.successRate)}</td></tr>`;
+		return simpleTable([PS.t('مصدر الطلب'), PS.t('العدد'), PS.t('مؤكدة'), PS.t('نسبة النجاح')], d.bySource.map(function (s) {
+			return html`<tr class="ps-drill ${s.unspecified ? 'ps-row-muted' : ''}" data-drill="projets|sourceId=${s.unspecified ? 'unspecified' : s.id}"><td>${s.label}${s.unspecified ? html` <span class="ps-small ps-muted">(${PS.t('مشاريع مستوردة — خارج نسبة النجاح')})</span>` : ''}</td><td>${s.count}</td><td>${s.confirmed}</td><td>${s.unspecified ? '—' : F.percent(s.successRate)}</td></tr>`;
 		}));
 	}
 
 	function companiesTable(d) {
-		if (!d.topCompanies.length) return ui.empty('🏢', 'لا توجد بيانات');
-		return simpleTable(['الشركة', 'المشاريع', 'المؤكدة', 'مبالغ مؤكدة'], d.topCompanies.map(function (c) {
+		if (!d.topCompanies.length) return ui.empty('🏢', PS.t('لا توجد بيانات'));
+		return simpleTable([PS.t('الشركة'), PS.t('المشاريع'), PS.t('المؤكدة'), PS.t('مبالغ مؤكدة')], d.topCompanies.map(function (c) {
 			const amounts = Object.keys(c.confirmedAmounts).map(function (cur) { return F.number(c.confirmedAmounts[cur], 0) + ' ' + L.code(Number(cur)); }).join(' · ');
 			return html`<tr class="ps-drill" data-drill="projets|companyId=${c.id}"><td>${c.name}</td><td>${c.count}</td><td>${c.confirmed}</td><td class="ps-nowrap">${amounts || '—'}</td></tr>`;
 		}));
 	}
 
 	function competitorsTable(d) {
-		if (!d.competitors.length) return ui.empty('⚔️', 'لا يوجد منافسون مسجلون في هذه الفترة');
-		return simpleTable(['المنافس', 'عدد المشاريع', 'الماركات', 'الأصناف'], d.competitors.map(function (c) {
-			return html`<tr><td>${c.name}</td><td>${c.count}</td><td>${c.brands.join('، ') || '—'}</td><td>${c.itemTypes.join('، ') || '—'}</td></tr>`;
+		if (!d.competitors.length) return ui.empty('⚔️', PS.t('لا يوجد منافسون مسجلون في هذه الفترة'));
+		return simpleTable([PS.t('المنافس'), PS.t('عدد المشاريع'), PS.t('الماركات'), PS.t('الأصناف')], d.competitors.map(function (c) {
+			return html`<tr><td>${c.name}</td><td>${c.count}</td><td>${c.brands.join(PS.t('، ')) || '—'}</td><td>${c.itemTypes.join(PS.t('، ')) || '—'}</td></tr>`;
 		}));
 	}
 
 	function reasonsTable(d) {
-		return simpleTable(['السبب', 'العدد', '%'], d.notSentReasons.map(function (r) {
+		return simpleTable([PS.t('السبب'), PS.t('العدد'), '%'], d.notSentReasons.map(function (r) {
 			return html`<tr class="ps-drill" data-drill="offres|offerStatus=not_sent&notSentReasonId=${r.id || ''}"><td>${r.label}</td><td>${r.count}</td><td>${r.pct.toFixed(1)}</td></tr>`;
 		}));
 	}
@@ -298,7 +300,7 @@
 		const tc = d.typeColors;
 
 		// حسب الشهر : barres empilées جارية / مؤكدة / مرفوضة, total au-dessus.
-		const series = [['ongoing', 'جارية'], ['confirmed', 'مؤكدة'], ['rejected', 'مرفوضة']];
+		const series = [['ongoing', PS.t('جارية')], ['confirmed', PS.t('مؤكدة')], ['rejected', PS.t('مرفوضة')]];
 		makeChart(document.getElementById('ch-month'), {
 			type: 'bar',
 			data: {
@@ -353,7 +355,7 @@
 		if (d.byPlace.length) {
 			makeChart(document.getElementById('ch-places'), {
 				type: 'bar',
-				data: { labels: d.byPlace.map(function (p) { return p.code; }), datasets: [{ label: 'المشاريع', data: d.byPlace.map(function (p) { return p.count; }), backgroundColor: t.primary, borderRadius: { topLeft: 7, topRight: 7 }, borderSkipped: false, maxBarThickness: 42 }] },
+				data: { labels: d.byPlace.map(function (p) { return p.code; }), datasets: [{ label: PS.t('المشاريع'), data: d.byPlace.map(function (p) { return p.count; }), backgroundColor: t.primary, borderRadius: { topLeft: 7, topRight: 7 }, borderSkipped: false, maxBarThickness: 42 }] },
 				options: baseOptions({
 					scales: axes(false, false),
 					plugins: Object.assign(baseOptions().plugins, {
@@ -374,7 +376,7 @@
 		const t = theme();
 		makeChart(canvas, {
 			type: 'bar',
-			data: { labels: rows.map(labelFn), datasets: [{ label: 'العدد', data: rows.map(function (r) { return r.count; }), backgroundColor: t.primary, borderRadius: { topLeft: 6, bottomLeft: 6 }, borderSkipped: false, maxBarThickness: 22 }] },
+			data: { labels: rows.map(labelFn), datasets: [{ label: PS.t('العدد'), data: rows.map(function (r) { return r.count; }), backgroundColor: t.primary, borderRadius: { topLeft: 6, bottomLeft: 6 }, borderSkipped: false, maxBarThickness: 22 }] },
 			options: baseOptions({
 				indexAxis: 'y',
 				layout: { padding: { left: 28, top: 4 } },
@@ -395,11 +397,11 @@
 		const years = (st.data ? st.data.years : [new Date().getFullYear()]);
 		const year = Number(p.year) || years[0];
 		return html`<div class="ps-card ps-toolbar ps-recap-filters"><div class="ps-filters ps-filters--inline">
-			<label class="ps-field ps-field--compact ps-field--required"><span class="ps-field__label">السنة *</span><select class="ps-input" data-f="year">${years.map(function (y) { return html`<option value="${y}" ${y === year ? ui.raw('selected') : ''}>${y}</option>`; })}</select></label>
-			<label class="ps-field ps-field--compact"><span class="ps-field__label">الشهر</span><select class="ps-input" data-f="month"><option value="">كل الأشهر</option>${F.MONTHS.map(function (m, i) { return html`<option value="${i + 1}" ${String(i + 1) === String(p.month) ? ui.raw('selected') : ''}>${m}</option>`; })}</select></label>
-			<label class="ps-field ps-field--compact"><span class="ps-field__label">الموظف المتابع</span><select class="ps-input" data-f="followerEmpId">${ui.raw(L.options('employee', p.followerEmpId, { emptyLabel: 'الكل' }))}</select></label>
-			<label class="ps-field ps-field--compact"><span class="ps-field__label">المكان</span><select class="ps-input" data-f="placeId">${ui.raw(L.options('place', p.placeId, { emptyLabel: 'الكل' }))}</select></label>
-			<label class="ps-field ps-field--compact"><span class="ps-field__label">مصدر الطلب</span><select class="ps-input" data-f="sourceId">${ui.raw(L.options('source', p.sourceId, { emptyLabel: 'الكل' }).replace('(مخفي)', ''))}</select></label>
+			<label class="ps-field ps-field--compact ps-field--required"><span class="ps-field__label">${PS.t('السنة *')}</span><select class="ps-input" data-f="year">${years.map(function (y) { return html`<option value="${y}" ${y === year ? ui.raw('selected') : ''}>${y}</option>`; })}</select></label>
+			<label class="ps-field ps-field--compact"><span class="ps-field__label">${PS.t('الشهر')}</span><select class="ps-input" data-f="month"><option value="">${PS.t('كل الأشهر')}</option>${F.MONTHS.map(function (m, i) { return html`<option value="${i + 1}" ${String(i + 1) === String(p.month) ? ui.raw('selected') : ''}>${m}</option>`; })}</select></label>
+			<label class="ps-field ps-field--compact"><span class="ps-field__label">${PS.t('الموظف المتابع')}</span><select class="ps-input" data-f="followerEmpId">${ui.raw(L.options('employee', p.followerEmpId, { emptyLabel: PS.t('الكل') }))}</select></label>
+			<label class="ps-field ps-field--compact"><span class="ps-field__label">${PS.t('المكان')}</span><select class="ps-input" data-f="placeId">${ui.raw(L.options('place', p.placeId, { emptyLabel: PS.t('الكل') }))}</select></label>
+			<label class="ps-field ps-field--compact"><span class="ps-field__label">${PS.t('مصدر الطلب')}</span><select class="ps-input" data-f="sourceId">${ui.raw(L.options('source', p.sourceId, { emptyLabel: PS.t('الكل') }).replace(PS.t('(مخفي)'), ''))}</select></label>
 		</div></div>`;
 	}
 
@@ -415,27 +417,27 @@
 	function render() {
 		const d = st.data;
 		const head = html`<div class="ps-page-head"><h1>Recap — ${periodLabel(d)}</h1>
-			<div class="ps-page-head__actions"><button type="button" class="ps-btn" data-action="print">🖨 طباعة / PDF</button></div></div>
-			<p class="ps-print-only ps-muted">مقارنة بنفس الفترة من سنة ${d.previousYear} · طُبع في ${F.date(PS.config.today)}</p>`;
+			<div class="ps-page-head__actions"><button type="button" class="ps-btn" data-action="print">🖨 ${PS.t('طباعة / PDF')}</button></div></div>
+			<p class="ps-print-only ps-muted">${PS.t('مقارنة بنفس الفترة من سنة')} ${d.previousYear} · ${PS.t('طُبع في')} ${F.date(PS.config.today)}</p>`;
 		if (!d.kpis.projects && !d.kpis.cancelled) {
-			st.main.innerHTML = html`${head}${filtersBar()}<div class="ps-card">${ui.empty('📊', 'لا توجد مشاريع في هذه الفترة. غيّر السنة أو الفلاتر.')}</div>`.html;
+			st.main.innerHTML = html`${head}${filtersBar()}<div class="ps-card">${ui.empty('📊', PS.t('لا توجد مشاريع في هذه الفترة. غيّر السنة أو الفلاتر.'))}</div>`.html;
 			bind();
 			return;
 		}
 		st.main.innerHTML = html`${head}${filtersBar()}${kpiGrid(d)}
 			<div class="ps-recap-grid">
-				${card('المشاريع حسب الشهر', chartBox('ch-month', 300, simpleTable(['الشهر', 'جارية', 'مؤكدة', 'مرفوضة', 'المجموع'], d.byMonth.map(function (m) { return html`<tr><td>${F.month(m.month)}</td><td>${m.ongoing}</td><td>${m.confirmed}</td><td>${m.rejected}</td><td><strong>${m.total}</strong></td></tr>`; }))), { wide: true })}
-				${card('حسب التصنيف', d.byCategory.length ? chartBox('ch-category', 300, simpleTable(['التصنيف', 'العدد', '%'], d.byCategory.map(function (c) { return html`<tr><td>${c.label}</td><td>${c.count}</td><td>${c.pct.toFixed(1)}</td></tr>`; }))) : ui.empty('🍩', 'لا توجد بيانات'))}
-				${card('حسب حالة المتابعة', statusTable(d))}
-				${card('حسب درجة الاستعجال', urgencyTable(d))}
-				${card('حسب مصدر الطلب', sourceTable(d))}
-				${card('حسب الموظف المتابع', html`<div data-emp-box>${employeeTable(d)}</div>`, { wide: true })}
-				${card('حسب الصنف المطلوب', d.byItemType.length ? chartBox('ch-types', Math.max(160, d.byItemType.length * 30 + 40), simpleTable(['الصنف', 'المشاريع'], d.byItemType.map(function (r) { return html`<tr><td>${r.label}</td><td>${r.count}</td></tr>`; }))) : ui.empty('📦', 'لا توجد بيانات'))}
-				${card('حسب المكان', d.byPlace.length ? chartBox('ch-places', 260, simpleTable(['الرمز', 'المكان', 'العدد'], d.byPlace.map(function (p) { return html`<tr><td>${p.code}</td><td>${p.label}</td><td>${p.count}</td></tr>`; }))) : ui.empty('📍', 'لا توجد بيانات'))}
-				${card('أهم 10 شركات', companiesTable(d), { wide: true })}
-				${card('المنافسون الأكثر حضورا', competitorsTable(d), { wide: true })}
-				${card('أسباب عدم الإرسال (' + d.notSentItems + ' صنف)', d.notSentReasons.length ? html`${chartBox('ch-reasons', Math.max(140, d.notSentReasons.length * 32 + 40))}${reasonsTable(d)}` : ui.empty('✔', 'لا توجد عروض لم تُرسل في هذه الفترة'))}
-				${card('لم تُرسل حسب الصنف', d.notSentByType.length ? chartBox('ch-ns-types', Math.max(140, d.notSentByType.length * 32 + 40), simpleTable(['الصنف', 'العدد'], d.notSentByType.map(function (r) { return html`<tr><td>${r.label}</td><td>${r.count}</td></tr>`; }))) : ui.empty('✔', 'لا توجد بيانات'))}
+				${card(PS.t('المشاريع حسب الشهر'), chartBox('ch-month', 300, simpleTable([PS.t('الشهر'), PS.t('جارية'), PS.t('مؤكدة'), PS.t('مرفوضة'), PS.t('المجموع')], d.byMonth.map(function (m) { return html`<tr><td>${F.month(m.month)}</td><td>${m.ongoing}</td><td>${m.confirmed}</td><td>${m.rejected}</td><td><strong>${m.total}</strong></td></tr>`; }))), { wide: true })}
+				${card(PS.t('حسب التصنيف'), d.byCategory.length ? chartBox('ch-category', 300, simpleTable([PS.t('التصنيف'), PS.t('العدد'), '%'], d.byCategory.map(function (c) { return html`<tr><td>${c.label}</td><td>${c.count}</td><td>${c.pct.toFixed(1)}</td></tr>`; }))) : ui.empty('🍩', PS.t('لا توجد بيانات')))}
+				${card(PS.t('حسب حالة المتابعة'), statusTable(d))}
+				${card(PS.t('حسب درجة الاستعجال'), urgencyTable(d))}
+				${card(PS.t('حسب مصدر الطلب'), sourceTable(d))}
+				${card(PS.t('حسب الموظف المتابع'), html`<div data-emp-box>${employeeTable(d)}</div>`, { wide: true })}
+				${card(PS.t('حسب الصنف المطلوب'), d.byItemType.length ? chartBox('ch-types', Math.max(160, d.byItemType.length * 30 + 40), simpleTable([PS.t('الصنف'), PS.t('المشاريع')], d.byItemType.map(function (r) { return html`<tr><td>${r.label}</td><td>${r.count}</td></tr>`; }))) : ui.empty('📦', PS.t('لا توجد بيانات')))}
+				${card(PS.t('حسب المكان'), d.byPlace.length ? chartBox('ch-places', 260, simpleTable([PS.t('الرمز'), PS.t('المكان'), PS.t('العدد')], d.byPlace.map(function (p) { return html`<tr><td>${p.code}</td><td>${p.label}</td><td>${p.count}</td></tr>`; }))) : ui.empty('📍', PS.t('لا توجد بيانات')))}
+				${card(PS.t('أهم 10 شركات'), companiesTable(d), { wide: true })}
+				${card(PS.t('المنافسون الأكثر حضورا'), competitorsTable(d), { wide: true })}
+				${card(PS.t('أسباب عدم الإرسال (') + d.notSentItems + PS.t(' صنف)'), d.notSentReasons.length ? html`${chartBox('ch-reasons', Math.max(140, d.notSentReasons.length * 32 + 40))}${reasonsTable(d)}` : ui.empty('✔', PS.t('لا توجد عروض لم تُرسل في هذه الفترة')))}
+				${card(PS.t('لم تُرسل حسب الصنف'), d.notSentByType.length ? chartBox('ch-ns-types', Math.max(140, d.notSentByType.length * 32 + 40), simpleTable([PS.t('الصنف'), PS.t('العدد')], d.notSentByType.map(function (r) { return html`<tr><td>${r.label}</td><td>${r.count}</td></tr>`; }))) : ui.empty('✔', PS.t('لا توجد بيانات')))}
 			</div>`.html;
 		bind();
 		drawCharts(d);

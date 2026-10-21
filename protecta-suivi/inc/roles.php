@@ -50,9 +50,9 @@ function ps_role_definitions(): array {
 	);
 
 	return array(
-		'ps_employee' => array( 'label' => 'موظف', 'caps' => $employee ),
-		'ps_manager'  => array( 'label' => 'مسؤول مشروع', 'caps' => $manager ),
-		'ps_admin'    => array( 'label' => 'الإدارة', 'caps' => $admin ),
+		'ps_employee' => array( 'label' => ps__( 'موظف' ), 'caps' => $employee ),
+		'ps_manager'  => array( 'label' => ps__( 'مسؤول مشروع' ), 'caps' => $manager ),
+		'ps_admin'    => array( 'label' => ps__( 'الإدارة' ), 'caps' => $admin ),
 	);
 }
 
@@ -94,7 +94,7 @@ function ps_register_roles(): void {
  */
 function ps_user_role_label( WP_User $user ): string {
 	if ( user_can( $user, 'ps_manage_settings' ) ) {
-		return 'الإدارة';
+		return ps__( 'الإدارة' );
 	}
 	$defs = ps_role_definitions();
 	foreach ( $user->roles as $r ) {

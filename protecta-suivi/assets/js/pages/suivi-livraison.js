@@ -28,9 +28,9 @@
 
 	function statusCell(r) {
 		const late = r.computed.deliveryDisplay === 'late';
-		const lateBadge = late ? L.badge(L.byCode('delivery_status', 'late').id, 'متأخر') : '';
+		const lateBadge = late ? L.badge(L.byCode('delivery_status', 'late').id, PS.t('متأخر')) : '';
 		if (!r.canEdit) return html`${late ? lateBadge : L.badge(r.deliveryStatusId, L.label(r.deliveryStatusId))}`;
-		return html`${lateBadge}<select class="ps-input ps-input--sm" data-field="deliveryStatusId" aria-label="حالة التسليم">${statusOptions(r.deliveryStatusId)}</select>`;
+		return html`${lateBadge}<select class="ps-input ps-input--sm" data-field="deliveryStatusId" aria-label="${PS.t('حالة التسليم')}">${statusOptions(r.deliveryStatusId)}</select>`;
 	}
 
 	function rowHtml(r) {
@@ -53,7 +53,7 @@
 		return html`<div class="ps-icard ${r.computed.deliveryLate ? 'is-late' : ''}" data-row="${r.id}">
 			<div class="ps-pcard__top"><a class="ps-mono" href="#/projet?id=${r.projectId}">${r.projectNo}</a> ${statusCell(r)}</div>
 			<div class="ps-pcard__name">${L.label(r.itemTypeId)} — ${r.projectName}</div>
-			<div class="ps-small">المطلوب: ${F.date(r.deliveryDueDate) || '—'} · الفعلي: ${F.date(r.deliveryActualDate) || '—'} · تأخير: <strong>${r.computed.delayDays}</strong> يوم</div>
+			<div class="ps-small">${PS.t('المطلوب:')} ${F.date(r.deliveryDueDate) || '—'} · ${PS.t('الفعلي:')} ${F.date(r.deliveryActualDate) || '—'} · ${PS.t('تأخير:')} <strong>${r.computed.delayDays}</strong> ${PS.t('يوم')}</div>
 			${r.canEdit ? html`<div class="ps-icard__edit ps-grid ps-grid--tight">${cell(r, 'deliveryDueDate', 'date')}${cell(r, 'deliveryActualDate', 'date')}</div>` : ''}
 		</div>`;
 	}
@@ -65,12 +65,12 @@
 			const lateCount = d.rows.filter(function (r) { return r.computed.deliveryLate; }).length;
 			const box = st.main.querySelector('[data-results]');
 			if (!d.rows.length) {
-				box.innerHTML = ui.empty('🚚', 'لا توجد أصناف مقبولة تطابق الفلاتر.').html;
+				box.innerHTML = ui.empty('🚚', PS.t('لا توجد أصناف مقبولة تطابق الفلاتر.')).html;
 				return;
 			}
-			box.innerHTML = html`<p class="ps-muted ps-small" role="status">${d.total} صنف مقبول · ${lateCount ? html`<strong class="ps-text-danger">${lateCount} تسليم متأخر</strong>` : 'لا توجد تسليمات متأخرة'}</p>
+			box.innerHTML = html`<p class="ps-muted ps-small" role="status">${d.total} ${PS.t('صنف مقبول ·')} ${lateCount ? html`<strong class="ps-text-danger">${lateCount} ${PS.t('تسليم متأخر')}</strong>` : PS.t('لا توجد تسليمات متأخرة')}</p>
 				<div class="ps-table-wrap ps-desktop-only"><table class="ps-table ps-table--list ps-table--edit">
-				<thead><tr><th>رقم المشروع</th><th>الصنف</th><th>فاتورة العرض</th><th>فاتورة المورد</th><th>المتوفر</th><th>أجل التسليم المطلوب *</th><th>أجل التسليم الفعلي</th><th>تأخير (أيام)</th><th>الحالة</th><th>ملاحظات</th></tr></thead>
+				<thead><tr><th>${PS.t('رقم المشروع')}</th><th>${PS.t('الصنف')}</th><th>${PS.t('فاتورة العرض')}</th><th>${PS.t('فاتورة المورد')}</th><th>${PS.t('المتوفر')}</th><th>${PS.t('أجل التسليم المطلوب *')}</th><th>${PS.t('أجل التسليم الفعلي')}</th><th>${PS.t('تأخير (أيام)')}</th><th>${PS.t('الحالة')}</th><th>${PS.t('ملاحظات')}</th></tr></thead>
 				<tbody>${d.rows.map(rowHtml)}</tbody></table></div>
 				<div class="ps-cards ps-mobile-only">${d.rows.map(cardHtml)}</div>`.html;
 		}).catch(function (e) { ui.toast(e.message, 'error'); });
@@ -84,15 +84,15 @@
 
 	function render() {
 		const p = st.params;
-		const empOpts = ui.raw('<option value="">كل الموظفين</option>' + (PS.config.user.employeeId ? '<option value="me"' + (p.employeeId === 'me' ? ' selected' : '') + '>أصنافي فقط</option>' : '') + L.options('employee', p.employeeId, { noEmpty: true }));
-		st.main.innerHTML = html`<div class="ps-page-head"><h1>متابعة التسليم <span class="ps-muted ps-small">(الأصناف ذات العرض المقبول)</span></h1></div>
+		const empOpts = ui.raw(('<option value="">' + PS.t('كل الموظفين') + '</option>') + (PS.config.user.employeeId ? '<option value="me"' + (p.employeeId === 'me' ? ' selected' : '') + ('>' + PS.t('أصنافي فقط') + '</option>') : '') + L.options('employee', p.employeeId, { noEmpty: true }));
+		st.main.innerHTML = html`<div class="ps-page-head"><h1>${PS.t('متابعة التسليم')} <span class="ps-muted ps-small">(${PS.t('الأصناف ذات العرض المقبول')})</span></h1></div>
 			<div class="ps-card ps-toolbar"><div class="ps-toolbar__row">
-				<input type="search" class="ps-input ps-search" placeholder="🔍 بحث: مشروع، شركة، صنف، فاتورة" value="${p.q || ''}" data-search>
-				<select class="ps-input ps-input--auto" data-filter="employeeId" aria-label="الموظف">${empOpts}</select>
-				<label class="ps-check"><input type="checkbox" data-filter="deliveryLate" ${p.deliveryLate ? ui.raw('checked') : ''}> ⚠ المتأخرة فقط</label>
+				<input type="search" class="ps-input ps-search" placeholder="🔍 ${PS.t('بحث: مشروع، شركة، صنف، فاتورة')}" value="${p.q || ''}" data-search>
+				<select class="ps-input ps-input--auto" data-filter="employeeId" aria-label="${PS.t('الموظف')}">${empOpts}</select>
+				<label class="ps-check"><input type="checkbox" data-filter="deliveryLate" ${p.deliveryLate ? ui.raw('checked') : ''}> ⚠ ${PS.t('المتأخرة فقط')}</label>
 				${PS.router.can('ps_export') ? html`<button type="button" class="ps-btn" data-export="csv">⬇ CSV</button><button type="button" class="ps-btn" data-export="xlsx">⬇ Excel</button>` : ''}
 			</div></div>
-			<div data-results><div class="ps-loading">جاري التحميل…</div></div>`.html;
+			<div data-results><div class="ps-loading">${PS.t('جاري التحميل…')}</div></div>`.html;
 		const m = st.main;
 		const onSearch = ui.debounce(function (v) { setParam('q', v.trim()); }, 300);
 		m.querySelector('[data-search]').addEventListener('input', function (e) { onSearch(e.target.value); });
@@ -116,7 +116,7 @@
 
 	PS.router.register({
 		id: 'livraison',
-		title: 'متابعة التسليم',
+		title: PS.t('متابعة التسليم'),
 		icon: '🚚',
 		cap: 'ps_access',
 		order: 50,

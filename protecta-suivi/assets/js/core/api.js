@@ -33,7 +33,7 @@ PS.api = (function () {
 				if (res.status === 401 || code === 'rest_cookie_invalid_nonce') {
 					PS.session && PS.session.expired(code === 'ps_session_expired' ? 'expired' : '');
 				}
-				const err = new Error((data && data.message) || 'حدث خطأ، حاول مرة أخرى.');
+				const err = new Error((data && data.message) || PS.t('حدث خطأ، حاول مرة أخرى.'));
 				err.status = res.status;
 				err.code = code;
 				err.data = data;

@@ -54,11 +54,11 @@ function ps_rest_item_update( WP_REST_Request $r ) {
 	$item = ps_item_row( (int) $r['id'] );
 	$proj = $item ? ps_project_row( (int) $item['project_id'] ) : null;
 	if ( ! $item || ! $proj || $proj['deleted_at'] ) {
-		return new WP_Error( 'ps_not_found', 'الصنف غير موجود', array( 'status' => 404 ) );
+		return new WP_Error( 'ps_not_found', ps__( 'الصنف غير موجود' ), array( 'status' => 404 ) );
 	}
 	$uid = get_current_user_id();
 	if ( ! ps_item_can_edit( $item, $proj, $uid ) ) {
-		return new WP_Error( 'ps_forbidden', 'يمكن تعديل هذا الصنف من الموظف المسؤول عنه، المسؤول عن المشروع أو الإدارة.', array( 'status' => 403 ) );
+		return new WP_Error( 'ps_forbidden', ps__( 'يمكن تعديل هذا الصنف من الموظف المسؤول عنه، المسؤول عن المشروع أو الإدارة.' ), array( 'status' => 403 ) );
 	}
 	$res = ps_item_update( $item, $proj, (array) $r->get_json_params(), $uid );
 	if ( is_wp_error( $res ) ) {

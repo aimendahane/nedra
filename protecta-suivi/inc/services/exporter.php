@@ -17,17 +17,17 @@ function ps_export_projects_table( array $args ): array {
 	$args['page']    = 1;
 	$args['perPage'] = 100000;
 	$rows            = ps_projects_list( $args )['rows'];
-	$lab             = fn( $id ) => $id ? ps_list_label( $id ) : '';
-	$code            = fn( $id ) => $id ? ( ps_list_code( $id ) ?: ps_list_label( $id ) ) : '';
-	$offer           = fn( $c ) => ps_list_label( ps_list_id_by_code( 'offer_status', $c ) );
-	$months          = array( 'جانفي', 'فيفري', 'مارس', 'أفريل', 'ماي', 'جوان', 'جويلية', 'أوت', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر' );
-	$headers         = array( 'السنة', 'رقم', 'المكان', 'درجة الاستعجال', 'الأهمية كصنف', 'الأهمية كحجم', 'الشهر', 'التصنيف', 'اسم الشركة', 'شخص المباشر', 'رقم شخص المباشر', 'اسم المشروع', 'الأصناف', 'تاريخ استلام الطلب', 'تاريخ إرسال الطلب', 'الموظف المتابع', 'الموظف الوسيط', 'رقم المشروع', 'حالة المتابعة', 'حالة العرض', 'NOTE', 'رابط ملف المشاريع', 'رقم العرض', 'مصدر الطلب', 'الأولوية', 'مبلغ العرض', 'العملة' );
+	$lab             = fn( $id ) => $id ? ps_list_label_t( $id ) : '';
+	$code            = fn( $id ) => $id ? ( ps_list_code( $id ) ?: ps_list_label_t( $id ) ) : '';
+	$offer           = fn( $c ) => ps_list_label_t( ps_list_id_by_code( 'offer_status', $c ) );
+	$months          = array( ps__( 'جانفي' ), ps__( 'فيفري' ), ps__( 'مارس' ), ps__( 'أفريل' ), ps__( 'ماي' ), ps__( 'جوان' ), ps__( 'جويلية' ), ps__( 'أوت' ), ps__( 'سبتمبر' ), ps__( 'أكتوبر' ), ps__( 'نوفمبر' ), ps__( 'ديسمبر' ) );
+	$headers         = array( ps__( 'السنة' ), ps__( 'رقم' ), ps__( 'المكان' ), ps__( 'درجة الاستعجال' ), ps__( 'الأهمية كصنف' ), ps__( 'الأهمية كحجم' ), ps__( 'الشهر' ), ps__( 'التصنيف' ), ps__( 'اسم الشركة' ), ps__( 'شخص المباشر' ), ps__( 'رقم شخص المباشر' ), ps__( 'اسم المشروع' ), ps__( 'الأصناف' ), ps__( 'تاريخ استلام الطلب' ), ps__( 'تاريخ إرسال الطلب' ), ps__( 'الموظف المتابع' ), ps__( 'الموظف الوسيط' ), ps__( 'رقم المشروع' ), ps__( 'حالة المتابعة' ), ps__( 'حالة العرض' ), 'NOTE', ps__( 'رابط ملف المشاريع' ), ps__( 'رقم العرض' ), ps__( 'مصدر الطلب' ), ps__( 'الأولوية' ), ps__( 'مبلغ العرض' ), ps__( 'العملة' ) );
 	$out             = array();
 	foreach ( $rows as $r ) {
 		$out[] = array(
 			$r['receivedYear'], $r['seq'], $code( $r['placeId'] ), $code( $r['urgencyId'] ), $lab( $r['importanceKindId'] ), $lab( $r['importanceSizeId'] ),
 			$months[ $r['month'] - 1 ] ?? '', $lab( $r['categoryId'] ), $r['companyName'], $r['directPerson'], $r['directPhone'], $r['name'],
-			implode( '، ', array_map( 'ps_list_label', $r['itemTypeIds'] ) ), $r['receivedDate'], $r['sentDate'], $lab( $r['followerEmpId'] ),
+			implode( ps__( '، ' ), array_map( 'ps_list_label_t', $r['itemTypeIds'] ) ), $r['receivedDate'], $r['sentDate'], $lab( $r['followerEmpId'] ),
 			$lab( $r['intermediaryEmpId'] ), $r['projectNo'], $lab( $r['followupStatusId'] ), $offer( $r['offerStatus'] ), $r['note'], $r['filesLink'],
 			$r['offerNo'], $lab( $r['sourceId'] ), $r['priority'], $r['offerAmount'], $code( $r['offerCurrencyId'] ),
 		);
@@ -42,13 +42,13 @@ function ps_export_items_table( array $args, int $user_id ): array {
 	$args['page']    = 1;
 	$args['perPage'] = 100000;
 	$rows            = ps_items_list( $args, $user_id )['rows'];
-	$lab             = fn( $id ) => $id ? ps_list_label( $id ) : '';
+	$lab             = fn( $id ) => $id ? ps_list_label_t( $id ) : '';
 	if ( 'delivery' === ( $args['view'] ?? '' ) ) {
-		$headers = array( 'رقم المشروع', 'اسم المشروع', 'الصنف', 'فاتورة العرض', 'فاتورة المورد', 'المتوفر', 'أجل التسليم المطلوب', 'أجل التسليم الفعلي', 'تأخير (أيام)', 'الحالة', 'ملاحظات' );
-		$out     = array_map( fn( $r ) => array( $r['projectNo'], $r['projectName'], $lab( $r['itemTypeId'] ), $r['offerInvoiceNo'], $r['supplierInvoiceNo'], $lab( $r['availabilityId'] ), $r['deliveryDueDate'], $r['deliveryActualDate'], $r['computed']['delayDays'], ps_list_label( ps_list_id_by_code( 'delivery_status', (string) $r['computed']['deliveryDisplay'] ) ), $r['deliveryNotes'] ), $rows );
+		$headers = array( ps__( 'رقم المشروع' ), ps__( 'اسم المشروع' ), ps__( 'الصنف' ), ps__( 'فاتورة العرض' ), ps__( 'فاتورة المورد' ), ps__( 'المتوفر' ), ps__( 'أجل التسليم المطلوب' ), ps__( 'أجل التسليم الفعلي' ), ps__( 'تأخير (أيام)' ), ps__( 'الحالة' ), ps__( 'ملاحظات' ) );
+		$out     = array_map( fn( $r ) => array( $r['projectNo'], $r['projectName'], $lab( $r['itemTypeId'] ), $r['offerInvoiceNo'], $r['supplierInvoiceNo'], $lab( $r['availabilityId'] ), $r['deliveryDueDate'], $r['deliveryActualDate'], $r['computed']['delayDays'], ps_list_label_t( ps_list_id_by_code( 'delivery_status', (string) $r['computed']['deliveryDisplay'] ) ), $r['deliveryNotes'] ), $rows );
 	} else {
-		$headers = array( 'رقم المشروع', 'اسم المشروع', 'الشركة', 'الصنف', 'الكمية', 'الموظف المسؤول', 'الأجل المطلوب', 'تاريخ تقديم العرض', 'الحالة', 'سبب عدم الإرسال', 'رقم فاتورة العرض', 'ملاحظات', 'لازم قرار' );
-		$out     = array_map( fn( $r ) => array( $r['projectNo'], $r['projectName'], $r['companyName'], $lab( $r['itemTypeId'] ), $r['quantity'], $lab( $r['employeeId'] ), $r['dueDate'], $r['offerDate'], $lab( $r['offerStatusId'] ), $lab( $r['notSentReasonId'] ), $r['offerInvoiceNo'], $r['offerNotes'], $r['computed']['late'] ? 'نعم' : '' ), $rows );
+		$headers = array( ps__( 'رقم المشروع' ), ps__( 'اسم المشروع' ), ps__( 'الشركة' ), ps__( 'الصنف' ), ps__( 'الكمية' ), ps__( 'الموظف المسؤول' ), ps__( 'الأجل المطلوب' ), ps__( 'تاريخ تقديم العرض' ), ps__( 'الحالة' ), ps__( 'سبب عدم الإرسال' ), ps__( 'رقم فاتورة العرض' ), ps__( 'ملاحظات' ), ps__( 'لازم قرار' ) );
+		$out     = array_map( fn( $r ) => array( $r['projectNo'], $r['projectName'], $r['companyName'], $lab( $r['itemTypeId'] ), $r['quantity'], $lab( $r['employeeId'] ), $r['dueDate'], $r['offerDate'], $lab( $r['offerStatusId'] ), $lab( $r['notSentReasonId'] ), $r['offerInvoiceNo'], $r['offerNotes'], $r['computed']['late'] ? ps__( 'نعم' ) : '' ), $rows );
 	}
 	return array( $headers, $out );
 }

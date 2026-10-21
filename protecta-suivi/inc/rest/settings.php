@@ -40,7 +40,7 @@ function ps_register_settings_routes(): void {
 			'permission_callback' => ps_rest_permission( 'ps_manage_settings' ),
 			'callback'            => static function () {
 				ps_regenerate_cron_token();
-				ps_log( null, 'update', 'settings', null, 'cron_token', null, '(تم تجديد الرمز)' );
+				ps_log( null, 'update', 'settings', null, 'cron_token', null, ps__( '(تم تجديد الرمز)' ) );
 				return ps_rest_settings_get();
 			},
 		)
@@ -86,7 +86,7 @@ function ps_rest_list_update( WP_REST_Request $r ) {
 	global $wpdb;
 	$row = ps_list_value_raw( (int) $r['id'] );
 	if ( ! $row ) {
-		return new WP_Error( 'ps_not_found', 'غير موجود', array( 'status' => 404 ) );
+		return new WP_Error( 'ps_not_found', ps__( 'غير موجود' ), array( 'status' => 404 ) );
 	}
 	$set = ps_list_value_input( $row['list_key'], (array) $r->get_json_params(), $row );
 	if ( is_wp_error( $set ) ) {
@@ -106,14 +106,14 @@ function ps_rest_list_delete( WP_REST_Request $r ) {
 	global $wpdb;
 	$row = ps_list_value_raw( (int) $r['id'] );
 	if ( ! $row ) {
-		return new WP_Error( 'ps_not_found', 'غير موجود', array( 'status' => 404 ) );
+		return new WP_Error( 'ps_not_found', ps__( 'غير موجود' ), array( 'status' => 404 ) );
 	}
 	if ( $row['is_system'] ) {
-		return new WP_Error( 'ps_system', 'قيمة أساسية في الحسابات: لا يمكن حذفها (يمكن تغيير اسمها)', array( 'status' => 409 ) );
+		return new WP_Error( 'ps_system', ps__( 'قيمة أساسية في الحسابات: لا يمكن حذفها (يمكن تغيير اسمها)' ), array( 'status' => 409 ) );
 	}
 	$used = ps_list_usage_count( (int) $row['id'] );
 	if ( $used ) {
-		return new WP_Error( 'ps_in_use', sprintf( 'القيمة مستعملة (%d) ولا يمكن حذفها؛ يمكنك إخفاؤها بدل ذلك.', $used ), array( 'status' => 409, 'usage' => $used ) );
+		return new WP_Error( 'ps_in_use', sprintf( ps__( 'القيمة مستعملة (%d) ولا يمكن حذفها؛ يمكنك إخفاؤها بدل ذلك.' ), $used ), array( 'status' => 409, 'usage' => $used ) );
 	}
 	$wpdb->delete( ps_table( 'lists' ), array( 'id' => (int) $row['id'] ) );
 	ps_log( null, 'delete', 'list', (int) $row['id'], $row['list_key'], $row['label'], null );
@@ -126,7 +126,7 @@ function ps_rest_list_reorder( WP_REST_Request $r ) {
 	$ids = array_map( 'intval', (array) $r->get_param( 'ids' ) );
 	$own = array_column( ps_list_values( $key ), 'id' );
 	if ( count( $ids ) !== count( $own ) || array_diff( $ids, $own ) ) {
-		return new WP_Error( 'ps_validation', 'الترتيب غير صالح', array( 'status' => 422 ) );
+		return new WP_Error( 'ps_validation', ps__( 'الترتيب غير صالح' ), array( 'status' => 422 ) );
 	}
 	foreach ( $ids as $i => $id ) {
 		$wpdb->update( ps_table( 'lists' ), array( 'sort_order' => ( $i + 1 ) * 10 ), array( 'id' => $id ) );
@@ -142,13 +142,13 @@ function ps_rest_test_email( WP_REST_Request $r ) {
 	$u  = wp_get_current_user();
 	$to = trim( (string) ( $r->get_param( 'to' ) ?: $u->user_email ) );
 	if ( ! is_email( $to ) ) {
-		return new WP_Error( 'ps_mail_to', 'عنوان البريد غير صالح: «' . $to . '». صحّح بريد حسابك (الإعدادات ← المستخدمون) أو اكتب عنوانًا آخر.', array( 'status' => 422 ) );
+		return new WP_Error( 'ps_mail_to', ps__( 'عنوان البريد غير صالح: «' ) . $to . ps__( '». صحّح بريد حسابك (الإعدادات ← المستخدمون) أو اكتب عنوانًا آخر.' ), array( 'status' => 422 ) );
 	}
 	if ( ps_digest_send_to_user( $u, true, null, $to ) ) {
 		return rest_ensure_response( array( 'ok' => true, 'to' => $to, 'smtp' => (bool) ps_setting( 'smtp_enabled' ) ) );
 	}
-	$why = ps_mail_last_error() ?: 'سبب غير معروف';
-	return new WP_Error( 'ps_mail', 'تعذّر الإرسال: ' . $why . ' — فعّل «الإرسال عبر SMTP» بحساب بريد حقيقي من cPanel.', array( 'status' => 500, 'detail' => $why ) );
+	$why = ps_mail_last_error() ?: ps__( 'سبب غير معروف' );
+	return new WP_Error( 'ps_mail', ps__( 'تعذّر الإرسال: ' ) . $why . ps__( ' — فعّل «الإرسال عبر SMTP» بحساب بريد حقيقي من cPanel.' ), array( 'status' => 500, 'detail' => $why ) );
 }
 
 /* ---------------------------------------------------------------------- */
@@ -158,12 +158,12 @@ function ps_rest_test_email( WP_REST_Request $r ) {
 /** Réglages numériques modifiables : clé => [min, max, libellé]. */
 function ps_numeric_settings(): array {
 	return array(
-		'inactivity_minutes'    => array( 5, 1440, 'الخروج التلقائي بعد عدم النشاط (دقيقة)' ),
-		'login_max_attempts'    => array( 3, 50, 'محاولات الدخول الخاطئة قبل الحظر' ),
-		'login_window_minutes'  => array( 1, 1440, 'مدة الحظر (دقيقة)' ),
-		'followup_alert_days'   => array( 1, 90, 'تنبيه المتابعة بعد (أيام)' ),
-		'duplicate_window_days' => array( 1, 365, 'كشف المشاريع المكررة خلال (أيام)' ),
-		'creator_edit_hours'    => array( 0, 720, 'مدة تعديل المشروع من طرف منشئه (ساعات)' ),
+		'inactivity_minutes'    => array( 5, 1440, ps__( 'الخروج التلقائي بعد عدم النشاط (دقيقة)' ) ),
+		'login_max_attempts'    => array( 3, 50, ps__( 'محاولات الدخول الخاطئة قبل الحظر' ) ),
+		'login_window_minutes'  => array( 1, 1440, ps__( 'مدة الحظر (دقيقة)' ) ),
+		'followup_alert_days'   => array( 1, 90, ps__( 'تنبيه المتابعة بعد (أيام)' ) ),
+		'duplicate_window_days' => array( 1, 365, ps__( 'كشف المشاريع المكررة خلال (أيام)' ) ),
+		'creator_edit_hours'    => array( 0, 720, ps__( 'مدة تعديل المشروع من طرف منشئه (ساعات)' ) ),
 	);
 }
 
@@ -200,7 +200,7 @@ function ps_rest_settings_put( WP_REST_Request $r ) {
 		}
 		$v = $b[ $key ];
 		if ( ! is_numeric( $v ) || (int) $v < $min || (int) $v > $max ) {
-			$errors[ $key ] = sprintf( '%s: بين %d و %d', $label, $min, $max );
+			$errors[ $key ] = sprintf( ps__( '%s: بين %d و %d' ), $label, $min, $max );
 		} else {
 			$set[ $key ] = (int) $v;
 		}
@@ -214,7 +214,7 @@ function ps_rest_settings_put( WP_REST_Request $r ) {
 		if ( '' === $v || is_email( $v ) ) {
 			$set['mail_from_email'] = $v;
 		} else {
-			$errors['mail_from_email'] = 'بريد المرسل غير صالح';
+			$errors['mail_from_email'] = ps__( 'بريد المرسل غير صالح' );
 		}
 	}
 	foreach ( array( 'mail_from_name', 'smtp_host', 'smtp_user' ) as $k ) {
@@ -230,18 +230,26 @@ function ps_rest_settings_put( WP_REST_Request $r ) {
 		if ( is_numeric( $p ) && (int) $p >= 1 && (int) $p <= 65535 ) {
 			$set['smtp_port'] = (int) $p;
 		} else {
-			$errors['smtp_port'] = 'المنفذ بين 1 و 65535';
+			$errors['smtp_port'] = ps__( 'المنفذ بين 1 و 65535' );
 		}
 	}
 	if ( array_key_exists( 'smtp_secure', $b ) ) {
 		if ( in_array( $b['smtp_secure'], array( 'ssl', 'tls', 'none' ), true ) ) {
 			$set['smtp_secure'] = $b['smtp_secure'];
 		} else {
-			$errors['smtp_secure'] = 'نوع التشفير غير صالح';
+			$errors['smtp_secure'] = ps__( 'نوع التشفير غير صالح' );
 		}
 	}
 	if ( ! empty( $set['smtp_enabled'] ) && '' === trim( (string) ( $set['smtp_host'] ?? ps_setting( 'smtp_host' ) ) ) ) {
-		$errors['smtp_host'] = 'اكتب خادم SMTP (مثلًا mail.موقعك.com)';
+		$errors['smtp_host'] = ps__( 'اكتب خادم SMTP (مثلًا mail.موقعك.com)' );
+	}
+	// Langue par défaut (1.3.0) : comptes sans préférence, page de connexion, e-mails et Telegram.
+	if ( array_key_exists( 'default_lang', $b ) ) {
+		if ( isset( ps_languages()[ (string) $b['default_lang'] ] ) ) {
+			$set['default_lang'] = (string) $b['default_lang'];
+		} else {
+			$errors['default_lang'] = ps__( 'قيمة غير موجودة في القائمة' );
+		}
 	}
 	// Telegram : token vérifié auprès de Telegram (getMe) avant d'être enregistré ; vide = garder l'ancien.
 	$tg_token = isset( $b['telegram_token'] ) ? trim( (string) $b['telegram_token'] ) : '';
@@ -256,7 +264,7 @@ function ps_rest_settings_put( WP_REST_Request $r ) {
 	if ( array_key_exists( 'telegram_enabled', $b ) ) {
 		$set['telegram_enabled'] = (bool) $b['telegram_enabled'];
 		if ( $set['telegram_enabled'] && '' === ps_tg_token() && ! isset( $errors['telegram_token'] ) ) {
-			$errors['telegram_token'] = 'الصق رمز البوت (token) أولًا';
+			$errors['telegram_token'] = ps__( 'الصق رمز البوت (token) أولًا' );
 		}
 	}
 	// Mot de passe : jamais renvoyé ; champ vide = garder l'ancien.
@@ -275,13 +283,13 @@ function ps_rest_settings_put( WP_REST_Request $r ) {
 		$set['validation'] = $cur;
 	}
 	if ( $errors ) {
-		return new WP_Error( 'ps_validation', 'يرجى تصحيح القيم', array( 'status' => 422, 'errors' => $errors ) );
+		return new WP_Error( 'ps_validation', ps__( 'يرجى تصحيح القيم' ), array( 'status' => 422, 'errors' => $errors ) );
 	}
 	$old = ps_settings();
 	ps_update_settings( $set );
 	if ( '' !== $new_pass ) {
 		update_option( 'ps_smtp_pass', $new_pass, false );
-		ps_log( null, 'update', 'settings', null, 'smtp_pass', null, '(تم تغيير كلمة السر)' );
+		ps_log( null, 'update', 'settings', null, 'smtp_pass', null, ps__( '(تم تغيير كلمة السر)' ) );
 	}
 	foreach ( $set as $k => $v ) {
 		if ( wp_json_encode( $old[ $k ] ?? null ) !== wp_json_encode( $v ) ) {
@@ -313,7 +321,7 @@ function ps_user_to_api( WP_User $u ): array {
 		'name'        => $u->display_name,
 		'email'       => $u->user_email,
 		'role'        => $role ?: ( in_array( 'administrator', $u->roles, true ) ? 'administrator' : '' ),
-		'roleLabel'   => ps_user_role_label( $u ) ?: ( in_array( 'administrator', $u->roles, true ) ? 'مدير الموقع' : '—' ),
+		'roleLabel'   => ps_user_role_label( $u ) ?: ( in_array( 'administrator', $u->roles, true ) ? ps__( 'مدير الموقع' ) : '—' ),
 		'employeeId'  => ps_user_employee_id( (int) $u->ID ),
 		'dailyEmail'  => (bool) get_user_meta( $u->ID, 'ps_daily_email', true ),
 		'disabled'    => (bool) get_user_meta( $u->ID, 'ps_disabled', true ),
@@ -336,27 +344,27 @@ function ps_user_input( array $b, ?WP_User $existing ) {
 	if ( ! $existing ) {
 		$login = sanitize_user( (string) ( $b['login'] ?? '' ), true );
 		if ( '' === $login || strlen( $login ) < 3 ) {
-			$errors['login'] = 'اسم المستخدم (3 أحرف لاتينية على الأقل)';
+			$errors['login'] = ps__( 'اسم المستخدم (3 أحرف لاتينية على الأقل)' );
 		} elseif ( username_exists( $login ) ) {
-			$errors['login'] = 'اسم المستخدم موجود';
+			$errors['login'] = ps__( 'اسم المستخدم موجود' );
 		}
 		$out['user_login'] = $login;
 	}
 	if ( array_key_exists( 'name', $b ) || ! $existing ) {
 		$name = ps_clean_text( $b['name'] ?? null );
 		if ( null === $name ) {
-			$errors['name'] = 'اكتب الاسم';
+			$errors['name'] = ps__( 'اكتب الاسم' );
 		}
 		$out['display_name'] = $name;
 	}
 	if ( array_key_exists( 'email', $b ) || ! $existing ) {
 		$email = sanitize_email( (string) ( $b['email'] ?? '' ) );
 		if ( ! is_email( $email ) ) {
-			$errors['email'] = 'بريد إلكتروني غير صحيح';
+			$errors['email'] = ps__( 'بريد إلكتروني غير صحيح' );
 		} else {
 			$other = email_exists( $email );
 			if ( $other && ( ! $existing || (int) $other !== (int) $existing->ID ) ) {
-				$errors['email'] = 'البريد مستعمل في حساب آخر';
+				$errors['email'] = ps__( 'البريد مستعمل في حساب آخر' );
 			}
 		}
 		$out['user_email'] = $email;
@@ -364,32 +372,32 @@ function ps_user_input( array $b, ?WP_User $existing ) {
 	if ( ! empty( $b['password'] ) || ! $existing ) {
 		$pw = (string) ( $b['password'] ?? '' );
 		if ( strlen( $pw ) < 8 ) {
-			$errors['password'] = 'كلمة السر: 8 أحرف على الأقل';
+			$errors['password'] = ps__( 'كلمة السر: 8 أحرف على الأقل' );
 		}
 		$out['user_pass'] = $pw;
 	}
 	if ( array_key_exists( 'role', $b ) || ! $existing ) {
 		$role = (string) ( $b['role'] ?? '' );
 		if ( ! isset( ps_role_definitions()[ $role ] ) ) {
-			$errors['role'] = 'اختر الدور';
+			$errors['role'] = ps__( 'اختر الدور' );
 		}
 		$out['role'] = $role;
 	}
 	if ( array_key_exists( 'employeeId', $b ) ) {
 		$emp = ps_clean_id( $b['employeeId'] );
 		if ( $emp && 'employee' !== ps_list_key_of( $emp ) ) {
-			$errors['employeeId'] = 'موظف غير موجود';
+			$errors['employeeId'] = ps__( 'موظف غير موجود' );
 		} elseif ( $emp ) {
 			$taken = get_users( array( 'meta_key' => 'ps_employee_id', 'meta_value' => (string) $emp, 'fields' => 'ids' ) );
 			$taken = array_diff( array_map( 'intval', $taken ), array( $existing ? (int) $existing->ID : 0 ) );
 			if ( $taken ) {
-				$errors['employeeId'] = 'هذا الموظف مرتبط بحساب آخر';
+				$errors['employeeId'] = ps__( 'هذا الموظف مرتبط بحساب آخر' );
 			}
 		}
 		$out['employee'] = $emp;
 	}
 	if ( $errors ) {
-		return new WP_Error( 'ps_validation', 'يرجى تصحيح الخانات', array( 'status' => 422, 'errors' => $errors ) );
+		return new WP_Error( 'ps_validation', ps__( 'يرجى تصحيح الخانات' ), array( 'status' => 422, 'errors' => $errors ) );
 	}
 	return $out;
 }
@@ -415,15 +423,15 @@ function ps_rest_user_create( WP_REST_Request $r ) {
 function ps_rest_user_update( WP_REST_Request $r ) {
 	$u = get_userdata( (int) $r['id'] );
 	if ( ! $u ) {
-		return new WP_Error( 'ps_not_found', 'الحساب غير موجود', array( 'status' => 404 ) );
+		return new WP_Error( 'ps_not_found', ps__( 'الحساب غير موجود' ), array( 'status' => 404 ) );
 	}
 	$b    = (array) $r->get_json_params();
 	$self = (int) $u->ID === get_current_user_id();
 	if ( in_array( 'administrator', $u->roles, true ) && ( isset( $b['role'] ) || ! empty( $b['disabled'] ) ) ) {
-		return new WP_Error( 'ps_forbidden', 'حساب مدير الموقع لا يُعدّل دوره من هنا.', array( 'status' => 403 ) );
+		return new WP_Error( 'ps_forbidden', ps__( 'حساب مدير الموقع لا يُعدّل دوره من هنا.' ), array( 'status' => 403 ) );
 	}
 	if ( $self && ( ( isset( $b['role'] ) && 'ps_admin' !== $b['role'] ) || ! empty( $b['disabled'] ) ) ) {
-		return new WP_Error( 'ps_forbidden', 'لا يمكنك تغيير دورك أو تعطيل حسابك بنفسك.', array( 'status' => 403 ) );
+		return new WP_Error( 'ps_forbidden', ps__( 'لا يمكنك تغيير دورك أو تعطيل حسابك بنفسك.' ), array( 'status' => 403 ) );
 	}
 	$in = ps_user_input( $b, $u );
 	if ( is_wp_error( $in ) ) {

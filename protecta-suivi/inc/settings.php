@@ -39,6 +39,9 @@ function ps_default_settings(): array {
 		'smtp_secure'     => 'ssl', // ssl | tls | none
 		'smtp_user'       => '',
 
+		// Langue par défaut de l'interface (1.3.0) : ar | en | fr. Chaque compte peut choisir la sienne.
+		'default_lang' => 'ar',
+
 		// Telegram (1.2.0, voir inc/services/telegram.php). Le token est gardé à part (option ps_telegram_token).
 		'telegram_enabled' => false,
 
