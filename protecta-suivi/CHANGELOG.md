@@ -3,6 +3,14 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.3.5 — 2026-10-22 · base v4 — Cloche : où activer Telegram ; durée des messages vocaux
+
+- Cloche 🔔 : tant que Telegram n'est pas activé, la الإدارة voit « Telegram غير مفعّل بعد » + lien vers
+  الإعدادات ← عام ; les autres comptes voient « اطلب من الإدارة تفعيله » (avant : rien, donc pas de « ربط Telegram »).
+- Message vocal : durée affichée à côté du lecteur (« 🎙 0:42 ») — un enregistrement Chrome/Android n'indique
+  pas sa durée au lecteur, qui affichait « 0:00 / 0:00 » ; le lecteur charge maintenant l'en-tête du fichier
+  (erreur détectée tout de suite → lecture de secours).
+
 ## 1.3.4 — 2026-10-22 · base v4 — Choix du micro (PC)
 
 - Retour client : le son marche sur téléphone mais pas sur PC (« لم يُلتقط أي صوت »). Sur un PC il y a souvent

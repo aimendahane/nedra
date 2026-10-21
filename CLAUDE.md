@@ -27,13 +27,14 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 1.3.1 | Retour client : message vocal sans son (WebM → Ogg pour Telegram, niveau du micro) | ✅ terminée, tests verts | 1.3.1 · base v4 |
 | 1.3.2 | Retour client : toujours muet sur Android + Telegram → détection du silence, secours de lecture | ✅ terminée, tests verts | 1.3.2 · base v4 |
 | 1.3.3 | Retour client : toujours pas de son → panneau « اختبار الصوت » (diagnostic) + étapes Telegram | ✅ terminée, tests verts | 1.3.3 · base v4 |
-| 1.3.4 | Retour client : son OK sur mobile, muet sur PC → liste de choix du micro | ✅ terminée, tests verts | **1.3.4** · base v4 |
+| 1.3.4 | Retour client : son OK sur mobile, muet sur PC → liste de choix du micro | ✅ terminée, tests verts | 1.3.4 · base v4 |
+| 1.3.5 | Capture client : cloche sans « ربط Telegram » (Telegram pas activé) + lecteur « 0:00 » → indication + durée | ✅ terminée, tests verts | **1.3.5** · base v4 |
 
-### Tests (dernier passage complet, version 1.3.4) — détail : `docs/TEST-RESULTS.txt`
+### Tests (dernier passage complet, version 1.3.5) — détail : `docs/TEST-RESULTS.txt`
 - `sh protecta-suivi/tests/run-all.sh` → **669 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
   (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues) passés.
-- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.3.4.zip $PWD/dist/protecta-suivi-1.3.3.zip` (chemins absolus) →
-  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.3.3 → 1.3.4 avec données : **aucune perte**.
+- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.3.5.zip $PWD/dist/protecta-suivi-1.3.4.zip` (chemins absolus) →
+  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.3.4 → 1.3.5 avec données : **aucune perte**.
 
 ### Prochaines actions
 1. Dès que l'accès GitHub est rétabli : `git push -u origin claude/sweet-hopper-le9393` puis

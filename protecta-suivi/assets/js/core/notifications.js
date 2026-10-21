@@ -52,7 +52,15 @@ PS.notifications = (function () {
 		const box = document.querySelector('[data-bell-tg]');
 		if (!box) return;
 		const draw = function () {
-			if (!tg || !tg.enabled) { box.hidden = true; return; }
+			if (!tg || !tg.enabled) {
+				// 1.3.5 : Telegram pas encore activé → dire où l'activer (الإدارة) au lieu de ne rien montrer.
+				const admin = !!(PS.config.user.caps || {}).ps_manage_settings;
+				box.hidden = false;
+				box.innerHTML = admin
+					? html`<span class="ps-muted">✈ ${PS.t('Telegram غير مفعّل بعد:')}</span> <a class="ps-link" href="#/parametres?tab=general">${PS.t('الإعدادات ← عام ← إشعارات Telegram')}</a>`.html
+					: html`<span class="ps-muted">✈ ${PS.t('Telegram غير مفعّل بعد (اطلب من الإدارة تفعيله).')}</span>`.html;
+				return;
+			}
 			box.hidden = false;
 			box.innerHTML = tg.linked
 				? html`<span class="ps-tg-ok">✈ ${PS.t('مربوط بـ Telegram')}</span> <button type="button" class="ps-link" data-tg-unlink>${PS.t('فك الربط')}</button>`.html

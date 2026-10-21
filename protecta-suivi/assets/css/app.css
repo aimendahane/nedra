@@ -655,7 +655,8 @@ tr.ps-drill:hover td { background: var(--ps-primary-soft); }
 .ps-voice__level i { display: block; height: 100%; width: 0; background: var(--ps-success); transition: width 0.1s linear; }
 .ps-voice__time { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--ps-text-muted); }
 .ps-voice[data-state="recording"] .ps-voice__time { color: var(--ps-danger); }
-.ps-voice audio, .ps-voice__player { height: 38px; max-width: 100%; }
+.ps-voice audio, .ps-voice__dur { display: inline-block; margin-top: 6px; margin-inline-end: 8px; font-size: 13px; font-weight: 700; color: var(--ps-text-muted); font-variant-numeric: tabular-nums; }
+.ps-voice__player { height: 38px; max-width: 100%; }
 .ps-voice audio { flex: 1 1 220px; }
 .ps-voice__player { margin-top: 6px; width: min(320px, 100%); }
 

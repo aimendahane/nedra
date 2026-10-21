@@ -181,7 +181,8 @@
 	/** Lecteur audio d'une tâche (fichier servi par l'API après contrôle des droits). */
 	function voicePlayer(r) {
 		if (!r.hasVoice) return '';
-		return html`<audio class="ps-voice__player" controls preload="none" src="${PS.config.restUrl + 'free-tasks/' + r.id + '/voice?_wpnonce=' + PS.config.nonce}"></audio>`;
+		// Durée affichée à côté : un enregistrement WebM n'indique pas sa durée au lecteur (« 0:00 / 0:00 »).
+		return html`${r.voiceSeconds ? html`<span class="ps-voice__dur" dir="ltr">🎙 ${fmtSeconds(r.voiceSeconds)}</span>` : ''}<audio class="ps-voice__player" controls preload="metadata" src="${PS.config.restUrl + 'free-tasks/' + r.id + '/voice?_wpnonce=' + PS.config.nonce}"></audio>`;
 	}
 
 	/*

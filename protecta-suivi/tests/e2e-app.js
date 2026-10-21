@@ -574,6 +574,10 @@ async function step6(browser) {
 	}
 	{
 		const { ctx, page } = await newPage(browser, 'idara');
+		await page.click('#ps-bell');
+		await page.waitForTimeout(600);
+		check('الإدارة, Telegram non configuré : la cloche indique où l\'activer', !!(await page.$('[data-bell-tg] a[href="#/parametres?tab=general"]')));
+		await page.click('#ps-bell');
 		await go(page, '#/parametres?tab=general');
 		check('الإعدادات ← عام : réglages SMTP présents', !!(await page.$('[name=smtp_host]')) && !!(await page.$('[name=smtp_pass][type=password]')));
 		await page.click('[data-test-mail]');
@@ -744,7 +748,8 @@ async function step8() {
 		await page.screenshot({ path: SHOTS + '/s8-02-tache-vocale.png', fullPage: true });
 		await page.click('#ps-bell');
 		await page.waitForTimeout(600);
-		check('Telegram non configuré : rien dans la cloche', !(await page.isVisible('[data-tg-link]')));
+		check('Telegram non configuré : pas de bouton « ربط » mais une explication (موظف → demander à la الإدارة)', !(await page.isVisible('[data-tg-link]')) && /اطلب من الإدارة/.test(await page.textContent('[data-bell-tg]')));
+		check('durée du message vocal affichée à côté du lecteur', /🎙 0:0\d/.test(await page.textContent('.ps-voice__dur')));
 		await ctx.close();
 	}
 	{
