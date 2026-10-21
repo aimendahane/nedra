@@ -3,6 +3,18 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.3.1 — 2026-10-21 · base v4 — Messages vocaux : le son arrive partout
+
+- **Telegram : message vocal muet corrigé.** Chrome, Edge et Android enregistrent en WebM, format que Telegram
+  ne lit pas (le fichier arrivait sans son). Le serveur en fait maintenant une copie **Ogg/Opus** (conversion en
+  PHP pur, sans réencodage ni extension) envoyée comme vrai message vocal Telegram. L'original reste pour le navigateur.
+- Enregistrement en **MP4/AAC** quand le navigateur le permet (lisible partout, iPhone compris), sinon Ogg, sinon WebM.
+- Lecture dans l'application plus robuste sur l'hébergement : tampons PHP vidés et compression gzip coupée
+  pour le fichier audio (rien ne peut plus abîmer le son).
+- **Barre de niveau du micro** pendant l'enregistrement + alerte « لم يُلتقط أي صوت » si le micro n'a rien capté.
+- Tests : 656 tests PHP (vrai enregistrement Chrome → Ogg vérifié avec ffmpeg : lisible, durée, volume) ;
+  navigateur : le fichier servi est décodé et contient du son.
+
 ## 1.3.0 — 2026-10-21 · base v4 — Interface en العربية / English / Français
 
 - **Trois langues** : العربية (par défaut, de droite à gauche), English et Français (de gauche à droite).

@@ -33,9 +33,12 @@
 	/* ---- Message vocal (1.2.0) : enregistrement dans le navigateur, 5 minutes au plus ---- */
 	const VOICE_MAX = 300;
 
-	/** Type d'enregistrement accepté par le navigateur (Chrome/Edge : webm, Firefox : ogg, iPhone/Safari : mp4). */
+	/**
+	 * Type d'enregistrement : d'abord MP4/AAC (lisible partout, iPhone compris), sinon Ogg (Firefox),
+	 * sinon WebM (Chrome/Android ; le serveur en fait une copie Ogg pour Telegram).
+	 */
 	function voiceType() {
-		const types = ['audio/ogg;codecs=opus', 'audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+		const types = ['audio/mp4;codecs=mp4a.40.2', 'audio/ogg;codecs=opus', 'audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
 		for (let i = 0; i < types.length; i++) if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(types[i])) return types[i];
 		return '';
 	}
@@ -49,7 +52,7 @@
 	 * result() = { blob, seconds, ext } ou null.
 	 */
 	function voiceRecorder(box) {
-		const st = { rec: null, stream: null, chunks: [], blob: null, seconds: 0, timer: null, t0: 0 };
+		const st = { rec: null, stream: null, chunks: [], blob: null, seconds: 0, timer: null, t0: 0, meter: null, peak: 0 };
 		const $ = function (sel) { return box.querySelector(sel); };
 		function showState(state) {
 			box.dataset.state = state;
@@ -57,9 +60,45 @@
 			$('[data-voice-time]').hidden = state === 'idle';
 			$('[data-voice-audio]').hidden = state !== 'done';
 			$('[data-voice-del]').hidden = state !== 'done';
+			$('[data-voice-level]').hidden = state !== 'recording';
+		}
+		/* Niveau du micro pendant l'enregistrement (1.3.1) : on voit tout de suite si le son arrive. */
+		function meterStart(stream) {
+			st.peak = 0;
+			try {
+				const AC = window.AudioContext || window.webkitAudioContext;
+				const ac = new AC();
+				const an = ac.createAnalyser();
+				an.fftSize = 512;
+				ac.createMediaStreamSource(stream).connect(an);
+				// Relié à la sortie à volume 0 : certains navigateurs n'analysent qu'un graphe audio « actif ».
+				const mute = ac.createGain();
+				mute.gain.value = 0;
+				an.connect(mute);
+				mute.connect(ac.destination);
+				if (ac.state === 'suspended' && ac.resume) ac.resume();
+				st.meter = { ac: ac, an: an, buf: new Uint8Array(an.fftSize) };
+			} catch (e) { st.meter = null; }
+		}
+		function meterRead() {
+			if (!st.meter) return;
+			st.meter.an.getByteTimeDomainData(st.meter.buf);
+			let p = 0;
+			for (let i = 0; i < st.meter.buf.length; i++) p = Math.max(p, Math.abs(st.meter.buf[i] - 128) / 128);
+			st.peak = Math.max(st.peak, p);
+			$('[data-voice-level] i').style.width = Math.min(100, Math.round(p * 140)) + '%';
+		}
+		function meterStop() {
+			if (!st.meter) return;
+			const measured = st.meter.ac.state === 'running'; // mesure fiable seulement si l'analyse a tourné
+			try { st.meter.ac.close(); } catch (e) { /* déjà fermé */ }
+			st.meter = null;
+			// Aucun son capté : micro coupé, mauvais micro choisi ou autorisation partielle.
+			if (measured && st.peak < 0.01) ui.toast(PS.t('لم يُلتقط أي صوت: تأكّد أن الميكروفون يعمل وغير مكتوم، ثم أعد التسجيل.'), 'error');
 		}
 		function tick() {
 			st.seconds = (Date.now() - st.t0) / 1000;
+			meterRead();
 			$('[data-voice-time]').textContent = '● ' + fmtSeconds(st.seconds) + ' / ' + fmtSeconds(VOICE_MAX);
 			if (st.seconds >= VOICE_MAX) stop();
 		}
@@ -76,14 +115,16 @@
 				st.rec.ondataavailable = function (e) { if (e.data && e.data.size) st.chunks.push(e.data); };
 				st.rec.onstop = function () {
 					stream.getTracks().forEach(function (t) { t.stop(); });
+					meterStop();
 					st.blob = new Blob(st.chunks, { type: st.rec.mimeType || type || 'audio/webm' });
 					$('[data-voice-audio]').src = URL.createObjectURL(st.blob);
 					$('[data-voice-time]').textContent = '🎙 ' + fmtSeconds(st.seconds);
 					showState('done');
 				};
+				meterStart(stream);
 				st.rec.start(1000);
 				st.t0 = Date.now();
-				st.timer = setInterval(tick, 250);
+				st.timer = setInterval(tick, 100);
 				tick();
 				showState('recording');
 			}).catch(function () { ui.toast(PS.t('لم يُسمح باستعمال الميكروفون. فعّله من إعدادات المتصفح.'), 'error'); });
@@ -133,7 +174,7 @@
 					<label class="ps-field" data-key="note"><span class="ps-field__label">${PS.t('ملاحظة')}</span>
 						<textarea class="ps-input" name="note" rows="3">${t.note || ''}</textarea></label>
 					${t.id ? '' : (voiceSupported()
-						? html`<div class="ps-voice" data-voice><button type="button" class="ps-btn ps-voice__rec" data-voice-rec></button><span class="ps-voice__time" data-voice-time dir="ltr"></span><audio data-voice-audio controls></audio><button type="button" class="ps-btn ps-btn--ghost ps-btn--small" data-voice-del>🗑 ${PS.t('حذف')}</button></div>`
+						? html`<div class="ps-voice" data-voice><button type="button" class="ps-btn ps-voice__rec" data-voice-rec></button><span class="ps-voice__time" data-voice-time dir="ltr"></span><span class="ps-voice__level" data-voice-level aria-hidden="true"><i></i></span><audio data-voice-audio controls></audio><button type="button" class="ps-btn ps-btn--ghost ps-btn--small" data-voice-del>🗑 ${PS.t('حذف')}</button></div>`
 						: html`<p class="ps-muted ps-small">🎙 ${PS.t('الرسائل الصوتية تتطلب متصفحًا حديثًا واتصالًا آمنًا (https).')}</p>`)}
 					<p class="ps-muted ps-small">${PS.t('اكتب المهمة أو سجّل رسالة صوتية (أو الاثنين). تظهر في «مهامي» عند الموظف، ويصله بريد و/أو رسالة Telegram.')}</p>
 				</form>`,

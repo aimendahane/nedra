@@ -92,6 +92,16 @@ function ps_rest_free_task_voice( WP_REST_Request $r ) {
 	if ( ! $real || ! str_starts_with( $real, realpath( ps_storage_dir( 'files' ) ) ) || ! is_readable( $real ) ) {
 		return new WP_Error( 'ps_not_found', ps__( 'الرسالة الصوتية غير موجودة على الخادم' ), array( 'status' => 404 ) );
 	}
+	// Rien ne doit précéder le son (tampons, compression gzip de l'hébergeur) : sinon fichier illisible / muet.
+	while ( ob_get_level() > 0 ) {
+		ob_end_clean();
+	}
+	if ( function_exists( 'ini_set' ) ) {
+		@ini_set( 'zlib.output_compression', 'Off' ); // phpcs:ignore
+	}
+	if ( function_exists( 'apache_setenv' ) ) {
+		@apache_setenv( 'no-gzip', '1' ); // phpcs:ignore
+	}
 	$size  = filesize( $real );
 	$start = 0;
 	$end   = $size - 1;
@@ -106,6 +116,10 @@ function ps_rest_free_task_voice( WP_REST_Request $r ) {
 	header( 'Content-Length: ' . ( $end - $start + 1 ) );
 	header( 'Cache-Control: private, max-age=3600' );
 	header( 'X-Content-Type-Options: nosniff' );
+	header( 'Content-Encoding: identity' );
+	if ( 'HEAD' === $r->get_method() ) {
+		exit;
+	}
 	$fh = fopen( $real, 'rb' ); // phpcs:ignore
 	fseek( $fh, $start );
 	echo fread( $fh, $end - $start + 1 ); // phpcs:ignore

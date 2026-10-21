@@ -27,6 +27,7 @@ require_once __DIR__ . '/inc/services/duplicates.php';
 require_once __DIR__ . '/inc/services/stats.php';
 require_once __DIR__ . '/inc/services/recap.php';
 require_once __DIR__ . '/inc/mail.php';
+require_once __DIR__ . '/inc/services/voice-ogg.php';
 require_once __DIR__ . '/inc/services/telegram.php';
 require_once __DIR__ . '/inc/services/digest.php';
 require_once __DIR__ . '/inc/services/notifications.php';

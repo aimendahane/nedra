@@ -361,6 +361,11 @@ function ps_voice_types(): array {
 	);
 }
 
+/** Copie Ogg d'un message vocal WebM (même nom, extension .ogg). */
+function ps_voice_ogg_path( string $path ): string {
+	return preg_replace( '/\.webm$/', '.ogg', $path );
+}
+
 /** Durée maximale d'un message (secondes) et taille maximale (octets). */
 const PS_VOICE_MAX_SECONDS = 300;
 const PS_VOICE_MAX_BYTES   = 12 * MB_IN_BYTES;
@@ -401,6 +406,10 @@ function ps_task_store_voice( array $upload, int $seconds ) {
 	$moved  = defined( 'PS_TESTING' ) ? copy( $upload['tmp_name'], $dest ) : move_uploaded_file( $upload['tmp_name'], $dest );
 	if ( ! $moved ) {
 		return new WP_Error( 'ps_storage', ps__( 'تعذّر حفظ الرسالة الصوتية' ), array( 'status' => 500 ) );
+	}
+	// 1.3.1 : copie Ogg/Opus d'un enregistrement WebM (Chrome, Android) pour Telegram, qui ne lit pas le WebM.
+	if ( 'webm' === $ext ) {
+		ps_voice_webm_to_ogg( $dest, ps_voice_ogg_path( $dest ) );
 	}
 	return array(
 		'voice_path'    => $stored,

@@ -199,8 +199,16 @@ function ps_tg_send_voice( WP_User $u, string $path, string $mime, string $capti
 		return false;
 	}
 	$base = array( 'chat_id' => $chat, 'caption' => mb_substr( $caption, 0, 1000 ), 'parse_mode' => 'HTML' );
-	$ext  = pathinfo( $path, PATHINFO_EXTENSION );
-	$try  = str_contains( $mime, 'ogg' ) ? array( 'sendVoice' => 'voice', 'sendDocument' => 'document' ) : array( 'sendAudio' => 'audio', 'sendDocument' => 'document' );
+	// WebM (Chrome, Android) : Telegram ne le lit pas → on envoie sa copie Ogg/Opus (vrai message vocal).
+	$ogg = function_exists( 'ps_voice_ogg_path' ) ? ps_voice_ogg_path( $path ) : $path;
+	if ( $ogg !== $path && ( is_readable( $ogg ) || ps_voice_webm_to_ogg( $path, $ogg ) ) ) {
+		$path = $ogg;
+		$mime = 'audio/ogg';
+	}
+	$ext = pathinfo( $path, PATHINFO_EXTENSION );
+	// sendVoice accepte Ogg/Opus, MP3 et M4A ; sinon fichier audio, puis simple document.
+	$try = str_contains( $mime, 'ogg' ) ? array( 'sendVoice' => 'voice', 'sendDocument' => 'document' )
+		: ( str_contains( $mime, 'webm' ) ? array( 'sendDocument' => 'document' ) : array( 'sendVoice' => 'voice', 'sendAudio' => 'audio', 'sendDocument' => 'document' ) );
 	foreach ( $try as $method => $field ) {
 		$r = ps_tg_api( $method, $base, array( 'field' => $field, 'path' => $path, 'name' => 'voice.' . $ext, 'mime' => $mime ) );
 		if ( ! is_wp_error( $r ) ) {

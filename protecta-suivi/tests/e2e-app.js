@@ -646,7 +646,7 @@ async function step7(browser) {
 /* Version 1.2.0 : message vocal (microphone simulé par Chromium) + réglages Telegram. */
 async function step8() {
 	console.log('1.2.0 — message vocal (مسؤول → موظف) et Telegram');
-	const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] });
+	const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--autoplay-policy=no-user-gesture-required'] });
 	{
 		const { ctx, page } = await newPage(browser, 'masoul');
 		await go(page, '#/taches');
@@ -654,9 +654,22 @@ async function step8() {
 		await page.waitForSelector('[data-voice-rec]');
 		check('fenêtre « مهمة جديدة » : bouton « 🎙 تسجيل رسالة صوتية »', (await page.textContent('[data-voice-rec]')).includes('تسجيل'));
 		await page.selectOption('[data-task-form] [name=employeeId]', { label: 'وفاء حامدي' });
+		// Micro simulé par un son continu (le micro factice de Chromium ne bipe que par moments).
+		await page.evaluate(() => {
+			navigator.mediaDevices.getUserMedia = async function () {
+				const ac = new AudioContext();
+				const osc = ac.createOscillator();
+				const dest = ac.createMediaStreamDestination();
+				osc.frequency.value = 440;
+				osc.connect(dest);
+				osc.start();
+				return dest.stream;
+			};
+		});
 		await page.click('[data-voice-rec]');
 		await page.waitForTimeout(2600);
 		check('enregistrement en cours : chronomètre affiché', (await page.textContent('[data-voice-time]')).includes('0:0'));
+		check('niveau du micro affiché et en mouvement (le son arrive)', await page.waitForFunction(() => { const e = document.querySelector('[data-voice-level] i'); return e && !e.closest('[hidden]') && parseFloat(e.style.width) > 0; }, null, { timeout: 4000 }).then(() => true, () => false));
 		await page.screenshot({ path: SHOTS + '/s8-01-enregistrement.png' });
 		await page.click('[data-voice-rec]');
 		await page.waitForSelector('[data-voice][data-state="done"]');
@@ -675,6 +688,14 @@ async function step8() {
 		check('موظف : lecteur audio dans « مهام مُسندة », fichier servi après contrôle des droits', res.status === 200 && /^audio\//.test(res.type) && res.size > 1000, JSON.stringify(res));
 		const ranged = await page.evaluate(async () => { const a = document.querySelector('.ps-voice__player'); const r = await fetch(a.src, { headers: { Range: 'bytes=0-99' }, credentials: 'same-origin' }); return { status: r.status, len: (await r.arrayBuffer()).byteLength }; });
 		check('lecture par morceaux (Range) pour avancer dans l\'audio', ranged.status === 206 && ranged.len === 100, JSON.stringify(ranged));
+		const sound = await page.evaluate(async () => {
+			const a = document.querySelector('.ps-voice__player');
+			const buf = await (await fetch(a.src, { credentials: 'same-origin' })).arrayBuffer();
+			const audio = await new (window.AudioContext || window.webkitAudioContext)().decodeAudioData(buf);
+			const d = audio.getChannelData(0); let s = 0; for (let i = 0; i < d.length; i++) s += d[i] * d[i];
+			return { seconds: audio.duration, rms: Math.sqrt(s / d.length) };
+		}).catch((e) => ({ error: String(e) }));
+		check('message vocal servi : décodé par le navigateur, avec du son (pas muet)', sound.seconds > 1.5 && sound.rms > 0.01, JSON.stringify(sound));
 		await page.screenshot({ path: SHOTS + '/s8-02-tache-vocale.png', fullPage: true });
 		await page.click('#ps-bell');
 		await page.waitForTimeout(600);

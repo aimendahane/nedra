@@ -702,6 +702,7 @@
 	"لم يُرسل": "Not sent",
 	"لم يُرسل — سبب عدم الإرسال": "Not sent — reason for not sending",
 	"لم يُسمح باستعمال الميكروفون. فعّله من إعدادات المتصفح.": "Microphone access was denied. Enable it in the browser settings.",
+	"لم يُلتقط أي صوت: تأكّد أن الميكروفون يعمل وغير مكتوم، ثم أعد التسجيل.": "No sound was picked up: check that the microphone works and is not muted, then record again.",
 	"لوحات كهربائية": "Electrical panels",
 	"ليس لديك صلاحية لهذه العملية.": "You do not have permission for this action.",
 	"مؤشرات Recap لاتخاذ القرار": "Recap indicators for decision-making",

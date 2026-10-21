@@ -20,6 +20,7 @@ add_filter(
 			preg_match( '/name="chat_id"\r\n\r\n([^\r]+)/', $args['body'], $c );
 			$params['chat_id'] = $c[1] ?? '';
 			$params['caption'] = preg_match( '/name="caption"\r\n\r\n([^\r]*)/', $args['body'], $cap ) ? $cap[1] : '';
+			$params['filename'] = preg_match( '/filename="([^"]+)"\r\n[^\r]*\r\n\r\n(.{4})/s', $args['body'], $fn ) ? $fn[1] . '|' . $fn[2] : '';
 		}
 		$tg['calls'][] = array( 'token' => $m[1], 'method' => $method, 'params' => $params );
 		$ok = static fn( $result ) => array( 'response' => array( 'code' => 200, 'message' => 'OK' ), 'body' => wp_json_encode( array( 'ok' => true, 'result' => $result ) ), 'headers' => array(), 'cookies' => array() );
@@ -148,6 +149,26 @@ $tg['fail'] = array( 'sendVoice' => 'Bad Request: wrong file' );
 ps_task_telegram( get_userdata( $u_emp ), $row, get_userdata( $u_adm ) );
 ps_assert( 1 === count( $sent( 'sendDocument', 777 ) ), 'si sendVoice échoue → envoi comme document' );
 $tg['fail'] = array();
+
+// 1.3.1 : enregistrement WebM de Chrome / Android (vrai fichier) → copie Ogg/Opus pour Telegram.
+$webm = wp_tempnam( 'voice' );
+copy( __DIR__ . '/fixtures/voice-chrome.webm', $webm );
+$tg['calls'] = array();
+$r           = $voice_req( array( 'employeeId' => ps_test_lid( 'employee', 'مجدي ميلادي' ), 'title' => 'صوت كروم', 'voiceSeconds' => 3 ), array( 'name' => 'voice.webm', 'tmp_name' => $webm, 'size' => filesize( $webm ), 'error' => 0 ) );
+ps_assert_same( 200, $r->get_status(), 'message vocal WebM (Chrome / Android) accepté' );
+$row  = ps_task_row( $r->get_data()['id'] );
+$path = ps_storage_dir( 'files/' . $row['voice_path'] );
+$oggc = ps_voice_ogg_path( $path );
+ps_assert( 'audio/webm' === $row['voice_mime'] && str_ends_with( $path, '.webm' ) && is_file( $oggc ) && 'OggS' === substr( (string) file_get_contents( $oggc ), 0, 4 ), 'original WebM conservé (navigateur) + copie Ogg créée à côté' );
+$vc = $sent( 'sendVoice', 777 );
+ps_assert( 1 === count( $vc ) && str_starts_with( $vc[0]['params']['filename'] ?? '', 'voice.ogg|OggS' ) && ! $sent( 'sendAudio', 777 ), 'Telegram : vrai message vocal en Ogg/Opus (plus de WebM muet)', wp_json_encode( $vc ) );
+$ffmpeg = trim( (string) shell_exec( 'command -v ffmpeg 2>/dev/null' ) );
+if ( $ffmpeg ) {
+	$probe = shell_exec( escapeshellarg( $ffmpeg ) . ' -v error -i ' . escapeshellarg( $oggc ) . ' -af volumedetect -f null - 2>&1' );
+	ps_assert( ! preg_match( '/error|invalid|crc/i', (string) $probe ) && preg_match( '/mean_volume: (-?[\d.]+)/', (string) shell_exec( escapeshellarg( $ffmpeg ) . ' -i ' . escapeshellarg( $oggc ) . ' -af volumedetect -f null - 2>&1' ), $mv ) && (float) $mv[1] > -60, 'copie Ogg lisible sans erreur et non muette (ffmpeg)', (string) $probe );
+	ps_assert( preg_match( '/Duration: 00:00:0(\d)\.(\d+)/', (string) shell_exec( 'ffprobe -hide_banner ' . escapeshellarg( $oggc ) . ' 2>&1' ), $du ) && (int) $du[1] >= 3, 'durée conservée (≈ 3,5 s)' );
+}
+ps_assert( ! ps_voice_webm_to_ogg( $ogg, wp_tempnam( 'x' ) ), 'un fichier qui n\'est pas du WebM n\'est pas converti' );
 
 $txt = wp_tempnam( 'notaudio' );
 file_put_contents( $txt, 'hello world, not audio' );

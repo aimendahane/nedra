@@ -23,13 +23,14 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 1.0.2 | Demande client : notifications 🔔 (cloche + e-mail immédiat facultatif) | ✅ terminée, tests verts | 1.0.2 · base v3 |
 | 1.1.0 | Demande client : nouveau design « world-class » (CSS/icônes/animations, aucune donnée touchée) | ✅ terminée, tests verts | 1.1.0 · base v3 |
 | 1.2.0 | Demande client : notifications Telegram + messages vocaux (الإدارة/مسؤول → موظف) | ✅ terminée, tests verts | 1.2.0 · base v4 |
-| 1.3.0 | Demande client : interface AR / EN / FR | ✅ terminée, tests verts | **1.3.0** · base v4 |
+| 1.3.0 | Demande client : interface AR / EN / FR | ✅ terminée, tests verts | 1.3.0 · base v4 |
+| 1.3.1 | Retour client : message vocal sans son (WebM → Ogg pour Telegram, niveau du micro) | ✅ terminée, tests verts | **1.3.1** · base v4 |
 
-### Tests (dernier passage complet, version 1.3.0) — détail : `docs/TEST-RESULTS.txt`
-- `sh protecta-suivi/tests/run-all.sh` → **650 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
+### Tests (dernier passage complet, version 1.3.1) — détail : `docs/TEST-RESULTS.txt`
+- `sh protecta-suivi/tests/run-all.sh` → **656 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
   (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues) passés.
-- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.3.0.zip $PWD/dist/protecta-suivi-1.2.0.zip` (chemins absolus) →
-  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.2.0 → 1.3.0 avec données : **aucune perte**.
+- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.3.1.zip $PWD/dist/protecta-suivi-1.3.0.zip` (chemins absolus) →
+  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.3.0 → 1.3.1 avec données : **aucune perte**.
 
 ### Prochaines actions
 1. Dès que l'accès GitHub est rétabli : `git push -u origin claude/sweet-hopper-le9393` puis
@@ -272,3 +273,6 @@ chaque décision prise seul.
   12 Mo max, type vérifié sur le contenu, stocké dans uploads/protecta-suivi/files/voice (protégé), lu via
   GET /free-tasks/{id}/voice (droits = voir la tâche, Range supporté). Telegram : sendVoice (ogg) sinon
   sendAudio puis sendDocument.
+- 1.3.1 : « pas de son » = WebM (Chrome/Android) envoyé à Telegram, qui ne le lit pas. Copie `.ogg` (même nom) créée
+  à l'enregistrement par `inc/services/voice-ogg.php` (remux EBML → Ogg, PHP pur, sans réencodage), ou à la volée
+  pour les anciens messages ; l'original WebM reste servi au navigateur. Ordre d'enregistrement : mp4/AAC → ogg → webm.
