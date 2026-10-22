@@ -31,13 +31,14 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 1.3.5 | Capture client : cloche sans « ربط Telegram » (Telegram pas activé) + lecteur « 0:00 » → indication + durée | ✅ terminée, tests verts | 1.3.5 · base v4 |
 | 1.4.0 | Demande client : import du vrai fichier Excel, الوسيط هامش الربح, règles موظف, ورقة الحسابات, Telegram à la connexion | ✅ terminée, tests verts | 1.4.0 · base v5 |
 | 1.5.0 | Demande client : nom du projet d'abord + recherche par numéro, fichiers joints (règles), stockage Google Drive | ✅ terminée, tests verts | 1.5.0 · base v6 |
-| 1.5.1 | Demande client : « tout effacer et mettre ces projets » (option d'import) + nom du projet toujours présent | ✅ terminée, tests verts | **1.5.1** · base v6 |
+| 1.5.1 | Demande client : « tout effacer et mettre ces projets » (option d'import) + nom du projet toujours présent | ✅ terminée, tests verts | 1.5.1 · base v6 |
+| 1.5.2 | Retour client « not work » : l'option efface aussi toutes les tâches (+ notifications), erreurs serveur lisibles | ✅ terminée, tests verts | **1.5.2** · base v6 |
 
-### Tests (dernier passage complet, version 1.5.1) — détail : `docs/TEST-RESULTS.txt`
-- `sh protecta-suivi/tests/run-all.sh` → **794 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
-  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0) passés.
-- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.5.1.zip $PWD/dist/protecta-suivi-1.5.0.zip` (chemins absolus) →
-  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.5.0 → 1.5.1 avec données : **aucune perte**.
+### Tests (dernier passage complet, version 1.5.2) — détail : `docs/TEST-RESULTS.txt`
+- `sh protecta-suivi/tests/run-all.sh` → **797 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
+  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0 + step12 = 1.5.2) passés.
+- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.5.2.zip $PWD/dist/protecta-suivi-1.5.1.zip` (chemins absolus) →
+  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.5.1 → 1.5.2 avec données : **aucune perte**.
 
 ### Prochaines actions
 1. Dès que l'accès GitHub est rétabli : `git push -u origin claude/sweet-hopper-le9393` puis
@@ -274,6 +275,10 @@ chaque décision prise seul.
   (pas de sauvegarde = rien n'est fait), mot « مسح الكل » obligatoire hors aperçu. Seule suppression en masse de
   l'application : déclenchée par la الإدارة, jamais par une migration ni une mise à jour. Fichiers disque/Drive gardés.
 - Projet importé sans nom → nom de la société (sinon contact, sinon صنف), signalé.
+- 1.5.2 (« delete all project, all task and restart from this xlsx ») : `ps_projects_wipe()` efface aussi `ps_tasks`
+  et `ps_notifications` (renvoie projets + tâches ; aperçu « + M مهمة »). Fichiers vocaux gardés sur le disque.
+  Le fichier du client s'importe sans erreur ici (157 projets, 0,4 s) : cause du « not work » chez lui non reproduite
+  (hypothèses : option non cochée → tout « déjà présent », ou erreur de l'hébergeur) → message clair dans les deux cas.
 
 ### Version 1.5.0 — règles demandées par le client (fichiers, affichage)
 - **Affichage** : partout où un projet est listé, NOM en gras puis numéro en petit (`PS.ui.projectTitle`) ; ancien

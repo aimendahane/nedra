@@ -30,10 +30,11 @@ PS.settingsTabs = PS.settingsTabs || {};
 		};
 		const labels = { employee: PS.t('موظفون'), place: PS.t('أماكن'), category: PS.t('تصنيفات'), item_type: PS.t('أصناف'), importance: PS.t('أهمية') };
 		return html`<div class="ps-alert ${r.dryRun ? 'ps-alert--info' : 'ps-alert--success'}">
-			${r.wiped !== undefined ? html`<strong class="ps-text-danger">🗑 ${r.dryRun ? PS.t('سيتم حذف') : PS.t('تم حذف')} ${r.wiped} ${PS.t('مشروع حالي')}</strong><br>` : ''}
+			${r.wiped !== undefined ? html`<strong class="ps-text-danger">🗑 ${r.dryRun ? PS.t('سيتم حذف') : PS.t('تم حذف')} ${r.wiped} ${PS.t('مشروع حالي')}${r.wipedTasks !== undefined ? ' + ' + r.wipedTasks + ' ' + PS.t('مهمة') : ''}</strong><br>` : ''}
 			<strong>${r.dryRun ? PS.t('معاينة (لم يُحفظ شيء بعد)') : PS.t('✔ تم الاستيراد')}:</strong>
 			${r.imported} ${PS.t('مشروع')} ${r.dryRun ? PS.t('سيتم استيراده') : PS.t('تم استيراده')} ${PS.t('من')} ${r.total}${r.skipped.length ? ' · ' + r.skipped.length + PS.t(' موجود مسبقًا (يُتجاهل)') : ''}${r.backup ? PS.t(' · نسخة احتياطية: ') + r.backup : ''}
 		</div>
+		${r.wiped === undefined && !r.imported && r.skipped.length ? html`<div class="ps-alert ps-alert--warning" data-xl-all-skipped>${PS.t('كل مشاريع الملف موجودة مسبقًا فلم يُستورد شيء. للبدء من جديد: فعّل «مسح كل المشاريع والمهام الحالية ثم الاستيراد» ثم أعد المعاينة.')}</div>` : ''}
 		<ul class="ps-report">
 			${created.map(function (k) { return html`<li><strong>${PS.t('قيم جديدة في «')}${labels[k] || k}»:</strong> ${r.created[k].join(PS.t('، '))}</li>`; })}
 			<li><strong>${PS.t('الشركات:')}</strong> ${r.companies.created} ${PS.t('جديدة،')} ${r.companies.reused} ${PS.t('موجودة ·')} <strong>${PS.t('منافسون:')}</strong> ${r.competitors}</li>
@@ -53,8 +54,8 @@ PS.settingsTabs = PS.settingsTabs || {};
 				<form data-xl class="ps-grid">
 					<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('ملف Excel (.xlsx) أو CSV *')}</span><input type="file" name="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" required></label>
 					<div class="ps-span-2">
-						<label class="ps-check ps-text-danger"><input type="checkbox" name="replaceAll"> 🗑 ${PS.t('مسح كل المشاريع الحالية ثم الاستيراد (البدء من جديد)')}</label>
-						<p class="ps-small ps-muted" data-xl-replace-help hidden>${PS.t('تُحذف كل المشاريع وأصنافها ومتابعاتها، ثم تُستورد مشاريع الملف. تبقى القوائم والشركات والحسابات والإعدادات. قبل ذلك تُحفظ نسخة احتياطية كاملة (يمكن التراجع من «استرجاع»).')}</p>
+						<label class="ps-check ps-text-danger"><input type="checkbox" name="replaceAll"> 🗑 ${PS.t('مسح كل المشاريع والمهام الحالية ثم الاستيراد (البدء من جديد)')}</label>
+						<p class="ps-small ps-muted" data-xl-replace-help hidden>${PS.t('تُحذف كل المشاريع وأصنافها ومتابعاتها وكل المهام والإشعارات، ثم تُستورد مشاريع الملف. تبقى القوائم والشركات والحسابات والإعدادات. قبل ذلك تُحفظ نسخة احتياطية كاملة (يمكن التراجع من «استرجاع»).')}</p>
 						<label class="ps-field" data-xl-replace-help hidden><span class="ps-field__label">${PS.t('اكتب «مسح الكل» للتأكيد')}</span><input name="confirm" autocomplete="off"></label>
 					</div>
 				</form>

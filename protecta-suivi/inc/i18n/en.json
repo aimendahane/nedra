@@ -1047,5 +1047,11 @@
 	"🔀 دمج المكررات": "🔀 Merge duplicates",
 	"🔕 تم إيقاف الإشعارات وفك ربط الحساب.": "🔕 Notifications stopped and account unlinked.",
 	"🕒 بدون متابعة": "🕒 Without follow-up",
-	"🚚 تسليمات الأسبوع": "🚚 Deliveries this week"
+	"🚚 تسليمات الأسبوع": "🚚 Deliveries this week",
+	"مسح كل المشاريع والمهام الحالية ثم الاستيراد (البدء من جديد)": "Delete all current projects and tasks, then import (start over)",
+	"كل مشاريع الملف موجودة مسبقًا فلم يُستورد شيء. للبدء من جديد: فعّل «مسح كل المشاريع والمهام الحالية ثم الاستيراد» ثم أعد المعاينة.": "All projects in the file already exist, so nothing was imported. To start over: tick “Delete all current projects and tasks, then import” and preview again.",
+	"ردّ غير متوقّع من الخادم": "Unexpected response from the server",
+	"تعذّر الاتصال بالخادم (انقطاع أو مهلة). أعد المحاولة.": "Could not reach the server (connection lost or timeout). Please try again.",
+	"مسح كل المهام قبل الاستيراد": "All tasks deleted before import",
+	"تُحذف كل المشاريع وأصنافها ومتابعاتها وكل المهام والإشعارات، ثم تُستورد مشاريع الملف. تبقى القوائم والشركات والحسابات والإعدادات. قبل ذلك تُحفظ نسخة احتياطية كاملة (يمكن التراجع من «استرجاع»).": "All projects with their items and follow-ups, and all tasks and notifications, are deleted, then the file projects are imported. Lists, companies, accounts and settings are kept. A full backup is saved first (it can be undone with “Restore”)."
 }

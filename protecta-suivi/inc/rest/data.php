@@ -133,6 +133,10 @@ function ps_rest_import_excel( WP_REST_Request $r ) {
 	if ( (int) $f['size'] > 20 * MB_IN_BYTES ) {
 		return new WP_Error( 'ps_upload_size', ps__( 'الملف كبير جدًا' ), array( 'status' => 400 ) );
 	}
+	// Hébergement mutualisé : plus de temps pour un gros fichier (sans effet si la fonction est désactivée).
+	if ( function_exists( 'set_time_limit' ) ) {
+		@set_time_limit( 300 ); // phpcs:ignore
+	}
 	$rows = ps_xl_read( $f['tmp_name'] );
 	if ( is_wp_error( $rows ) ) {
 		return $rows;

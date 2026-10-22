@@ -1,12 +1,6 @@
-RÉSULTATS DES TESTS — Protecta Suivi 1.2.0 (base v4) — 21/10/2026
-
-1) run-all.sh : 616 tests PHP réussis / 0 échoué + navigateur (étapes 1 à 5, 1.0.1, 1.0.2, 1.2.0 avec microphone simulé) : tout passé
-2) release-check.sh : installation vierge du zip 1.2.0 OK ; mise à jour 1.1.0 → 1.2.0 avec données : AUCUNE PERTE
-
-=========================== Détail run-all.sh ===========================
 ######## Tests PHP ########
 Site de test installé (thème : protecta-suivi)
-Thème v1.2.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
+Thème v1.5.2 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 
 == Activation : base de données ==
   ✔ ps_db_version = dernière migration
@@ -92,7 +86,7 @@ Thème v1.2.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ données de test en place
 
 == Mise à jour : version actuelle (migration 2) + migration simulée ==
-  ✔ ps_db_version passe à 5
+  ✔ ps_db_version passe à 7
   ✔ deuxième passage : aucune migration rejouée
   ✔ verrou de migration libéré
   ✔ une sauvegarde automatique créée AVANT la migration
@@ -129,6 +123,8 @@ Thème v1.2.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 
 == Migration 4 (1.2.0) : message vocal des tâches ==
   ✔ colonnes voice_* ajoutées à ps_tasks
+  ✔ migration 5 : colonne « هامش الربح » (margin) ajoutée, « الرتبة » gardée
+  ✔ migration 6 : colonnes Drive / nom d'affichage ajoutées aux fichiers et projets (anciennes colonnes gardées)
 
 == Mise à jour : listes et réglages de la الإدارة conservés ==
   ✔ valeur renommée : nom conservé
@@ -298,7 +294,7 @@ Thème v1.2.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 
 == Fichiers joints (stockage protégé) ==
   ✔ PDF accepté
-  ✔ nom de stockage aléatoire (nom réel jamais dans le chemin)
+  ✔ nom de stockage aléatoire « .bin » (nom réel jamais dans le chemin)
   ✔ fichier écrit dans uploads/protecta-suivi/files (dossier protégé)
   ✔ faux PDF (contenu PHP) refusé
   ✔ extension .php refusée
@@ -746,6 +742,25 @@ Thème v1.2.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ fichier rangé dans le dossier protégé files/voice/
   ✔ Telegram : texte de la tâche + message vocal (sendVoice)
   ✔ si sendVoice échoue → envoi comme document
+  ✔ message vocal WebM (Chrome / Android) accepté
+  ✔ original WebM conservé (navigateur) + copie Ogg créée à côté
+  ✔ Telegram : vrai message vocal en Ogg/Opus (plus de WebM muet)
+  ✔ copie Ogg lisible sans erreur et non muette (ffmpeg)
+  ✔ durée conservée (≈ 3,5 s)
+  ✔ un fichier qui n'est pas du WebM n'est pas converti
+  ✔ اختبار الصوت : WebM Chrome → format, durée, son présent, conversion Telegram OK
+  ✔ اختبار الصوت : enregistrement muet signalé
+  ✔ اختبار الصوت : compte non lié → explication
+  ✔ اختبار الصوت : envoi d'essai sur Telegram en vrai message vocal (Ogg)
+  ✔ اختبار الصوت : aucune tâche créée
+  ✔ اختبار الصوت : réservé à الإدارة / مسؤول (403 pour un موظف)
+  ✔ détection du silence : enregistrement avec voix → « contient du son »
+  ✔ détection du silence : WebM et Ogg muets → « muet »
+  ✔ format non vérifiable → aucune décision (jamais de refus à tort)
+  ✔ message vocal muet (webm) → refusé : « التسجيل بدون صوت… »
+  ✔ … aucune tâche créée, rien envoyé sur Telegram (webm)
+  ✔ message vocal muet (ogg) → refusé : « التسجيل بدون صوت… »
+  ✔ … aucune tâche créée, rien envoyé sur Telegram (ogg)
   ✔ fichier qui n'est pas de l'audio → refusé (type vérifié sur le contenu)
   ✔ message trop long (taille) → refusé
   ✔ موظف : ne peut pas envoyer de message vocal (403)
@@ -758,8 +773,198 @@ Thème v1.2.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ message d'essai : compte non lié → message clair
   ✔ Telegram désactivé → liaison impossible
 
+== Langues : dictionnaires ==
+  ✔ inc/i18n/en.json : JSON valide
+  ✔ inc/i18n/fr.json : JSON valide
+  ✔ en.json et fr.json ont exactement les mêmes clés
+  ✔ en : chaque texte de l'interface a sa traduction (1044 textes)
+  ✔ en : traductions non vides, sans arabe, mêmes %s / %d que l'original
+  ✔ fr : chaque texte de l'interface a sa traduction (1044 textes)
+  ✔ fr : traductions non vides, sans arabe, mêmes %s / %d que l'original
+
+== Langues : traduction côté serveur ==
+  ✔ sans préférence : العربية (réglage par défaut)
+  ✔ العربية → rtl
+  ✔ en arabe le texte est rendu tel quel
+  ✔ compte en English → « Save »
+  ✔ English → ltr
+  ✔ balise <html lang="en" dir="ltr">
+  ✔ espaces autour du texte conservés
+  ✔ texte sans traduction → arabe (jamais vide)
+  ✔ textes avec nombre (sprintf)
+  ✔ ps_with_lang( fr ) → « Enregistrer »
+  ✔ … puis retour à la langue du compte
+  ✔ configuration du navigateur : langue, sens, dictionnaire anglais
+  ✔ menu des langues : العربية, English, Français
+
+== Langues : préférence du compte (API) ==
+  ✔ POST /me/prefs { lang: fr }
+  ✔ préférence enregistrée sur le compte
+  ✔ langue inconnue ignorée
+  ✔ les messages (API, erreurs) suivent la langue du compte
+  ✔ الإعدادات : langue par défaut inconnue refusée
+  ✔ الإعدادات : langue par défaut = English
+  ✔ un compte sans préférence suit la langue par défaut du site
+
+== Langues : notifications dans la langue de chaque destinataire ==
+  ✔ projet créé (الإدارة, en arabe)
+  ✔ المسؤول (Français) : « Nouveau projet »
+  ✔ المتابع (العربية) : « مشروع جديد »
+  ✔ changement de statut en français
+  ✔ … et en arabe pour l'autre destinataire (même sauvegarde)
+  ✔ e-mail immédiat en français, sens ltr
+  ✔ après les envois, la requête revient à la langue de l'auteur
+
+== Import Excel : lecture du fichier ==
+  ✔ .xlsx lu sans extension particulière (ZipArchive) : titre + 6 lignes
+  ✔ 6 lignes → 4 projets (2 lignes « P902 » = 1 projet, ligne incomplète ignorée)
+  ✔ même résultat avec le fichier enregistré en CSV (« ; », dates JJ/MM/AAAA)
+  ✔ téléphone saisi comme nombre → gardé en entier (pas 2.18E+11)
+  ✔ date 2005-10-04 avec السنة = 2025 et الشهر = 10 → corrigée en 2025-10-04 (signalé)
+  ✔ date de réception vide → 1er du mois (السنة / الشهر), signalé
+  ✔ « ce qui manque » : nombre de cases vides par colonne (التصنيف ×5, اسم المشروع ×1)
+  ✔ ligne incomplète (seulement un nom de société) → ignorée et signalée
+  ✔ fichier sans les colonnes du tableau → refusé avec un message clair
+
+== Import Excel : aperçu puis import ==
+  ✔ import refusé au موظف
+  ✔ aperçu : 4 projets annoncés, RIEN écrit
+  ✔ aperçu : nouvelles valeurs annoncées (lieu KL, صنف inconnu)
+  ✔ الأهمية « 3X / M / L » : ajoutées à la liste (jamais perdues, à renommer par la الإدارة)
+  ✔ import : 4 projets, sauvegarde automatique avant
+  ✔ numéros du fichier conservés tels quels : P901, P902… (problème 09)
+  ✔ P901 : nom, dates, المكان, الاستعجال
+  ✔ P901 : المتابع, الوسيط ; مصدر = غير محدد (décision n°3)
+  ✔ P901 : « تم التسليم » + « في انتظار الرد » → صنف مرسل, حالة المتابعة في انتظار الرد
+  ✔ P902 : 2 lignes → 2 أصناف (« في انتظار معلومات » → قيد الإعداد ; « تم تأكيد الطلبية » → مقبول)
+  ✔ P902 : employé par صنف ; حالة المتابعة = la plus avancée ; date = la plus ancienne
+  ✔ P903 : الوسيط « موقع العطاءات » → مصدر موقع العطاءات ; « تم الرفض » → مرفوض / رفض العرض
+  ✔ P903 : date corrigée → compté en 2025
+  ✔ P903 sans nom → nom de la société (1.5.1, « le nom d'abord ») ; P904 sans صنف → importé sans صنف (signalé)
+  ✔ société → annuaire ; شخص المباشر + téléphone gardés
+  ✔ lignes Excel d'origine conservées (legacy_raw)
+  ✔ NOTE → ملاحظة du projet et du صنف
+  ✔ réimport du même fichier : 4 ignorés, aucun doublon, rien écrasé
+  ✔ même fichier en CSV : reconnu comme déjà importé
+  ✔ aperçu « مسح الكل » : 5 projets seraient effacés, 4 importés — RIEN n'est touché
+  ✔ aperçu : nombre de tâches qui seraient effacées annoncé, tâches gardées tant que non confirmé
+  ✔ sans le mot « مسح الكل » → refusé
+  ✔ … et rien n'est effacé
+  ✔ confirmé : anciens projets effacés, les 4 du fichier importés (sans « déjà présent »)
+  ✔ 1.5.2 : toutes les tâches et notifications effacées aussi
+  ✔ sauvegarde complète faite AVANT l'effacement (retour possible par « استرجاع »)
+  ✔ la sauvegarde contient bien les projets effacés
+  ✔ … et les tâches effacées
+  ✔ listes et sociétés gardées
+  ✔ nouveau projet 2025 après l'import : PRJ-2025-905 (suite des numéros)
+
+== 1.4.0 : الوسيط — هامش الربح ==
+  ✔ موظف : crée un projet (2 أصناف : le sien + celui d'un collègue)
+  ✔ الوسيط : « هامش الربح » enregistré et relu (10%)
+  ✔ API : le créateur موظف est limité à ses أصناف (ownItemsOnly)
+
+== 1.4.0 : un موظف ne touche pas aux أصناف / montants des autres ==
+  ✔ créateur : statut d'offre du صنف d'un collègue → refusé (403)
+  ✔ créateur : son propre صنف → accepté
+  ✔ créateur : quantité du صنف d'un collègue → refusé
+  ✔ créateur : retirer le صنف d'un collègue → refusé
+  ✔ créateur : مبلغ الشراء (projet avec أصناف d'autres) → refusé
+  ✔ créateur : ses infos générales (nom…) restent modifiables pendant 24 h
+  ✔ montant d'achat inchangé
+  ✔ créateur : projet avec seulement ses أصناف → montants modifiables
+  ✔ le collègue modifie SON صنف
+  ✔ le collègue ne touche pas au صنف du créateur
+  ✔ المسؤول : aucune limite
+  ✔ المسؤول عن المشروع : montants et أصناف de tous → accepté
+
+== 1.4.0 : ورقة حسابات الفريق ==
+  ✔ des employés de la liste n'ont pas encore de compte
+  ✔ identifiant déjà pris → erreur sur la ligne, AUCUN compte créé
+  ✔ employé déjà lié à un compte → refusé
+  ✔ feuille : 2 comptes créés + 1 nouveau mot de passe, avec l'adresse du site
+  ✔ compte créé : lié à l'employé, nom = nom de la liste, rôle موظف
+  ✔ mot de passe : 10 caractères lisibles (sans 0/O/1/l/I), valide pour la connexion
+  ✔ compte existant : nouveau mot de passe actif
+  ✔ le mot de passe n'est plus jamais renvoyé ensuite
+  ✔ son propre compte : pas de réinitialisation ici (422)
+  ✔ réservé à la الإدارة (403 pour un موظف)
+
+== 1.5.0 : nom du projet d'abord, recherche par numéro ==
+  ✔ recherche : par le nom, par le numéro actuel (PRJ-…) et par l'ancien numéro (P777)
+  ✔ API : ancien numéro fourni (affiché sous le nom)
+  ✔ Suivi Offres : recherche par l'ancien numéro aussi
+
+== 1.5.0 : fichiers joints — types, taille, nom d'affichage ==
+  ✔ envoi d'un .php → refusé avec un message clair en arabe
+  ✔ « photo.php.jpg » refusé
+  ✔ « x.phtml » refusé
+  ✔ « run.exe » refusé
+  ✔ « a.bat » refusé
+  ✔ « b.sh » refusé
+  ✔ « c.js » refusé
+  ✔ « d.html » refusé
+  ✔ « e.svg » refusé
+  ✔ « .htaccess » refusé
+  ✔ contenu exécutable (PHP, programme Windows) refusé même avec une extension anodine
+  ✔ « plans.zip » accepté (tout type de fichier non exécutable)
+  ✔ « dessin.dwg » accepté (tout type de fichier non exécutable)
+  ✔ « devis.pdf » accepté (tout type de fichier non exécutable)
+  ✔ « notes.txt » accepté (tout type de fichier non exécutable)
+  ✔ nom d'affichage saisi + nom d'origine, auteur et date gardés
+  ✔ nom sur le disque = identifiant aléatoire « .bin » (jamais le nom saisi)
+  ✔ téléchargement nommé « nom d'affichage + .pdf »
+  ✔ stockage dans le dossier protégé (pas la Médiathèque)
+  ✔ aucun fichier dans la Médiathèque WordPress
+  ✔ au-delà du réglage « الحجم الأقصى » (ici 1 Mo) → refusé
+  ✔ 20 Mo par défaut (ou la limite de l'hébergeur si elle est plus basse)
+
+== 1.5.0 : fichiers joints — retrait et téléchargement ==
+  ✔ un autre موظف ne retire pas le fichier
+  ✔ l'auteur retire son fichier pendant 24 h
+  ✔ après 24 h, l'auteur موظف ne peut plus retirer
+  ✔ مسؤول المشروع retire le fichier
+  ✔ الإدارة retire le fichier
+  ✔ retiré = corbeille : le fichier reste sur le disque (aucune perte)
+  ✔ téléchargement sans connexion → refusé (401)
+  ✔ téléchargement par un compte WordPress sans accès à l'application → refusé (403)
+  ✔ téléchargement par un compte désactivé → refusé (403)
+  ✔ un employé de l'équipe peut télécharger (tous voient tous les projets, décision n°1)
+  ✔ projet à la corbeille : fichiers réservés à la الإدارة
+
+== 1.5.0 : Google Drive (simulé) — liaison Gmail (OAuth) ==
+  ✔ Drive non relié : le fichier reste sur le serveur (rien n'est refusé ni perdu)
+  ✔ réglages Drive : réservés à la الإدارة
+  ✔ Client ID mal copié → erreur claire
+  ✔ Gmail : lien d'accord Google (client, retour vers le site, accès durable)
+  ✔ retour Google avec un « state » inconnu → refusé (protection)
+  ✔ accord donné : jeton durable enregistré, compte affiché, dossier « Protecta Suivi » créé
+  ✔ dossier racine « Protecta Suivi »
+  ✔ secrets jamais renvoyés au navigateur
+  ✔ secrets absents de la sauvegarde JSON
+
+== 1.5.0 : Google Drive (simulé) — envoi, vérification, lecture ==
+  ✔ nouveau fichier envoyé tout de suite dans Drive (empreinte MD5 vérifiée)
+  ✔ copie du serveur effacée APRÈS vérification (espace libéré)
+  ✔ contenu identique dans Drive, nommé avec le nom d'affichage
+  ✔ un dossier par projet (« nom — numéro ») dans « Protecta Suivi »
+  ✔ ouverture depuis le site : le serveur récupère le fichier dans Drive (aucun lien Drive donné)
+  ✔ liste des fichiers : emplacement « ☁ Drive » indiqué
+  ✔ synchronisation : les fichiers ajoutés avant la liaison partent aussi dans Drive
+  ✔ fichiers à la corbeille du site aussi conservés dans Drive (jamais perdus)
+  ✔ empreinte différente renvoyée par Google → le fichier RESTE sur le serveur (erreur notée)
+  ✔ Google indisponible : l'ajout réussit quand même, le fichier attend sur le serveur
+  ✔ Google revenu : « مزامنة الآن » / Cron envoient les fichiers en attente
+  ✔ Cron : envoi Drive inclus dans la tâche quotidienne
+  ✔ Drive délié : message clair (les fichiers restent dans Drive)
+
+== 1.5.0 : Google Drive (simulé) — compte de service (Workspace) ==
+  ✔ compte de service sans droit d'ajout dans le dossier → refusé, rien n'est changé
+  ✔ clé JSON signée (RS256 vérifiée par le faux Google) + lien du dossier → relié
+  ✔ compte affiché, clé privée jamais renvoyée
+  ✔ envoi par le compte de service dans le Drive partagé
+
 ----------------------------------------
-Résultat : 616 réussis, 0 échoués
+Résultat : 797 réussis, 0 échoués
 
 ######## Navigateur : fondations (étape 1) ########
 Page de connexion
@@ -806,7 +1011,7 @@ Tous les contrôles navigateur sont passés.
   ✔ « حفظ رغم ذلك » : PRJ-2026-002 enregistré
 Étape 2 — Base Projets
   ✔ 3 projets listés
-  ✔ colonnes du cahier §4 dans l'ordre (السنة … رابط ملف المشاريع)
+  ✔ colonnes : المشروع d'abord, puis السنة … رابط ملف المشاريع
   ✔ recherche tolérante (« مستشفي ») : 1 résultat
   ✔ filtres conservés dans l'adresse
   ✔ filtre الاستعجال = VU : 1 projet
@@ -911,6 +1116,7 @@ Tous les contrôles navigateur sont passés.
   ✔ موظف : tâche liée au projet → lien vers la fiche
   ✔ « ✔ تمت » : la tâche disparaît de la liste
   ✔ مسؤول مشروع : voit que la tâche est « تمت »
+  ✔ الإدارة, Telegram non configuré : la cloche indique où l'activer
   ✔ الإعدادات ← عام : réglages SMTP présents
   ✔ بريد تجريبي : résultat clair affiché (succès ou vraie raison de l'échec)
 
@@ -933,12 +1139,86 @@ Tous les contrôles navigateur sont passés.
 1.2.0 — message vocal (مسؤول → موظف) et Telegram
   ✔ fenêtre « مهمة جديدة » : bouton « 🎙 تسجيل رسالة صوتية »
   ✔ enregistrement en cours : chronomètre affiché
+  ✔ niveau du micro affiché et en mouvement (le son arrive)
   ✔ après « إيقاف » : lecteur de vérification + « حذف »
   ✔ tâche vocale envoyée (titre par défaut « 🎙 رسالة صوتية »)
+  ✔ micro muet : alerte « لم يُلتقط أي صوت » + « جرّب ميكروفونًا آخر »
+  ✔ liste des micros affichée (plusieurs entrées sur le PC)
+  ✔ micro muet : envoi refusé « التسجيل بدون صوت » (la fenêtre reste ouverte)
+  ✔ autre micro choisi → utilisé pour l'enregistrement et mémorisé
+  ✔ avec le bon micro : message vocal accepté et envoyé
   ✔ موظف : lecteur audio dans « مهام مُسندة », fichier servi après contrôle des droits
   ✔ lecture par morceaux (Range) pour avancer dans l'audio
-  ✔ Telegram non configuré : rien dans la cloche
+  ✔ message vocal servi : décodé par le navigateur, avec du son (pas muet)
+  ✔ lecteur en échec → fichier téléchargé et relu (secours Android)
+  ✔ message introuvable → erreur du serveur affichée
+  ✔ Telegram non configuré : pas de bouton « ربط » mais une explication (موظف → demander à la الإدارة)
+  ✔ durée du message vocal affichée à côté du lecteur
+  ✔ اختبار الصوت : rapport complet (haut-parleur ✔, micro ✔, son présent ✔)
   ✔ الإعدادات ← عام : section Telegram (token + activation + essai)
+
+Tous les contrôles navigateur sont passés.
+
+######## Navigateur : step9 (jeu de démonstration) ########
+1.3.0 — langues : English et Français
+  ✔ connexion : choix العربية / English / Français
+  ✔ connexion en English : <html dir="ltr" lang="en">
+  ✔ bouton « Log in »
+  ✔ après connexion : application en anglais (menu)
+  ✔ menu latéral sans texte arabe (hors noms saisis)
+  ✔ #/projets : titre traduit « Projects »
+  ✔ #/projets : pas de défilement horizontal
+  ✔ #/offres : titre traduit « Offer tracking »
+  ✔ #/offres : pas de défilement horizontal
+  ✔ #/recap : titre traduit « Recap — 2026 »
+  ✔ #/recap : pas de défilement horizontal
+  ✔ #/taches : titre traduit « Team tasks »
+  ✔ #/taches : pas de défilement horizontal
+  ✔ #/parametres : titre traduit « Settings »
+  ✔ #/parametres : pas de défilement horizontal
+  ✔ fiche « New project » : libellés des champs traduits
+  ✔ listes par défaut traduites (مباشر → Direct)
+  ✔ menu de l'en-tête → Français : <html lang="fr" dir="ltr">
+  ✔ menu en français (Mes tâches, Paramètres)
+  ✔ retour à العربية : dir="rtl"
+  ✔ autre compte : toujours en العربية
+  ✔ mobile en English : pas de défilement horizontal
+
+Tous les contrôles navigateur sont passés.
+
+######## Navigateur : step11 (jeu de démonstration) ########
+1.5.0 — nom d'abord, recherche par numéro, fichiers joints, carte Google Drive
+  ✔ Base Projets : nom du projet en gras puis numéro en petit (1re colonne)
+  ✔ recherche par numéro : le projet est trouvé
+  ✔ fiche : titre = nom puis numéro
+  ✔ fichier .php : refusé avec un message en arabe
+  ✔ fichier ajouté : nom d'affichage, nom d'origine, auteur, date, emplacement « الخادم »
+  ✔ téléchargement par le site (compte connecté) : contenu et nom d'affichage
+  ✔ الإعدادات : carte « تخزين الملفات — Google Drive » (2 méthodes, adresse de retour à copier)
+  ✔ lien du fichier sans connexion → refusé
+
+Tous les contrôles navigateur sont passés.
+
+######## Navigateur : step12 (jeu de démonstration) ########
+1.5.2 — مسح كل المشاريع والمهام ثم الاستيراد
+  ✔ préparation : une tâche libre créée
+  ✔ option renommée : « مسح كل المشاريع والمهام الحالية… » + aide visible
+  ✔ aperçu : « سيتم حذف 30 مشروع حالي + N مهمة » puis 4 projets importés
+  ✔ après : 4 projets (ceux du fichier), aucune tâche
+  ✔ erreur de l'hébergeur : « ردّ غير متوقّع من الخادم (HTTP 503) » sans balises
+
+Tous les contrôles navigateur sont passés.
+
+######## Navigateur : step10 = 1.4.0 (import Excel, comptes, Telegram) ########
+1.4.0 — import Excel, numéros P…, هامش الربح, ورقة الحسابات, Telegram à la connexion
+  ✔ connexion : fenêtre « اربط حسابك بـ Telegram » (compte non lié)
+  ✔ « لاحقًا » : plus de fenêtre pendant cette session
+  ✔ aperçu Excel : 4 projets, cases vides comptées, avertissements
+  ✔ Base Projets : numéros du fichier affichés (P901…)
+  ✔ fiche : الوسيط → champ « هامش الربح » (à la place de « الرتبة »)
+  ✔ ورقة الحسابات : employés sans compte proposés avec un identifiant latin
+  ✔ ورقة الحسابات : 2 comptes créés, mots de passe affichés une seule fois
+  ✔ feuille imprimable : adresse du site + accès + étapes (Telegram)
 
 Tous les contrôles navigateur sont passés.
 

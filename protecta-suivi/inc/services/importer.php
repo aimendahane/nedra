@@ -84,7 +84,9 @@ function ps_import_prototype( array $projects, array $options, bool $dry_run, in
 		// 1.5.1 (demande du client : « tout effacer et mettre ces projets ») : dans la MÊME transaction, après la
 		// sauvegarde automatique ci-dessus (restaurable par « استرجاع ») ; en aperçu, annulé avec le reste.
 		if ( ! empty( $options['replaceAll'] ) ) {
-			$ctx['report']['wiped'] = ps_projects_wipe( $ctx['user'] );
+			$w                           = ps_projects_wipe( $ctx['user'] );
+			$ctx['report']['wiped']      = $w['projects'];
+			$ctx['report']['wipedTasks'] = $w['tasks'];
 		}
 		foreach ( $projects as $i => $p ) {
 			ps_import_one( $p, $i, $ctx );
@@ -408,17 +410,23 @@ function ps_import_one( array $p, int $index, array &$ctx ): void {
 /**
  * Efface tous les projets et leurs données (أصناف, intervenants, concurrents, سجل المتابعة, fiches des fichiers)
  * — uniquement sur demande explicite de la الإدارة (import « مسح كل المشاريع الحالية »), après sauvegarde JSON.
- * Gardés : listes, sociétés, comptes, réglages, tâches, journal ; les fichiers sur le disque / Drive ne sont pas
- * effacés (la sauvegarde permet de tout retrouver).
+ * 1.5.2 (demande du client : « effacer tous les projets ET toutes les tâches et repartir du fichier ») : les tâches
+ * libres (مهام) et les notifications 🔔 (qui pointent vers ces projets / tâches) sont aussi effacées.
+ * Gardés : listes, sociétés, comptes, réglages, journal ; les fichiers sur le disque / Drive (pièces jointes,
+ * messages vocaux) ne sont pas effacés (la sauvegarde permet de tout retrouver).
  *
- * @return int Nombre de projets effacés.
+ * @return array{projects:int,tasks:int} Nombre de projets et de tâches effacés.
  */
-function ps_projects_wipe( int $user_id ): int {
+function ps_projects_wipe( int $user_id ): array {
 	global $wpdb;
 	$n = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'projects' ) );
-	foreach ( array( 'items', 'project_parties', 'project_competitors', 'followups', 'files', 'projects' ) as $t ) {
+	$k = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'tasks' ) );
+	foreach ( array( 'items', 'project_parties', 'project_competitors', 'followups', 'files', 'projects', 'tasks', 'notifications' ) as $t ) {
 		$wpdb->query( 'DELETE FROM ' . ps_table( $t ) ); // phpcs:ignore WordPress.DB.PreparedSQL
 	}
 	ps_log( null, 'delete', 'project', null, null, (string) $n, 'مسح كل المشاريع قبل الاستيراد', $user_id );
-	return $n;
+	if ( $k ) {
+		ps_log( null, 'delete', 'task', null, null, (string) $k, 'مسح كل المهام قبل الاستيراد', $user_id );
+	}
+	return array( 'projects' => $n, 'tasks' => $k );
 }

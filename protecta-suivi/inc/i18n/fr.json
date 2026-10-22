@@ -1047,5 +1047,11 @@
 	"🔀 دمج المكررات": "🔀 Fusionner les doublons",
 	"🔕 تم إيقاف الإشعارات وفك ربط الحساب.": "🔕 Notifications arrêtées et compte délié.",
 	"🕒 بدون متابعة": "🕒 Sans suivi",
-	"🚚 تسليمات الأسبوع": "🚚 Livraisons de la semaine"
+	"🚚 تسليمات الأسبوع": "🚚 Livraisons de la semaine",
+	"مسح كل المشاريع والمهام الحالية ثم الاستيراد (البدء من جديد)": "Effacer tous les projets et tâches actuels, puis importer (repartir de zéro)",
+	"كل مشاريع الملف موجودة مسبقًا فلم يُستورد شيء. للبدء من جديد: فعّل «مسح كل المشاريع والمهام الحالية ثم الاستيراد» ثم أعد المعاينة.": "Tous les projets du fichier existent déjà : rien n’a été importé. Pour repartir de zéro : cochez « Effacer tous les projets et tâches actuels, puis importer » et refaites l’aperçu.",
+	"ردّ غير متوقّع من الخادم": "Réponse inattendue du serveur",
+	"تعذّر الاتصال بالخادم (انقطاع أو مهلة). أعد المحاولة.": "Impossible de joindre le serveur (connexion coupée ou délai dépassé). Réessayez.",
+	"مسح كل المهام قبل الاستيراد": "Toutes les tâches effacées avant l’import",
+	"تُحذف كل المشاريع وأصنافها ومتابعاتها وكل المهام والإشعارات، ثم تُستورد مشاريع الملف. تبقى القوائم والشركات والحسابات والإعدادات. قبل ذلك تُحفظ نسخة احتياطية كاملة (يمكن التراجع من «استرجاع»).": "Tous les projets, leurs articles et suivis, ainsi que toutes les tâches et notifications, sont effacés, puis les projets du fichier sont importés. Listes, sociétés, comptes et réglages sont gardés. Une sauvegarde complète est faite avant (retour possible avec « Restaurer »)."
 }

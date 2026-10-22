@@ -89,18 +89,28 @@ $xl2 = function ( array $params ) {
 	return rest_get_server()->dispatch( $req );
 };
 $wpdb->insert( ps_table( 'projects' ), array( 'project_no' => 'PRJ-2026-001', 'year' => 2026, 'seq' => 1, 'month' => 10, 'name' => 'مشروع قديم للحذف', 'name_norm' => 'x', 'received_date' => '2026-10-01', 'created_at' => ps_now(), 'updated_at' => ps_now() ) );
+// 1.5.2 : les tâches et les notifications sont aussi effacées (« effacer tous les projets ET toutes les tâches »).
+foreach ( array( 'مهمة قديمة 1', 'مهمة قديمة 2' ) as $tt ) {
+	$wpdb->insert( ps_table( 'tasks' ), array( 'employee_id' => 1, 'title' => $tt, 'status' => 'open', 'created_by' => $adm, 'created_at' => ps_now(), 'updated_at' => ps_now() ) );
+}
+$wpdb->insert( ps_table( 'notifications' ), array( 'user_id' => $adm, 'title' => 'إشعار قديم', 'created_at' => ps_now() ) );
+$tcnt    = fn() => (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'tasks' ) ) . '/' . (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'notifications' ) );
+$tasks_n = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'tasks' ) );
 $cnt     = fn() => (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'projects' ) );
 $lists_n = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'lists' ) );
 $comp_n  = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'companies' ) );
 $prev    = $xl2( array( 'dryRun' => '1', 'replaceAll' => '1' ) )->get_data();
 ps_assert( 5 === $prev['wiped'] && 4 === $prev['imported'] && 5 === $cnt(), 'aperçu « مسح الكل » : 5 projets seraient effacés, 4 importés — RIEN n\'est touché', wp_json_encode( $prev ) );
+ps_assert( $tasks_n === $prev['wipedTasks'] && $tasks_n >= 2 && $tasks_n . '/' . ( (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'notifications' ) ) ) === $tcnt(), 'aperçu : nombre de tâches qui seraient effacées annoncé, tâches gardées tant que non confirmé', $tcnt() );
 ps_assert_same( 422, $xl2( array( 'dryRun' => '0', 'replaceAll' => '1' ) )->get_status(), 'sans le mot « مسح الكل » → refusé' );
 ps_assert( 5 === $cnt(), '… et rien n\'est effacé' );
 $done = $xl2( array( 'dryRun' => '0', 'replaceAll' => '1', 'confirm' => 'مسح الكل' ) )->get_data();
 ps_assert( 5 === $done['wiped'] && 4 === $done['imported'] && 4 === $cnt() && ! $wpdb->get_var( "SELECT id FROM " . ps_table( 'projects' ) . " WHERE name = 'مشروع قديم للحذف'" ), 'confirmé : anciens projets effacés, les 4 du fichier importés (sans « déjà présent »)' );
+ps_assert( '0/0' === $tcnt() && $tasks_n === $done['wipedTasks'], '1.5.2 : toutes les tâches et notifications effacées aussi', $tcnt() );
 ps_assert( ! empty( $done['backup'] ) && file_exists( ps_storage_dir( 'backups/' . $done['backup'] ) ), 'sauvegarde complète faite AVANT l\'effacement (retour possible par « استرجاع »)' );
 $bk = json_decode( (string) file_get_contents( ps_storage_dir( 'backups/' . $done['backup'] ) ), true );
 ps_assert( in_array( 'مشروع قديم للحذف', array_column( $bk['tables']['projects'], 'name' ), true ), 'la sauvegarde contient bien les projets effacés' );
+ps_assert( in_array( 'مهمة قديمة 1', array_column( $bk['tables']['tasks'] ?? array(), 'title' ), true ), '… et les tâches effacées' );
 ps_assert( $lists_n <= (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'lists' ) ) && $comp_n <= (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'companies' ) ), 'listes et sociétés gardées' );
 $wpdb->query( 'DELETE FROM ' . ps_table( 'projects' ) . " WHERE project_no = 'PRJ-2025-905'" );
 

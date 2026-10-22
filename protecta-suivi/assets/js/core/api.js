@@ -23,10 +23,17 @@ PS.api = (function () {
 			init.body = body;
 		}
 
-		return fetch(PS.config.restUrl + path, init).then(function (res) {
+		return fetch(PS.config.restUrl + path, init).catch(function () {
+			// Pas de réponse du tout (connexion coupée, délai dépassé…).
+			throw new Error(PS.t('تعذّر الاتصال بالخادم (انقطاع أو مهلة). أعد المحاولة.'));
+		}).then(function (res) {
 			return res.text().then(function (text) {
 				let data = null;
-				try { data = text ? JSON.parse(text) : null; } catch (e) { data = { message: text }; }
+				try { data = text ? JSON.parse(text) : null; } catch (e) {
+					// Réponse non JSON (page d'erreur de l'hébergeur, délai dépassé, pare-feu…) : message lisible + code HTTP.
+					const plain = String(text || '').replace(/<(script|style)[\s\S]*?<\/\1>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
+					data = { message: PS.t('ردّ غير متوقّع من الخادم') + ' (HTTP ' + res.status + ')' + (plain ? ' : ' + plain : '') };
+				}
 				if (res.ok) return data;
 
 				const code = data && data.code;

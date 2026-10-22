@@ -951,7 +951,43 @@ async function step11(browser) {
 	await anon.close();
 }
 
-const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11 };
+/* Version 1.5.2 : « tout effacer (projets ET tâches) puis importer le fichier Excel » par l'écran. */
+async function step12(browser) {
+	console.log('1.5.2 — مسح كل المشاريع والمهام ثم الاستيراد');
+	const { ctx, page } = await newPage(browser, 'idara');
+	// Une tâche libre existante (doit disparaître avec les projets).
+	const made = await page.evaluate(async () => {
+		const id = (await PS.api.get('lists')).lists.employee[0].id;
+		await PS.api.post('free-tasks', { employeeId: id, title: 'مهمة قديمة للمسح', dueDate: '2026-12-01' });
+		return (await PS.api.get('free-tasks?status=all')).tasks.length;
+	}).catch((e) => 'erreur: ' + e.message);
+	check('préparation : une tâche libre créée', made >= 1, String(made));
+	await go(page, '#/parametres?tab=data');
+	await page.setInputFiles('[data-xl] input[type=file]', __dirname + '/fixtures/excel-equipe.xlsx');
+	await page.click('[data-xl-preview]');
+	await page.waitForSelector('[data-xl-report] .ps-alert', { timeout: 15000 });
+	await page.click('[data-xl] [name=replaceAll]');
+	check('option renommée : « مسح كل المشاريع والمهام الحالية… » + aide visible', /والمهام/.test(await page.textContent('[data-xl]')) && await page.isVisible('[data-xl] [name=confirm]'));
+	await page.click('[data-xl-preview]');
+	await page.waitForFunction(() => /سيتم حذف/.test(document.querySelector('[data-xl-report]').textContent), null, { timeout: 15000 });
+	const prev = (await page.textContent('[data-xl-report]')).replace(/\s+/g, ' ');
+	check('aperçu : « سيتم حذف 30 مشروع حالي + N مهمة » puis 4 projets importés', /سيتم حذف 30 مشروع حالي \+ \d+ مهمة/.test(prev) && /4 مشروع سيتم استيراده/.test(prev), prev.slice(0, 220));
+	await page.fill('[data-xl] [name=confirm]', 'مسح الكل');
+	await page.click('[data-xl-run]');
+	await page.click('.ps-modal [data-btn=ok]');
+	await page.waitForFunction(() => /تم الاستيراد/.test(document.querySelector('[data-xl-report]').textContent), null, { timeout: 15000 });
+	await page.screenshot({ path: SHOTS + '/s12-01-tout-effacer.png', fullPage: true });
+	const after = await page.evaluate(async () => ({ projects: await PS.api.get('projects?perPage=200'), tasks: (await PS.api.get('free-tasks?status=all')).tasks }));
+	check('après : 4 projets (ceux du fichier), aucune tâche', after.projects.total === 4 && after.tasks.length === 0, after.projects.total + ' / ' + after.tasks.length);
+	// Erreur non JSON du serveur (page d'erreur de l'hébergeur) : message lisible, pas de HTML brut.
+	await page.route('**/import/excel*', (route) => route.fulfill({ status: 503, contentType: 'text/html', body: '<html><head><style>b{}</style></head><body><h1>Service Unavailable</h1></body></html>' }));
+	await page.click('[data-xl-preview]');
+	const toast = await page.waitForFunction(() => [...document.querySelectorAll('.ps-toast')].map((t) => t.textContent).find((t) => /HTTP/.test(t)), null, { timeout: 5000 }).then((h) => h.jsonValue(), () => '');
+	check('erreur de l\'hébergeur : « ردّ غير متوقّع من الخادم (HTTP 503) » sans balises', /HTTP 503/.test(toast) && /Service Unavailable/.test(toast) && !/</.test(toast), toast);
+	await ctx.close();
+}
+
+const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12 };
 
 (async () => {
 	const browser = await chromium.launch();

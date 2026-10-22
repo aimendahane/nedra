@@ -3,6 +3,19 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.5.2 — 2026-10-23 · base v6 — « Tout effacer (projets ET tâches) et repartir du fichier »
+
+- Import Excel, option **« 🗑 مسح كل المشاريع والمهام الحالية ثم الاستيراد »** : efface maintenant aussi **toutes les
+  tâches libres (مهام)** et les notifications 🔔 (qui pointaient vers les projets / tâches effacés). Aperçu : « سيتم حذف
+  N مشروع حالي + M مهمة ». Toujours après une sauvegarde complète (retour possible par « استرجاع »), dans la même
+  transaction que l'import. Gardés : listes, sociétés, comptes, réglages, journal, fichiers sur le disque / Drive.
+- Aperçu sans l'option où tous les projets existent déjà : message clair (« rien n'a été importé, cochez l'option »)
+  au lieu d'un bouton « استيراد » simplement grisé.
+- Erreurs du serveur plus lisibles : une page d'erreur de l'hébergeur (non JSON) s'affiche « ردّ غير متوقّع من الخادم
+  (HTTP 503) : … » sans HTML brut ; une coupure de connexion / délai dépassé a son propre message.
+- Import Excel : jusqu'à 5 min de traitement accordées (`set_time_limit`, si l'hébergeur le permet).
+- Vérifié avec le fichier du client (157 projets) : 0,4 s, 30 projets + tâches effacés, 157 importés.
+
 ## 1.5.1 — 2026-10-23 · base v6 — « Tout effacer et mettre ces projets »
 
 - Import Excel : option **« 🗑 مسح كل المشاريع الحالية ثم الاستيراد »** (demande du client). Aperçu : « سيتم حذف N
