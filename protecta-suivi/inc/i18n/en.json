@@ -1053,5 +1053,18 @@
 	"ردّ غير متوقّع من الخادم": "Unexpected response from the server",
 	"تعذّر الاتصال بالخادم (انقطاع أو مهلة). أعد المحاولة.": "Could not reach the server (connection lost or timeout). Please try again.",
 	"مسح كل المهام قبل الاستيراد": "All tasks deleted before import",
-	"تُحذف كل المشاريع وأصنافها ومتابعاتها وكل المهام والإشعارات، ثم تُستورد مشاريع الملف. تبقى القوائم والشركات والحسابات والإعدادات. قبل ذلك تُحفظ نسخة احتياطية كاملة (يمكن التراجع من «استرجاع»).": "All projects with their items and follow-ups, and all tasks and notifications, are deleted, then the file projects are imported. Lists, companies, accounts and settings are kept. A full backup is saved first (it can be undone with “Restore”)."
+	"تُحذف كل المشاريع وأصنافها ومتابعاتها وكل المهام والإشعارات، ثم تُستورد مشاريع الملف. تبقى القوائم والشركات والحسابات والإعدادات. قبل ذلك تُحفظ نسخة احتياطية كاملة (يمكن التراجع من «استرجاع»).": "All projects with their items and follow-ups, and all tasks and notifications, are deleted, then the file projects are imported. Lists, companies, accounts and settings are kept. A full backup is saved first (it can be undone with “Restore”).",
+	"تعذّرت النسخة الاحتياطية التلقائية: لم يُحذف شيء.": "Automatic backup failed: nothing was deleted.",
+	"تنظيف المهام": "Clean up tasks",
+	"تُحفظ نسخة احتياطية كاملة قبل الحذف (يمكن التراجع من «استرجاع»).": "A full backup is saved before deleting (it can be undone with “Restore”).",
+	"حذف المهام المنجزة والملغاة": "Delete completed and cancelled tasks",
+	"حذف المهمة نهائيًا": "Delete task permanently",
+	"حذف كل المهام (البدء من جديد)": "Delete all tasks (start over)",
+	"حذف هذه المهمة نهائيًا؟ لا يمكن التراجع (إلا من نسخة احتياطية).": "Delete this task permanently? This cannot be undone (except from a backup).",
+	"حُذفت المهام:": "Tasks deleted:",
+	"حُذفت المهمة": "Task deleted",
+	"🗑 حذف": "🗑 Delete",
+	"🧹 تنظيف المهام": "🧹 Clean up tasks",
+	"عرض الكل": "Show all",
+	"عرض أقل": "Show less"
 }

@@ -19,16 +19,24 @@
 	const L = PS.lists;
 	const F = PS.format;
 
+	// 1.5.3 : un bloc montre 5 lignes ; le reste derrière « عرض الكل » (la page restait trop longue).
+	const MAX_ROWS = 5;
+
 	function block(icon, title, rows, emptyText, rowFn, more) {
 		return html`<section class="ps-card ps-task">
 			<h2 class="ps-card__title"><span aria-hidden="true">${icon}</span> ${title} <span class="ps-task__count ${rows.length ? 'is-on' : ''}">${rows.length}</span>${more || ''}</h2>
-			${rows.length ? html`<ul class="ps-task__list">${rows.map(rowFn)}</ul>` : html`<p class="ps-muted">✔ ${emptyText}</p>`}
+			${rows.length ? html`<ul class="ps-task__list">${rows.slice(0, MAX_ROWS).map(rowFn)}</ul>` : html`<p class="ps-muted">✔ ${emptyText}</p>`}
+			${rows.length > MAX_ROWS ? html`<ul class="ps-task__list" data-task-more-list hidden>${rows.slice(MAX_ROWS).map(rowFn)}</ul>
+				<button type="button" class="ps-btn ps-btn--small ps-btn--ghost ps-task__more" data-task-more data-label="${PS.t('عرض الكل') + ' (' + rows.length + ')'}" aria-expanded="false">${PS.t('عرض الكل')} (${rows.length})</button>` : ''}
 		</section>`;
 	}
 
 	function who(r, showEmp) { return showEmp && r.employeeId ? html` · <span class="ps-muted">${L.label(r.employeeId)}</span>` : ''; }
 
 	function errMsg(er) { return (er && er.message) || PS.t('حدث خطأ'); }
+
+	// 1.5.3 : الإدارة peut effacer une tâche définitivement (bouton 🗑 sur chaque tâche).
+	function delBtn(r) { return PS.router.can('ps_edit_all_projects') ? html`<button type="button" class="ps-btn ps-btn--small ps-btn--ghost ps-text-danger" data-task-del="${r.id}" title="${PS.t('حذف المهمة نهائيًا')}" aria-label="${PS.t('حذف المهمة نهائيًا')}">🗑</button>` : ''; }
 
 	/* ---- Message vocal (1.2.0) : enregistrement dans le navigateur, 5 minutes au plus ---- */
 	const VOICE_MAX = 300;
@@ -298,21 +306,54 @@
 		return block('📌', PS.t('مهام مُسندة'), data.assigned || [], PS.t('لا توجد مهام مُسندة'), function (r) {
 			return html`<li class="ps-task__item ${r.late ? 'is-danger' : (r.dueDate === data.today ? 'is-warning' : '')}" data-task="${r.id}">
 				<div class="ps-task__row"><span><strong>${r.title}</strong>${r.projectId ? html` · ${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo })}` : ''}</span>
-				<button type="button" class="ps-btn ps-btn--small ps-btn--primary" data-task-done="${r.id}">✔ ${PS.t('تمت')}</button></div>
+				<span class="ps-row ps-row--tight"><button type="button" class="ps-btn ps-btn--small ps-btn--primary" data-task-done="${r.id}">✔ ${PS.t('تمت')}</button>${delBtn(r)}</span></div>
 				<span class="ps-small">${dueText(r, data.today)}${r.createdByName ? PS.t(' · من ') + r.createdByName : ''}${who(r, showEmp)}</span>
 				${r.note ? html`<span class="ps-small ps-task__note">${r.note}</span>` : ''}${voicePlayer(r)}</li>`;
 		});
 	}
 
 	function sentBlock(data) {
-		if (!data.sent || !data.sent.length) return '';
-		return block('📤', PS.t('مهام أرسلتها'), data.sent, '', function (r) {
+		// Une tâche déjà affichée dans « مهام مُسندة » (vue de l'équipe) n'est pas répétée ici : moins de place.
+		const shown = {};
+		(data.assigned || []).forEach(function (r) { shown[r.id] = true; });
+		const rows = (data.sent || []).filter(function (r) { return !shown[r.id]; });
+		if (!rows.length) return '';
+		return block('📤', PS.t('مهام أرسلتها'), rows, '', function (r) {
 			const done = r.status === 'done';
 			return html`<li class="ps-task__item ${done ? 'is-done' : (r.late ? 'is-danger' : '')}">
 				<div class="ps-task__row"><span>${done ? '✔ ' : ''}<strong>${r.title}</strong> → ${L.label(r.employeeId)}${r.projectId ? html` · ${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo })}` : ''}</span>
-				${done ? '' : html`<span class="ps-row ps-row--tight"><button type="button" class="ps-btn ps-btn--small" data-task-edit="${r.id}">✎</button><button type="button" class="ps-btn ps-btn--small ps-btn--ghost" data-task-cancel="${r.id}">${PS.t('إلغاء')}</button></span>`}</div>
+				<span class="ps-row ps-row--tight">${done ? '' : html`<button type="button" class="ps-btn ps-btn--small" data-task-edit="${r.id}">✎</button><button type="button" class="ps-btn ps-btn--small ps-btn--ghost" data-task-cancel="${r.id}">${PS.t('إلغاء')}</button>`}${delBtn(r)}</span></div>
 				<span class="ps-small">${done ? PS.t('تمت ') + F.date(String(r.doneAt).slice(0, 10)) + (r.doneByName ? ' · ' + r.doneByName : '') : dueText(r, data.today)}</span>${voicePlayer(r)}</li>`;
 		});
+	}
+
+	/** « 🧹 تنظيف المهام » (الإدارة) : effacer les tâches منجزة/ملغاة, ou toutes (mot « مسح الكل »). Sauvegarde avant. */
+	function purgeModal() {
+		return PS.api.get('free-tasks/purge').then(function (c) {
+			return ui.modal({
+				title: PS.t('🧹 تنظيف المهام'),
+				body: html`<p class="ps-muted ps-small">${PS.t('تُحفظ نسخة احتياطية كاملة قبل الحذف (يمكن التراجع من «استرجاع»).')}</p>
+					<label class="ps-check"><input type="radio" name="scope" value="closed" checked> ${PS.t('حذف المهام المنجزة والملغاة')} (<strong>${c.closed}</strong>)</label>
+					<label class="ps-check ps-text-danger"><input type="radio" name="scope" value="all"> ${PS.t('حذف كل المهام (البدء من جديد)')} (<strong>${c.all}</strong>)</label>
+					<label class="ps-field" data-purge-confirm hidden><span class="ps-field__label">${PS.t('اكتب «مسح الكل» للتأكيد')}</span><input name="confirm" autocomplete="off"></label>`,
+				buttons: [{ id: 'ok', label: PS.t('🗑 حذف'), kind: 'danger' }, { id: 'cancel', label: PS.t('إلغاء') }],
+				onOpen: function (wrap) {
+					wrap.addEventListener('change', function () { wrap.querySelector('[data-purge-confirm]').hidden = wrap.querySelector('[name=scope]:checked').value !== 'all'; });
+				},
+				onButton: function (id, wrap, close) {
+					if (id !== 'ok') return;
+					const scope = wrap.querySelector('[name=scope]:checked').value;
+					const word = wrap.querySelector('[name=confirm]').value.trim();
+					if (scope === 'all' && word !== 'مسح الكل' && word.toLowerCase() !== PS.t('مسح الكل').toLowerCase()) { ui.toast(PS.t('اكتب «مسح الكل» للتأكيد'), 'error'); return false; }
+					PS.api.post('free-tasks/purge', { scope: scope, confirm: scope === 'all' ? 'مسح الكل' : '' }).then(function (r) {
+						close('ok');
+						ui.toast(PS.t('حُذفت المهام: ') + r.deleted, 'success');
+						PS.router.refresh();
+					}).catch(function (er) { ui.toast(errMsg(er), 'error'); });
+					return false;
+				},
+			});
+		}).catch(function (er) { ui.toast(errMsg(er), 'error'); });
 	}
 
 	function bindTaskButtons(main, data) {
@@ -327,6 +368,22 @@
 				return taskModal({ task: t, projectLabel: t && t.projectNo ? t.projectName + ' — ' + t.projectNo : '' }).then(function (r) { if (r) PS.router.refresh(); });
 			}
 			if (e.target.closest('[data-new-task]')) taskModal().then(function (r) { if (r) PS.router.refresh(); });
+			const del = e.target.closest('[data-task-del]');
+			if (del) {
+				return ui.confirm(PS.t('حذف هذه المهمة نهائيًا؟ لا يمكن التراجع (إلا من نسخة احتياطية).'), PS.t('حذف'), 'danger').then(function (ok) {
+					if (!ok) return;
+					PS.api.del('free-tasks/' + del.dataset.taskDel).then(function () { ui.toast(PS.t('حُذفت المهمة'), 'success'); PS.router.refresh(); })
+						.catch(function (er) { ui.toast(errMsg(er), 'error'); });
+				});
+			}
+			if (e.target.closest('[data-task-purge]')) purgeModal();
+			const mo = e.target.closest('[data-task-more]');
+			if (mo) {
+				const list = mo.parentNode.querySelector('[data-task-more-list]');
+				list.hidden = !list.hidden;
+				mo.setAttribute('aria-expanded', String(!list.hidden));
+				mo.textContent = list.hidden ? mo.dataset.label : PS.t('عرض أقل');
+			}
 		});
 	}
 
@@ -338,7 +395,7 @@
 		let head = html`<div class="ps-page-head"><h1>${PS.t('مهامي')}</h1><span class="ps-muted">${F.date(data.today)}</span><div class="ps-page-head__actions">${newBtn}</div></div>`;
 		if (admin) {
 			head = html`<div class="ps-page-head"><h1>${data.employeeId ? PS.t('مهام') + ' ' + L.label(data.employeeId) : PS.t('مهام الفريق')}</h1>
-				<div class="ps-page-head__actions">${newBtn}<label class="ps-field ps-field--compact"><span class="ps-field__label">${PS.t('الموظف')}</span>
+				<div class="ps-page-head__actions">${newBtn}<button type="button" class="ps-btn" data-task-purge>🧹 ${PS.t('تنظيف المهام')}</button><label class="ps-field ps-field--compact"><span class="ps-field__label">${PS.t('الموظف')}</span>
 				<select class="ps-input" data-emp><option value="">${PS.t('كل الفريق')}</option>${ui.raw(L.options('employee', data.employeeId, { noEmpty: true }))}</select></label></div></div>`;
 		}
 		bindTaskButtons(main, data);

@@ -1,6 +1,6 @@
 ######## Tests PHP ########
 Site de test installé (thème : protecta-suivi)
-Thème v1.5.2 — WordPress 6.7-alpha-58716 — PHP 8.3.6
+Thème v1.5.3 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 
 == Activation : base de données ==
   ✔ ps_db_version = dernière migration
@@ -777,9 +777,9 @@ Thème v1.5.2 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ inc/i18n/en.json : JSON valide
   ✔ inc/i18n/fr.json : JSON valide
   ✔ en.json et fr.json ont exactement les mêmes clés
-  ✔ en : chaque texte de l'interface a sa traduction (1044 textes)
+  ✔ en : chaque texte de l'interface a sa traduction (1057 textes)
   ✔ en : traductions non vides, sans arabe, mêmes %s / %d que l'original
-  ✔ fr : chaque texte de l'interface a sa traduction (1044 textes)
+  ✔ fr : chaque texte de l'interface a sa traduction (1057 textes)
   ✔ fr : traductions non vides, sans arabe, mêmes %s / %d que l'original
 
 == Langues : traduction côté serveur ==
@@ -963,8 +963,26 @@ Thème v1.5.2 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ compte affiché, clé privée jamais renvoyée
   ✔ envoi par le compte de service dans le Drive partagé
 
+== 1.5.3 : suppression des tâches par la الإدارة ==
+  ✔ préparation : 4 tâches dont 1 تمت et 1 ملغاة
+  ✔ موظف : suppression refusée (403)
+  ✔ مسؤول مشروع (auteur) : suppression refusée — réservée à la الإدارة
+  ✔ مسؤول مشروع : « تنظيف المهام » refusé
+  ✔ الإدارة : une tâche ouverte effacée définitivement
+  ✔ journal : titre de la tâche effacée gardé
+  ✔ tâche déjà effacée → 404
+  ✔ compteurs : 2 terminées/annulées, 3 en tout
+  ✔ « حذف المهام المنجزة والملغاة » : 2 effacées, la tâche ouverte reste
+  ✔ sauvegarde faite AVANT l'effacement
+  ✔ la sauvegarde contient les tâches effacées
+  ✔ « كل المهام » sans le mot « مسح الكل » → refusé
+  ✔ … rien n'est effacé
+  ✔ « حذف كل المهام » confirmé : plus aucune tâche
+  ✔ rien à effacer → 0, sans erreur
+  ✔ choix inconnu → 422
+
 ----------------------------------------
-Résultat : 797 réussis, 0 échoués
+Résultat : 813 réussis, 0 échoués
 
 ######## Navigateur : fondations (étape 1) ########
 Page de connexion
@@ -1206,6 +1224,19 @@ Tous les contrôles navigateur sont passés.
   ✔ aperçu : « سيتم حذف 30 مشروع حالي + N مهمة » puis 4 projets importés
   ✔ après : 4 projets (ceux du fichier), aucune tâche
   ✔ erreur de l'hébergeur : « ردّ غير متوقّع من الخادم (HTTP 503) » sans balises
+
+Tous les contrôles navigateur sont passés.
+
+######## Navigateur : step13 (jeu de démonstration) ########
+1.5.3 — حذف المهام (الإدارة)
+  ✔ مهامي (الإدارة) : chaque tâche une seule fois (pas répétée dans « مهام أرسلتها »)
+  ✔ bouton 🗑 sur les tâches + « 🧹 تنظيف المهام »
+  ✔ bloc long : 5 lignes puis « عرض الكل (N) » qui déplie le reste
+  ✔ 🗑 : la tâche disparaît
+  ✔ « حذف المهام المنجزة والملغاة » : la tâche تمت disparaît, la tâche ouverte reste
+  ✔ « حذف كل المهام » sans le mot → refusé
+  ✔ « حذف كل المهام » confirmé : plus aucune tâche
+  ✔ موظف : ni 🗑 ni « تنظيف المهام »
 
 Tous les contrôles navigateur sont passés.
 

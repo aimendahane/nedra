@@ -277,6 +277,54 @@ function ps_task_update( array $task, string $action, array $b, int $user_id ) {
 }
 
 /**
+ * 1.5.3 (demande du client : « l'admin doit pouvoir effacer les tâches, elles prennent de la place ») :
+ * suppression DÉFINITIVE d'une tâche libre, réservée à la الإدارة. Le titre reste dans le journal ; le message vocal
+ * éventuel reste sur le disque (dossier protégé, jamais servi sans la tâche).
+ */
+function ps_task_can_delete( int $user_id ): bool {
+	return user_can( $user_id, 'ps_edit_all_projects' );
+}
+
+function ps_task_delete( array $task, int $user_id ): void {
+	global $wpdb;
+	$wpdb->delete( ps_table( 'tasks' ), array( 'id' => (int) $task['id'] ) );
+	ps_log( $task['project_id'] ? (int) $task['project_id'] : null, 'delete', 'task', (int) $task['id'], null, $task['title'] . ' → ' . ps_list_label( (int) $task['employee_id'] ), null, $user_id );
+}
+
+/** Nombre de tâches par groupe pour « 🧹 تنظيف المهام » : closed = منجزة + ملغاة, all = toutes. */
+function ps_task_counts(): array {
+	global $wpdb;
+	$t = ps_table( 'tasks' );
+	return array(
+		'closed' => (int) $wpdb->get_var( "SELECT COUNT(*) FROM $t WHERE status IN ('done','cancelled')" ), // phpcs:ignore
+		'all'    => (int) $wpdb->get_var( "SELECT COUNT(*) FROM $t" ), // phpcs:ignore
+	);
+}
+
+/**
+ * Efface en une fois les tâches terminées (« closed ») ou toutes (« all »), APRÈS une sauvegarde automatique
+ * (pas de sauvegarde = rien n'est effacé ; retour possible par « استرجاع »).
+ *
+ * @return array|WP_Error { deleted, backup }
+ */
+function ps_tasks_purge( string $scope, int $user_id ) {
+	global $wpdb;
+	$t     = ps_table( 'tasks' );
+	$where = 'all' === $scope ? '1=1' : "status IN ('done','cancelled')";
+	$n     = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $t WHERE $where" ); // phpcs:ignore
+	if ( ! $n ) {
+		return array( 'deleted' => 0, 'backup' => null );
+	}
+	$backup = ps_backup_write_auto( 'before-task-delete' );
+	if ( false === $backup ) {
+		return new WP_Error( 'ps_backup', ps__( 'تعذّرت النسخة الاحتياطية التلقائية: لم يُحذف شيء.' ), array( 'status' => 500 ) );
+	}
+	$wpdb->query( "DELETE FROM $t WHERE $where" ); // phpcs:ignore
+	ps_log( null, 'delete', 'task', null, null, (string) $n, 'all' === $scope ? 'حذف كل المهام' : 'حذف المهام المنجزة والملغاة', $user_id );
+	return array( 'deleted' => $n, 'backup' => basename( $backup ) );
+}
+
+/**
  * Comptes liés à un employé de la liste (actifs).
  *
  * @return WP_User[]

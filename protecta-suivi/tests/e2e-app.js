@@ -987,7 +987,57 @@ async function step12(browser) {
 	await ctx.close();
 }
 
-const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12 };
+/* Version 1.5.3 : la الإدارة efface des tâches dans مهامي (🗑 par tâche, « 🧹 تنظيف المهام »), pas de doublon affiché. */
+async function step13(browser) {
+	console.log('1.5.3 — حذف المهام (الإدارة)');
+	const { ctx, page } = await newPage(browser, 'idara');
+	await page.evaluate(async () => {
+		const id = (await PS.api.get('lists')).lists.employee[0].id;
+		for (const t of ['مهمة للحذف', 'مهمة باقية', 'مهمة منجزة']) await PS.api.post('free-tasks', { employeeId: id, title: t });
+		const all = (await PS.api.get('free-tasks?status=all')).tasks;
+		await PS.api.put('free-tasks/' + all.find((x) => x.title === 'مهمة منجزة').id, { action: 'done' });
+	});
+	await go(page, '#/taches');
+	await page.waitForSelector('[data-task-purge]');
+	const titles = await page.$$eval('.ps-task__item strong', (n) => n.map((x) => x.textContent));
+	check('مهامي (الإدارة) : chaque tâche une seule fois (pas répétée dans « مهام أرسلتها »)', titles.filter((t) => t === 'مهمة باقية').length === 1, titles.join(' | '));
+	check('bouton 🗑 sur les tâches + « 🧹 تنظيف المهام »', (await page.$$('[data-task-del]')).length >= 3);
+	const more = await page.$('[data-task-more]');
+	const visible = async () => page.$$eval('.ps-task__item', (n) => n.filter((x) => x.offsetParent).length);
+	const before = await visible();
+	if (more) await more.click();
+	check('bloc long : 5 lignes puis « عرض الكل (N) » qui déplie le reste', !!more && (await visible()) > before && /عرض أقل/.test(await more.textContent()), before + ' → ' + (await visible()));
+	await page.screenshot({ path: SHOTS + '/s13-01-taches.png', fullPage: true });
+	const li = await page.$('.ps-task__item:has-text("مهمة للحذف")');
+	await (await li.$('[data-task-del]')).click();
+	await page.click('.ps-modal [data-btn=ok]');
+	await page.waitForFunction(() => !/مهمة للحذف/.test(document.querySelector('.ps-main').textContent), null, { timeout: 8000 });
+	check('🗑 : la tâche disparaît', true);
+	await page.click('[data-task-purge]');
+	await page.waitForSelector('.ps-modal [name=scope]');
+	await page.screenshot({ path: SHOTS + '/s13-02-nettoyer.png' });
+	await page.click('.ps-modal [data-btn=ok]');
+	await page.waitForFunction(() => !/مهمة منجزة/.test(document.querySelector('.ps-main').textContent), null, { timeout: 8000 }).catch(() => {});
+	const txt = await page.textContent('.ps-main');
+	check('« حذف المهام المنجزة والملغاة » : la tâche تمت disparaît, la tâche ouverte reste', !/مهمة منجزة/.test(txt) && /مهمة باقية/.test(txt));
+	await page.click('[data-task-purge]');
+	await page.click('.ps-modal [name=scope][value=all]');
+	await page.click('.ps-modal [data-btn=ok]');
+	check('« حذف كل المهام » sans le mot → refusé', await page.waitForFunction(() => /مسح الكل/.test([...document.querySelectorAll('.ps-toast')].map((t) => t.textContent).join(' ')), null, { timeout: 4000 }).then(() => true, () => false) && !!(await page.$('.ps-modal')));
+	await page.fill('.ps-modal [name=confirm]', 'مسح الكل');
+	await page.click('.ps-modal [data-btn=ok]');
+	await page.waitForFunction(() => !/مهمة باقية/.test(document.querySelector('.ps-main').textContent), null, { timeout: 8000 }).catch(() => {});
+	check('« حذف كل المهام » confirmé : plus aucune tâche', (await page.evaluate(async () => (await PS.api.get('free-tasks?status=all')).tasks.length)) === 0);
+	await ctx.close();
+	// Un موظف ne voit pas les boutons de suppression.
+	const e = await newPage(browser, 'mowadhaf');
+	await go(e.page, '#/taches');
+	await e.page.waitForSelector('.ps-tasks');
+	check('موظف : ni 🗑 ni « تنظيف المهام »', !(await e.page.$('[data-task-del]')) && !(await e.page.$('[data-task-purge]')));
+	await e.ctx.close();
+}
+
+const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13 };
 
 (async () => {
 	const browser = await chromium.launch();

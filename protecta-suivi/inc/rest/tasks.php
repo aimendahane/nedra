@@ -22,7 +22,19 @@ function ps_register_task_routes(): void {
 	register_rest_route(
 		PS_REST_NS,
 		'/free-tasks/(?P<id>\d+)',
-		array( 'methods' => 'PUT', 'permission_callback' => ps_rest_permission(), 'callback' => 'ps_rest_free_task_update' )
+		array(
+			array( 'methods' => 'PUT', 'permission_callback' => ps_rest_permission(), 'callback' => 'ps_rest_free_task_update' ),
+			// 1.5.3 : suppression définitive, الإدارة seulement.
+			array( 'methods' => 'DELETE', 'permission_callback' => ps_rest_permission( 'ps_edit_all_projects' ), 'callback' => 'ps_rest_free_task_delete' ),
+		)
+	);
+	register_rest_route(
+		PS_REST_NS,
+		'/free-tasks/purge',
+		array(
+			array( 'methods' => 'GET', 'permission_callback' => ps_rest_permission( 'ps_edit_all_projects' ), 'callback' => static fn() => rest_ensure_response( ps_task_counts() ) ),
+			array( 'methods' => 'POST', 'permission_callback' => ps_rest_permission( 'ps_edit_all_projects' ), 'callback' => 'ps_rest_free_tasks_purge' ),
+		)
 	);
 	register_rest_route(
 		PS_REST_NS,
@@ -77,6 +89,28 @@ function ps_rest_free_task_update( WP_REST_Request $r ) {
 	}
 	$res = ps_task_update( $task, $action, $b, $uid );
 	return is_wp_error( $res ) ? $res : rest_ensure_response( ps_rest_free_task_one( (int) $task['id'] ) );
+}
+
+function ps_rest_free_task_delete( WP_REST_Request $r ) {
+	$task = ps_task_row( (int) $r['id'] );
+	if ( ! $task ) {
+		return new WP_Error( 'ps_not_found', ps__( 'المهمة غير موجودة' ), array( 'status' => 404 ) );
+	}
+	ps_task_delete( $task, get_current_user_id() );
+	return rest_ensure_response( array( 'deleted' => (int) $task['id'] ) );
+}
+
+/** « 🧹 تنظيف المهام » : scope closed (منجزة + ملغاة) ou all (toutes, mot « مسح الكل » obligatoire). */
+function ps_rest_free_tasks_purge( WP_REST_Request $r ) {
+	$scope = (string) $r['scope'];
+	if ( ! in_array( $scope, array( 'closed', 'all' ), true ) ) {
+		return new WP_Error( 'ps_validation', ps__( 'إجراء غير معروف' ), array( 'status' => 422 ) );
+	}
+	if ( 'all' === $scope && 'مسح الكل' !== trim( (string) $r['confirm'] ) ) {
+		return new WP_Error( 'ps_confirm', ps__( 'اكتب «مسح الكل» للتأكيد' ), array( 'status' => 422 ) );
+	}
+	$res = ps_tasks_purge( $scope, get_current_user_id() );
+	return is_wp_error( $res ) ? $res : rest_ensure_response( $res );
 }
 
 /** Une tâche au format API (avec le projet lié). */

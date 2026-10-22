@@ -32,13 +32,14 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 1.4.0 | Demande client : import du vrai fichier Excel, الوسيط هامش الربح, règles موظف, ورقة الحسابات, Telegram à la connexion | ✅ terminée, tests verts | 1.4.0 · base v5 |
 | 1.5.0 | Demande client : nom du projet d'abord + recherche par numéro, fichiers joints (règles), stockage Google Drive | ✅ terminée, tests verts | 1.5.0 · base v6 |
 | 1.5.1 | Demande client : « tout effacer et mettre ces projets » (option d'import) + nom du projet toujours présent | ✅ terminée, tests verts | 1.5.1 · base v6 |
-| 1.5.2 | Retour client « not work » : l'option efface aussi toutes les tâches (+ notifications), erreurs serveur lisibles | ✅ terminée, tests verts | **1.5.2** · base v6 |
+| 1.5.2 | Retour client « not work » : l'option efface aussi toutes les tâches (+ notifications), erreurs serveur lisibles | ✅ terminée, tests verts | 1.5.2 · base v6 |
+| 1.5.3 | Demande client : la الإدارة efface les tâches (🗑, « 🧹 تنظيف المهام ») + مهامي plus courte | ✅ terminée, tests verts | **1.5.3** · base v6 |
 
-### Tests (dernier passage complet, version 1.5.2) — détail : `docs/TEST-RESULTS.txt`
-- `sh protecta-suivi/tests/run-all.sh` → **797 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
-  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0 + step12 = 1.5.2) passés.
-- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.5.2.zip $PWD/dist/protecta-suivi-1.5.1.zip` (chemins absolus) →
-  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.5.1 → 1.5.2 avec données : **aucune perte**.
+### Tests (dernier passage complet, version 1.5.3) — détail : `docs/TEST-RESULTS.txt`
+- `sh protecta-suivi/tests/run-all.sh` → **813 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
+  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0 + step12 = 1.5.2 + step13 = 1.5.3) passés.
+- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.5.3.zip $PWD/dist/protecta-suivi-1.5.2.zip` (chemins absolus) →
+  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.5.2 → 1.5.3 avec données : **aucune perte**.
 
 ### Prochaines actions
 1. Dès que l'accès GitHub est rétabli : `git push -u origin claude/sweet-hopper-le9393` puis
@@ -241,6 +242,10 @@ chaque décision prise seul.
   concerné, auteur, الإدارة. Modifier/annuler : auteur ou الإدارة. Jamais supprimée (statut cancelled).
   Retard = ouverte et أجل < aujourd'hui (`ps_calc_task_late`). Projet lié facultatif (bouton dans Fiche Projet).
   E-mail immédiat à l'employé (pas à l'auteur lui-même) ; échec d'envoi non bloquant.
+  **1.5.3 (demande du client, exception à « jamais supprimée »)** : la الإدارة seule peut effacer définitivement une tâche
+  (DELETE /free-tasks/{id}, titre gardé au journal) ou en masse (POST /free-tasks/purge : closed = منجزة+ملغاة, all =
+  toutes avec « مسح الكل »), après `ps_backup_write_auto('before-task-delete')`. Message vocal gardé sur le disque.
+  مهامي : 5 lignes par bloc + « عرض الكل » ; tâches de « مهام مُسندة » non répétées dans « مهام أرسلتها ».
 - **E-mail** : SMTP intégré via `phpmailer_init` (aucune extension). Mot de passe dans l'option `ps_smtp_pass`,
   hors `ps_settings`, jamais renvoyé ni sauvegardé dans le JSON (à ressaisir après une restauration).
   Expéditeur : réglage, sinon utilisateur SMTP, sinon celui de WordPress.

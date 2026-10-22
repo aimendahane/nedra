@@ -3,6 +3,16 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.5.3 — 2026-10-23 · base v6 — La الإدارة efface les tâches, page مهامي plus courte
+
+- **🗑 sur chaque tâche** (الإدارة seulement) : suppression DÉFINITIVE après confirmation. Le titre reste dans le journal.
+- **« 🧹 تنظيف المهام »** (الإدارة) : effacer d'un coup les tâches **منجزة + ملغاة**, ou **toutes** les tâches (mot
+  « مسح الكل » obligatoire). Sauvegarde complète AVANT (retour possible par « استرجاع ») ; pas de sauvegarde = rien
+  n'est effacé.
+- **مهامي plus courte** : chaque bloc montre 5 lignes, le reste derrière « عرض الكل (N) » ; une tâche déjà listée dans
+  « مهام مُسندة » n'est plus répétée dans « مهام أرسلتها ».
+- مسؤول مشروع / موظف : aucun changement (pas de suppression ; « إلغاء » reste comme avant).
+
 ## 1.5.2 — 2026-10-23 · base v6 — « Tout effacer (projets ET tâches) et repartir du fichier »
 
 - Import Excel, option **« 🗑 مسح كل المشاريع والمهام الحالية ثم الاستيراد »** : efface maintenant aussi **toutes les

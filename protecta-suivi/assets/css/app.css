@@ -509,6 +509,8 @@ h2 { font-size: 1.12rem; font-weight: 700; }
 .ps-tasks > .ps-task:nth-child(5) { animation-delay: .16s; }
 .ps-tasks > .ps-task:nth-child(6) { animation-delay: .2s; }
 .ps-task .ps-card__title > span[aria-hidden] { display: inline-flex; width: 34px; height: 34px; align-items: center; justify-content: center; border-radius: 10px; background: var(--ps-surface-3); font-size: 17px; }
+.ps-task__list[data-task-more-list] { margin-top: 8px; }
+.ps-task__more { margin-top: 10px; }
 .ps-task__count { margin-inline-start: auto; min-width: 30px; text-align: center; border-radius: 999px; padding: 0 9px; background: var(--ps-surface-3); color: var(--ps-text-muted); font-size: 13px; font-weight: 700; line-height: 24px; }
 .ps-task__count.is-on { background: var(--ps-gradient-accent); color: var(--ps-on-accent); box-shadow: var(--ps-shadow-accent); }
 .ps-task__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }

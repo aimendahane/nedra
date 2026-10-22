@@ -1053,5 +1053,18 @@
 	"ردّ غير متوقّع من الخادم": "Réponse inattendue du serveur",
 	"تعذّر الاتصال بالخادم (انقطاع أو مهلة). أعد المحاولة.": "Impossible de joindre le serveur (connexion coupée ou délai dépassé). Réessayez.",
 	"مسح كل المهام قبل الاستيراد": "Toutes les tâches effacées avant l’import",
-	"تُحذف كل المشاريع وأصنافها ومتابعاتها وكل المهام والإشعارات، ثم تُستورد مشاريع الملف. تبقى القوائم والشركات والحسابات والإعدادات. قبل ذلك تُحفظ نسخة احتياطية كاملة (يمكن التراجع من «استرجاع»).": "Tous les projets, leurs articles et suivis, ainsi que toutes les tâches et notifications, sont effacés, puis les projets du fichier sont importés. Listes, sociétés, comptes et réglages sont gardés. Une sauvegarde complète est faite avant (retour possible avec « Restaurer »)."
+	"تُحذف كل المشاريع وأصنافها ومتابعاتها وكل المهام والإشعارات، ثم تُستورد مشاريع الملف. تبقى القوائم والشركات والحسابات والإعدادات. قبل ذلك تُحفظ نسخة احتياطية كاملة (يمكن التراجع من «استرجاع»).": "Tous les projets, leurs articles et suivis, ainsi que toutes les tâches et notifications, sont effacés, puis les projets du fichier sont importés. Listes, sociétés, comptes et réglages sont gardés. Une sauvegarde complète est faite avant (retour possible avec « Restaurer »).",
+	"تعذّرت النسخة الاحتياطية التلقائية: لم يُحذف شيء.": "La sauvegarde automatique a échoué : rien n’a été effacé.",
+	"تنظيف المهام": "Nettoyer les tâches",
+	"تُحفظ نسخة احتياطية كاملة قبل الحذف (يمكن التراجع من «استرجاع»).": "Une sauvegarde complète est faite avant l’effacement (retour possible avec « Restaurer »).",
+	"حذف المهام المنجزة والملغاة": "Effacer les tâches terminées et annulées",
+	"حذف المهمة نهائيًا": "Effacer la tâche définitivement",
+	"حذف كل المهام (البدء من جديد)": "Effacer toutes les tâches (repartir de zéro)",
+	"حذف هذه المهمة نهائيًا؟ لا يمكن التراجع (إلا من نسخة احتياطية).": "Effacer cette tâche définitivement ? Impossible d’annuler (sauf depuis une sauvegarde).",
+	"حُذفت المهام:": "Tâches effacées :",
+	"حُذفت المهمة": "Tâche effacée",
+	"🗑 حذف": "🗑 Effacer",
+	"🧹 تنظيف المهام": "🧹 Nettoyer les tâches",
+	"عرض الكل": "Tout afficher",
+	"عرض أقل": "Afficher moins"
 }
