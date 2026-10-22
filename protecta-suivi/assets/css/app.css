@@ -652,7 +652,8 @@ tr.ps-drill:hover td { background: var(--ps-primary-soft); }
 .ps-sound-report__ok { width: 2.5em; text-align: center; font-weight: 700; }
 /* Projet dans les listes (1.5.0) : nom en gras puis numéro en petit. */
 .ps-ptitle { display: inline-flex; flex-direction: column; gap: 1px; text-decoration: none; color: inherit; min-width: 0; }
-.ps-ptitle__name { font-weight: 700; color: var(--ps-text); line-height: 1.35; }
+.ps-table td .ps-ptitle { min-width: 190px; max-width: 300px; white-space: normal; }
+.ps-ptitle__name { overflow-wrap: anywhere; font-weight: 700; color: var(--ps-text); line-height: 1.35; }
 a.ps-ptitle:hover .ps-ptitle__name { color: var(--ps-primary); text-decoration: underline; }
 .ps-ptitle__no { font-family: var(--ps-font-mono, monospace); font-size: 12px; color: var(--ps-text-muted); align-self: flex-start; }
 .ps-gd-form [hidden] { display: none !important; }

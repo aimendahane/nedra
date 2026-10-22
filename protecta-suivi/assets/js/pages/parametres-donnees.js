@@ -30,6 +30,7 @@ PS.settingsTabs = PS.settingsTabs || {};
 		};
 		const labels = { employee: PS.t('موظفون'), place: PS.t('أماكن'), category: PS.t('تصنيفات'), item_type: PS.t('أصناف'), importance: PS.t('أهمية') };
 		return html`<div class="ps-alert ${r.dryRun ? 'ps-alert--info' : 'ps-alert--success'}">
+			${r.wiped !== undefined ? html`<strong class="ps-text-danger">🗑 ${r.dryRun ? PS.t('سيتم حذف') : PS.t('تم حذف')} ${r.wiped} ${PS.t('مشروع حالي')}</strong><br>` : ''}
 			<strong>${r.dryRun ? PS.t('معاينة (لم يُحفظ شيء بعد)') : PS.t('✔ تم الاستيراد')}:</strong>
 			${r.imported} ${PS.t('مشروع')} ${r.dryRun ? PS.t('سيتم استيراده') : PS.t('تم استيراده')} ${PS.t('من')} ${r.total}${r.skipped.length ? ' · ' + r.skipped.length + PS.t(' موجود مسبقًا (يُتجاهل)') : ''}${r.backup ? PS.t(' · نسخة احتياطية: ') + r.backup : ''}
 		</div>
@@ -51,6 +52,11 @@ PS.settingsTabs = PS.settingsTabs || {};
 				<p class="ps-muted ps-small">${PS.t('نفس أعمدة الجدول: السنة، رقم، المكان… حالة العرض، NOTE. كل سطر = صنف؛ الأسطر بنفس «رقم» = مشروع واحد. الأرقام (P029…) تبقى كما هي. المشاريع الموجودة لا تُستبدل أبدًا: يمكن إعادة استيراد نفس الملف بعد تحديثه.')}</p>
 				<form data-xl class="ps-grid">
 					<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('ملف Excel (.xlsx) أو CSV *')}</span><input type="file" name="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" required></label>
+					<div class="ps-span-2">
+						<label class="ps-check ps-text-danger"><input type="checkbox" name="replaceAll"> 🗑 ${PS.t('مسح كل المشاريع الحالية ثم الاستيراد (البدء من جديد)')}</label>
+						<p class="ps-small ps-muted" data-xl-replace-help hidden>${PS.t('تُحذف كل المشاريع وأصنافها ومتابعاتها، ثم تُستورد مشاريع الملف. تبقى القوائم والشركات والحسابات والإعدادات. قبل ذلك تُحفظ نسخة احتياطية كاملة (يمكن التراجع من «استرجاع»).')}</p>
+						<label class="ps-field" data-xl-replace-help hidden><span class="ps-field__label">${PS.t('اكتب «مسح الكل» للتأكيد')}</span><input name="confirm" autocomplete="off"></label>
+					</div>
 				</form>
 				<div class="ps-row"><button type="button" class="ps-btn" data-xl-preview>🔍 ${PS.t('معاينة')}</button><button type="button" class="ps-btn ps-btn--primary" data-xl-run disabled>📥 ${PS.t('استيراد')}</button></div>
 				<div data-xl-report class="ps-mt"></div>
@@ -119,6 +125,11 @@ PS.settingsTabs = PS.settingsTabs || {};
 				const fd = new FormData();
 				fd.append('file', xl.file.files[0]);
 				fd.append('dryRun', dry ? '1' : '0');
+				if (xl.replaceAll.checked) {
+					if (!dry && xl.confirm.value.trim() !== 'مسح الكل' && xl.confirm.value.trim().toLowerCase() !== PS.t('مسح الكل').toLowerCase()) { ui.toast(PS.t('اكتب «مسح الكل» للتأكيد'), 'error'); return; }
+					fd.append('replaceAll', '1');
+					fd.append('confirm', 'مسح الكل');
+				}
 				const out = box.querySelector('[data-xl-report]');
 				out.innerHTML = ('<p class="ps-muted">' + PS.t('جاري المعالجة…') + '</p>');
 				PS.api.post('import/excel', fd).then(function (r) {
@@ -127,7 +138,10 @@ PS.settingsTabs = PS.settingsTabs || {};
 					if (!dry) { L.load(true); ui.toast(PS.t('تم استيراد ') + r.imported + PS.t(' مشروع'), 'success'); }
 				}).catch(function (e) { out.innerHTML = ''; ui.toast(PS.settingsTabs.errMsg(e), 'error'); });
 			}
-			xl.addEventListener('change', function () { xlRun.disabled = true; });
+			xl.addEventListener('change', function (e) {
+				if (e.target.name !== 'confirm') xlRun.disabled = true; // nouveau fichier / option → nouvel aperçu
+				box.querySelectorAll('[data-xl-replace-help]').forEach(function (e) { e.hidden = !xl.replaceAll.checked; });
+			});
 			box.querySelector('[data-xl-preview]').onclick = function () { doXl(true); };
 			xlRun.onclick = function () {
 				ui.confirm(PS.t('استيراد المشاريع المعروضة في المعاينة؟'), PS.t('استيراد')).then(function (ok) { if (ok) doXl(false); });

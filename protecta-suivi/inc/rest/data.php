@@ -141,7 +141,13 @@ function ps_rest_import_excel( WP_REST_Request $r ) {
 	if ( is_wp_error( $conv ) ) {
 		return $conv;
 	}
-	$report             = ps_import_prototype( $conv['projects'], array( 'excel' => true ), '0' !== (string) $r->get_param( 'dryRun' ), get_current_user_id() );
+	$dry     = '0' !== (string) $r->get_param( 'dryRun' );
+	$replace = '1' === (string) $r->get_param( 'replaceAll' );
+	// Effacement de tous les projets : mot de confirmation obligatoire pour le vrai import (pas pour l'aperçu).
+	if ( $replace && ! $dry && 'مسح الكل' !== trim( (string) $r->get_param( 'confirm' ) ) ) {
+		return new WP_Error( 'ps_confirm', ps__( 'اكتب «مسح الكل» للتأكيد' ), array( 'status' => 422 ) );
+	}
+	$report             = ps_import_prototype( $conv['projects'], array( 'excel' => true, 'replaceAll' => $replace ), $dry, get_current_user_id() );
 	$report['rows']     = $conv['rows'];
 	$report['missing']  = $conv['missing'];
 	$report['warnings'] = array_merge( $conv['warnings'], $report['warnings'] );

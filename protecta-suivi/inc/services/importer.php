@@ -81,6 +81,11 @@ function ps_import_prototype( array $projects, array $options, bool $dry_run, in
 
 	$wpdb->query( 'START TRANSACTION' );
 	try {
+		// 1.5.1 (demande du client : « tout effacer et mettre ces projets ») : dans la MÊME transaction, après la
+		// sauvegarde automatique ci-dessus (restaurable par « استرجاع ») ; en aperçu, annulé avec le reste.
+		if ( ! empty( $options['replaceAll'] ) ) {
+			$ctx['report']['wiped'] = ps_projects_wipe( $ctx['user'] );
+		}
 		foreach ( $projects as $i => $p ) {
 			ps_import_one( $p, $i, $ctx );
 		}
@@ -398,4 +403,22 @@ function ps_import_one( array $p, int $index, array &$ctx ): void {
 
 	ps_log( $pid, 'import', 'project', $pid, null, null, $ctx['excel'] ? 'ملف Excel' : 'النسخة الأولى (prototype)', $ctx['user'] );
 	++$ctx['report']['imported'];
+}
+
+/**
+ * Efface tous les projets et leurs données (أصناف, intervenants, concurrents, سجل المتابعة, fiches des fichiers)
+ * — uniquement sur demande explicite de la الإدارة (import « مسح كل المشاريع الحالية »), après sauvegarde JSON.
+ * Gardés : listes, sociétés, comptes, réglages, tâches, journal ; les fichiers sur le disque / Drive ne sont pas
+ * effacés (la sauvegarde permet de tout retrouver).
+ *
+ * @return int Nombre de projets effacés.
+ */
+function ps_projects_wipe( int $user_id ): int {
+	global $wpdb;
+	$n = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'projects' ) );
+	foreach ( array( 'items', 'project_parties', 'project_competitors', 'followups', 'files', 'projects' ) as $t ) {
+		$wpdb->query( 'DELETE FROM ' . ps_table( $t ) ); // phpcs:ignore WordPress.DB.PreparedSQL
+	}
+	ps_log( null, 'delete', 'project', null, null, (string) $n, 'مسح كل المشاريع قبل الاستيراد', $user_id );
+	return $n;
 }

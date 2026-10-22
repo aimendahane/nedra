@@ -30,13 +30,14 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 1.3.4 | Retour client : son OK sur mobile, muet sur PC → liste de choix du micro | ✅ terminée, tests verts | 1.3.4 · base v4 |
 | 1.3.5 | Capture client : cloche sans « ربط Telegram » (Telegram pas activé) + lecteur « 0:00 » → indication + durée | ✅ terminée, tests verts | 1.3.5 · base v4 |
 | 1.4.0 | Demande client : import du vrai fichier Excel, الوسيط هامش الربح, règles موظف, ورقة الحسابات, Telegram à la connexion | ✅ terminée, tests verts | 1.4.0 · base v5 |
-| 1.5.0 | Demande client : nom du projet d'abord + recherche par numéro, fichiers joints (règles), stockage Google Drive | ✅ terminée, tests verts | **1.5.0** · base v6 |
+| 1.5.0 | Demande client : nom du projet d'abord + recherche par numéro, fichiers joints (règles), stockage Google Drive | ✅ terminée, tests verts | 1.5.0 · base v6 |
+| 1.5.1 | Demande client : « tout effacer et mettre ces projets » (option d'import) + nom du projet toujours présent | ✅ terminée, tests verts | **1.5.1** · base v6 |
 
-### Tests (dernier passage complet, version 1.5.0) — détail : `docs/TEST-RESULTS.txt`
-- `sh protecta-suivi/tests/run-all.sh` → **787 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
+### Tests (dernier passage complet, version 1.5.1) — détail : `docs/TEST-RESULTS.txt`
+- `sh protecta-suivi/tests/run-all.sh` → **794 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
   (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0) passés.
-- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.5.0.zip $PWD/dist/protecta-suivi-1.4.0.zip` (chemins absolus) →
-  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.4.0 → 1.5.0 avec données : **aucune perte**.
+- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.5.1.zip $PWD/dist/protecta-suivi-1.5.0.zip` (chemins absolus) →
+  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.5.0 → 1.5.1 avec données : **aucune perte**.
 
 ### Prochaines actions
 1. Dès que l'accès GitHub est rétabli : `git push -u origin claude/sweet-hopper-le9393` puis
@@ -266,6 +267,13 @@ chaque décision prise seul.
   s'il n'a pas de préférence) → réglage `default_lang` (ar). E-mails/Telegram : langue du destinataire (`ps_with_lang`).
 - Données saisies jamais traduites ; valeurs de listes traduites seulement si le libellé est encore celui par défaut.
 - « Item » / « Article » pour صنف ; « Decision needed » / « Décision requise » pour لازم قرار.
+
+### Version 1.5.1 — exception VOULUE par le client à la règle n°1
+- « فسخ الكل و حط les projets hadhom » : option `replaceAll` de POST /import/excel → `ps_projects_wipe()` (DELETE des
+  projets et de leurs données) DANS la transaction de l'import, APRÈS `ps_backup_write_auto('before-import')`
+  (pas de sauvegarde = rien n'est fait), mot « مسح الكل » obligatoire hors aperçu. Seule suppression en masse de
+  l'application : déclenchée par la الإدارة, jamais par une migration ni une mise à jour. Fichiers disque/Drive gardés.
+- Projet importé sans nom → nom de la société (sinon contact, sinon صنف), signalé.
 
 ### Version 1.5.0 — règles demandées par le client (fichiers, affichage)
 - **Affichage** : partout où un projet est listé, NOM en gras puis numéro en petit (`PS.ui.projectTitle`) ; ancien

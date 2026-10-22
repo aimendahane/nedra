@@ -377,6 +377,13 @@ function ps_xl_to_projects( array $rows ) {
 		if ( ! $p['items'] ) {
 			$warnings[] = sprintf( ps__( '%s: بدون صنف (عمود الاصناف فارغ)' ), $p['no'] ?: '—' );
 		}
+		// 1.5.1 (demande du client : « le nom d'abord ») : projet sans nom → nom de la société (sinon contact / صنف).
+		if ( '' === trim( (string) $p['name'] ) ) {
+			$p['name'] = $p['own_co'] ?: ( $p['dir_pe'] ?: ( $p['items'][0]['n'] ?? '' ) );
+			if ( '' !== $p['name'] ) {
+				$warnings[] = sprintf( ps__( '%1$s: اسم المشروع فارغ ← «%2$s» (اسم الشركة، يمكن تغييره)' ), $p['no'] ?: '—', $p['name'] );
+			}
+		}
 		$p['note'] = implode( "\n", array_unique( $p['notes'] ) );
 		unset( $p['notes'] );
 		$projects[] = $p;

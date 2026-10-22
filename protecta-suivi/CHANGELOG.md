@@ -3,6 +3,17 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.5.1 — 2026-10-23 · base v6 — « Tout effacer et mettre ces projets »
+
+- Import Excel : option **« 🗑 مسح كل المشاريع الحالية ثم الاستيراد »** (demande du client). Aperçu : « سيتم حذف N
+  مشروع حالي » + projets à importer, rien n'est touché. Import : mot « مسح الكل » obligatoire, **sauvegarde complète
+  avant** (retour possible par « استرجاع »), effacement et import dans la même transaction (tout ou rien).
+  Effacés : projets, أصناف, intervenants, concurrents, سجل المتابعة, fiches des fichiers. Gardés : listes, sociétés,
+  comptes, réglages, tâches, journal ; les fichiers sur le disque / Drive ne sont pas supprimés.
+- **Le nom d'abord** : un projet sans « اسم المشروع » dans le fichier prend le nom de la société (signalé, modifiable).
+- Base Projets : les noms longs passent à la ligne (plus de chevauchement).
+- Testé avec le vrai fichier du 23/10 sur un site de 30 projets : 30 effacés, 157 importés.
+
 ## 1.5.0 — 2026-10-23 · base v6 — Nom du projet d'abord, fichiers joints, Google Drive
 
 - **Nom du projet d'abord** partout où un projet est listé (Base Projets, Suivi Offres / Livraison, مهامي, fiche) :
