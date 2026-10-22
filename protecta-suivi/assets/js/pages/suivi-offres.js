@@ -114,7 +114,7 @@ PS.items = (function () {
 	function rowHtml(r) {
 		const cls = r.computed.rowColor === 'late' ? 'is-late' : r.computed.rowColor === 'done' ? 'is-done' : '';
 		return html`<tr class="${cls}" data-row="${r.id}">
-			<td><a class="ps-mono" href="#/projet?id=${r.projectId}">${r.projectNo}</a><div class="ps-small ps-muted ps-clip" title="${r.projectName}">${r.projectName}</div></td>
+			<td>${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo })}</td>
 			<td>${L.label(r.itemTypeId)}${r.quantity ? html` <span class="ps-muted">×${F.number(r.quantity)}</span>` : ''}</td>
 			<td>${L.label(r.employeeId)}</td>
 			<td>${L.badge(r.urgencyId)}</td>
@@ -129,8 +129,8 @@ PS.items = (function () {
 	function cardHtml(r) {
 		const cls = r.computed.rowColor === 'late' ? 'is-late' : r.computed.rowColor === 'done' ? 'is-done' : '';
 		return html`<div class="ps-icard ${cls}" data-row="${r.id}">
-			<div class="ps-pcard__top"><a class="ps-mono" href="#/projet?id=${r.projectId}">${r.projectNo}</a> ${L.badge(r.urgencyId)} ${r.computed.late ? html`<span class="ps-badge ps-badge--danger">${PS.t('لازم قرار')}</span>` : ''}</div>
-			<div class="ps-pcard__name">${L.label(r.itemTypeId)} — ${r.projectName}</div>
+			<div class="ps-pcard__top">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo })} ${L.badge(r.urgencyId)} ${r.computed.late ? html`<span class="ps-badge ps-badge--danger">${PS.t('لازم قرار')}</span>` : ''}</div>
+			<div class="ps-pcard__name">${L.label(r.itemTypeId)}</div>
 			<div class="ps-small ps-muted">${L.label(r.employeeId)} · ${PS.t('الأجل')} ${F.date(r.dueDate)}</div>
 			<div class="ps-icard__edit">${statusCell(r)}</div>
 		</div>`;

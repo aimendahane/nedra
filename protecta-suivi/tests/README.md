@@ -41,5 +41,5 @@ sh tests/run-all.sh                                   # PHP + navigateur (étape
 sh tests/release-check.sh <zip final> <zip 0.1.0>     # installation vierge + mise à jour avec données
 ```
 Fichiers ajoutés : `test-projects.php`, `test-calculs.php` (jeu de démo, `fixtures/demo-expected.md`), `test-items.php`,
-`test-recap.php`, `test-admin.php`, `test-tasks.php` (1.0.1), `test-notifications.php` (1.0.2), `test-telegram-voice.php` (1.2.0), `test-excel.php` + `test-140.php` (1.4.0 : import Excel, هامش الربح, règles موظف, ورقة الحسابات), `test-i18n.php` (1.3.0 : dictionnaires complets, langue du compte, notifications dans la langue du destinataire), `e2e-app.js`, `e2e-setup.php` (site de test 8081), `release-check.php|.sh`,
+`test-recap.php`, `test-admin.php`, `test-tasks.php` (1.0.1), `test-notifications.php` (1.0.2), `test-telegram-voice.php` (1.2.0), `test-150.php` (1.5.0 : nom d'abord + recherche par numéro, fichiers joints, Google Drive simulé), `test-excel.php` + `test-140.php` (1.4.0 : import Excel, هامش الربح, règles موظف, ورقة الحسابات), `test-i18n.php` (1.3.0 : dictionnaires complets, langue du compte, notifications dans la langue du destinataire), `e2e-app.js`, `e2e-setup.php` (site de test 8081), `release-check.php|.sh`,
 `e2e-release.js` (sites vierges 8082 et 8083).

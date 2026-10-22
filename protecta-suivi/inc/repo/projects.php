@@ -600,6 +600,22 @@ function ps_project_computed( array $fields, array $items ): array {
 }
 
 /**
+ * Ancien numéro d'un projet importé, quand il diffère du numéro actuel (1.5.0) :
+ * fichier Excel (legacy_id « xlsx:P029 ») ou prototype (« no » du JSON d'origine). Sinon null.
+ */
+function ps_project_old_no( array $r ): ?string {
+	$id  = (string) ( $r['legacy_id'] ?? '' );
+	$old = null;
+	if ( str_starts_with( $id, 'xlsx:' ) && ! preg_match( '/^[0-9a-f]{32}$/', substr( $id, 5 ) ) ) {
+		$old = substr( $id, 5 );
+	} elseif ( '' !== $id && ! empty( $r['legacy_raw'] ) ) {
+		$raw = json_decode( (string) $r['legacy_raw'], true );
+		$old = is_array( $raw ) && ! empty( $raw['no'] ) && is_string( $raw['no'] ) ? trim( $raw['no'] ) : null;
+	}
+	return $old && $old !== $r['project_no'] ? $old : null;
+}
+
+/**
  * Projet complet au format de l'API (camelCase) + calculs + droits de l'utilisateur.
  */
 function ps_project_to_api( array $p, int $user_id ): array {
@@ -607,6 +623,7 @@ function ps_project_to_api( array $p, int $user_id ): array {
 	$out = array(
 		'id'           => (int) $f['id'],
 		'projectNo'    => $f['project_no'],
+		'oldNo'        => ps_project_old_no( $f ),
 		'seq'          => (int) $f['seq'],
 		'receivedYear' => (int) substr( $f['received_date'], 0, 4 ),
 		'month'        => (int) $f['month'],
@@ -744,7 +761,7 @@ function ps_projects_list( array $args ): array {
 	$pt    = ps_table( 'projects' );
 	$trash = ! empty( $args['trash'] );
 	$rows  = $wpdb->get_results(
-		"SELECT id, project_no, seq, offer_no, name, received_date, sent_date, month, responsible_emp_id, follower_emp_id, intermediary_emp_id, place_id, category_id, urgency_id, importance_kind_id, importance_size_id, followup_status_id, source_id, offer_amount, offer_currency_id, files_link, note, created_by, created_at, deleted_at FROM $pt WHERE deleted_at IS " . ( $trash ? 'NOT NULL' : 'NULL' ), // phpcs:ignore
+		"SELECT id, project_no, seq, offer_no, name, received_date, sent_date, month, responsible_emp_id, follower_emp_id, intermediary_emp_id, place_id, category_id, urgency_id, importance_kind_id, importance_size_id, followup_status_id, source_id, offer_amount, offer_currency_id, files_link, note, created_by, created_at, deleted_at, legacy_id, legacy_raw FROM $pt WHERE deleted_at IS " . ( $trash ? 'NOT NULL' : 'NULL' ), // phpcs:ignore
 		ARRAY_A
 	);
 	if ( ! $rows ) {
@@ -827,7 +844,7 @@ function ps_projects_list( array $args ): array {
 				implode(
 					' ',
 					array(
-						$r['project_no'], $r['offer_no'], $r['name'], $owner['name'] ?? '', $dir['person'] ?? '',
+						$r['project_no'], ps_project_old_no( $r ), $r['offer_no'], $r['name'], $owner['name'] ?? '', $dir['person'] ?? '',
 						$dir['phone'] ?? '', $r['note'], implode( ' ', $item_labels ),
 						$lists[ (int) $r['place_id'] ]['code'] ?? '', $lists[ (int) $r['place_id'] ]['label'] ?? '',
 					)
@@ -841,6 +858,7 @@ function ps_projects_list( array $args ): array {
 		$out[] = array(
 			'id'                => (int) $pid,
 			'projectNo'         => $r['project_no'],
+			'oldNo'             => ps_project_old_no( $r ),
 			'seq'               => (int) $r['seq'],
 			'offerNo'           => $r['offer_no'],
 			'receivedYear'      => $year,

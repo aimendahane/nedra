@@ -100,11 +100,16 @@ switch ( $phase ) {
 		$bad    = array();
 		foreach ( $before as $k => $v ) {
 			$now = $snap[ $k ];
-			// Colonnes ajoutées par une migration (ex. margin en 1.4.0) : absentes avant, elles doivent être vides.
+			// Colonnes ajoutées par une migration (ex. margin en 1.4.0) : absentes avant, elles doivent être vides
+			// ou avoir leur valeur par défaut (ex. storage = 'local', drive_tries = 0 en 1.5.0).
 			if ( is_array( $v ) && isset( $v[0] ) && is_array( $v[0] ) && is_array( $now ) ) {
+				$defaults = array();
+				foreach ( (array) $wpdb->get_results( 'SHOW COLUMNS FROM ' . $wpdb->prefix . 'ps_' . $k, ARRAY_A ) as $colinfo ) {
+					$defaults[ $colinfo['Field'] ] = $colinfo['Default'];
+				}
 				foreach ( $now as $i => $row ) {
 					foreach ( array_diff_key( $row, $v[ $i ] ?? $v[0] ) as $col => $val ) {
-						if ( null !== $val ) {
+						if ( null !== $val && (string) $val !== (string) ( $defaults[ $col ] ?? '' ) && (string) $val !== trim( (string) ( $defaults[ $col ] ?? '' ), "'" ) ) {
 							$bad[] = "$k.$col";
 						}
 						unset( $now[ $i ][ $col ] );

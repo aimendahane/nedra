@@ -188,7 +188,7 @@ function ps_notify_flush(): int {
 		}
 		$kind  = current( array_intersect( $order, array_keys( $b['kinds'] ) ) ) ?: 'update';
 		$actor = (int) array_key_first( $b['actors'] );
-		$title = $p['project_no'] . ' — ' . $p['name'];
+		$title = $p['name'] . ' — ' . $p['project_no']; // le nom d'abord (1.5.0)
 		foreach ( $users as $u ) {
 			// Textes dans la langue du destinataire (1.3.0).
 			ps_with_lang( $u, static function () use ( $u, $b, $pid, $title, $kind, $actor, $now, &$created ) {

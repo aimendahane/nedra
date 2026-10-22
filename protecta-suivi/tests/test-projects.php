@@ -295,7 +295,7 @@ file_put_contents( $tmp, "%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF" );
 $id = ps_file_store( $p1['id'], array( 'name' => 'عرض السعر.pdf', 'tmp_name' => $tmp, 'size' => filesize( $tmp ), 'error' => 0 ), $emp_a );
 ps_assert( is_int( $id ) && $id > 0, 'PDF accepté' );
 $f = ps_file_get( (int) $id );
-ps_assert( str_starts_with( $f['stored_name'], current_time( 'Y/m' ) . '/' ) && ! str_contains( $f['stored_name'], 'عرض' ) && preg_match( '/[0-9a-f]{32}\.pdf$/', $f['stored_name'] ), 'nom de stockage aléatoire (nom réel jamais dans le chemin)' );
+ps_assert( str_starts_with( $f['stored_name'], current_time( 'Y/m' ) . '/' ) && ! str_contains( $f['stored_name'], 'عرض' ) && preg_match( '/[0-9a-f]{32}\.bin$/', $f['stored_name'] ), 'nom de stockage aléatoire « .bin » (nom réel jamais dans le chemin)' );
 ps_assert( file_exists( ps_storage_dir( 'files/' . $f['stored_name'] ) ), 'fichier écrit dans uploads/protecta-suivi/files (dossier protégé)' );
 file_put_contents( $tmp, '<?php echo 1;' );
 $bad = ps_file_store( $p1['id'], array( 'name' => 'piege.pdf', 'tmp_name' => $tmp, 'size' => 13, 'error' => 0 ), $emp_a );

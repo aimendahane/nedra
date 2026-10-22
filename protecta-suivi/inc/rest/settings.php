@@ -165,6 +165,7 @@ function ps_numeric_settings(): array {
 		'followup_alert_days'   => array( 1, 90, ps__( 'تنبيه المتابعة بعد (أيام)' ) ),
 		'duplicate_window_days' => array( 1, 365, ps__( 'كشف المشاريع المكررة خلال (أيام)' ) ),
 		'creator_edit_hours'    => array( 0, 720, ps__( 'مدة تعديل المشروع من طرف منشئه (ساعات)' ) ),
+		'file_max_mb'           => array( 1, 200, ps__( 'الحجم الأقصى للملف المرفق (ميغابايت)' ) ),
 	);
 }
 

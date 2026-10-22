@@ -3,6 +3,30 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.5.0 — 2026-10-23 · base v6 — Nom du projet d'abord, fichiers joints, Google Drive
+
+- **Nom du projet d'abord** partout où un projet est listé (Base Projets, Suivi Offres / Livraison, مهامي, fiche) :
+  nom en gras, puis le numéro en petit (PRJ-… ou P029, + l'ancien numéro d'un projet importé). Recherche par le
+  nom ET par le numéro (actuel et ancien). Notifications : « nom — numéro ».
+- **Fichiers joints** : tout type de fichier SAUF exécutables / scripts (php, phtml, phar, exe, bat, cmd, msi, sh, js,
+  vbs, ps1, html, htm, svg, .htaccess…), vérifié sur chaque partie du nom (« x.php.jpg » refusé) et sur le contenu
+  (code PHP, programme Windows/Linux, « #! ») ; message clair en arabe. **Taille max 20 Mo** (réglage
+  « الحجم الأقصى للملف المرفق », plafonné par la limite de l'hébergeur). **Nom d'affichage** saisi à l'ajout, date
+  et auteur affichés. Nom sur le disque = identifiant aléatoire « .bin ». Jamais dans la Médiathèque.
+  **Retrait** : مسؤول المشروع, الإدارة, et l'auteur pendant 24 h (corbeille, rien n'est effacé).
+  **Téléchargement** uniquement par l'API, après vérification de la connexion et des droits (compte désactivé,
+  compte sans accès, visiteur → refusé ; projet à la corbeille → الإدارة seulement).
+- **Google Drive** (الإعدادات ← عام ← « تخزين الملفات ») : les fichiers sont rangés dans le Drive de la société
+  (dossier « Protecta Suivi », un sous-dossier par projet) ; ajout et ouverture toujours par le site (aucun lien
+  Drive donné). Deux liaisons : compte Gmail (client OAuth + bouton, droit limité aux fichiers du site) ou
+  Workspace (compte de service + Drive partagé). Le fichier est d'abord enregistré sur le serveur, envoyé dans
+  Drive, et la copie du serveur n'est effacée qu'après vérification de l'empreinte MD5 renvoyée par Google.
+  Drive non relié ou en panne : rien n'est refusé, les fichiers attendent et partent ensuite (Cron, « مزامنة
+  الآن », fin de requête) — anciens fichiers compris. Secrets jamais renvoyés au navigateur ni sauvegardés.
+- **Base v6** : migration 6 additive (ps_files : display_name, md5, storage, drive_id, drive_error, drive_tries ;
+  ps_projects : drive_folder_id). Les fichiers existants restent sur le serveur jusqu'à la liaison de Drive.
+- Tests : 787 tests PHP (Google simulé : OAuth, compte de service RS256, envoi, MD5, panne, lecture) ; navigateur step11.
+
 ## 1.4.0 — 2026-10-22 · base v5 — Import du fichier Excel, comptes de l'équipe, règles موظف
 
 - **Import du fichier Excel de l'équipe** (الإعدادات ← البيانات ← « استيراد ملف Excel ») : .xlsx (lu en PHP pur)

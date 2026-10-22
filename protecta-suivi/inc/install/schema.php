@@ -88,6 +88,7 @@ function ps_schema_sql(): array {
   deleted_by bigint(20) unsigned DEFAULT NULL,
   legacy_id varchar(64) DEFAULT NULL,
   legacy_raw longtext DEFAULT NULL,
+  drive_folder_id varchar(128) DEFAULT NULL,
   PRIMARY KEY  (id),
   UNIQUE KEY project_no (project_no),
   UNIQUE KEY year_seq (year,seq),
@@ -229,8 +230,15 @@ function ps_schema_sql(): array {
   uploaded_by bigint(20) unsigned DEFAULT NULL,
   created_at datetime NOT NULL,
   deleted_at datetime DEFAULT NULL,
+  display_name varchar(255) DEFAULT NULL,
+  md5 char(32) DEFAULT NULL,
+  storage varchar(10) NOT NULL DEFAULT 'local',
+  drive_id varchar(128) DEFAULT NULL,
+  drive_error varchar(255) DEFAULT NULL,
+  drive_tries smallint(5) unsigned NOT NULL DEFAULT 0,
   PRIMARY KEY  (id),
-  KEY project_id (project_id)
+  KEY project_id (project_id),
+  KEY storage (storage)
 ) $c;";
 
 	// Journal des modifications (qui, quoi, quand).

@@ -297,7 +297,7 @@
 	function assignedBlock(data, showEmp) {
 		return block('📌', PS.t('مهام مُسندة'), data.assigned || [], PS.t('لا توجد مهام مُسندة'), function (r) {
 			return html`<li class="ps-task__item ${r.late ? 'is-danger' : (r.dueDate === data.today ? 'is-warning' : '')}" data-task="${r.id}">
-				<div class="ps-task__row"><span><strong>${r.title}</strong>${r.projectId ? html` · <a href="#/projet?id=${r.projectId}" class="ps-mono">${r.projectNo}</a>` : ''}</span>
+				<div class="ps-task__row"><span><strong>${r.title}</strong>${r.projectId ? html` · ${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo })}` : ''}</span>
 				<button type="button" class="ps-btn ps-btn--small ps-btn--primary" data-task-done="${r.id}">✔ ${PS.t('تمت')}</button></div>
 				<span class="ps-small">${dueText(r, data.today)}${r.createdByName ? PS.t(' · من ') + r.createdByName : ''}${who(r, showEmp)}</span>
 				${r.note ? html`<span class="ps-small ps-task__note">${r.note}</span>` : ''}${voicePlayer(r)}</li>`;
@@ -309,7 +309,7 @@
 		return block('📤', PS.t('مهام أرسلتها'), data.sent, '', function (r) {
 			const done = r.status === 'done';
 			return html`<li class="ps-task__item ${done ? 'is-done' : (r.late ? 'is-danger' : '')}">
-				<div class="ps-task__row"><span>${done ? '✔ ' : ''}<strong>${r.title}</strong> → ${L.label(r.employeeId)}${r.projectId ? html` · <a href="#/projet?id=${r.projectId}" class="ps-mono">${r.projectNo}</a>` : ''}</span>
+				<div class="ps-task__row"><span>${done ? '✔ ' : ''}<strong>${r.title}</strong> → ${L.label(r.employeeId)}${r.projectId ? html` · ${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo })}` : ''}</span>
 				${done ? '' : html`<span class="ps-row ps-row--tight"><button type="button" class="ps-btn ps-btn--small" data-task-edit="${r.id}">✎</button><button type="button" class="ps-btn ps-btn--small ps-btn--ghost" data-task-cancel="${r.id}">${PS.t('إلغاء')}</button></span>`}</div>
 				<span class="ps-small">${done ? PS.t('تمت ') + F.date(String(r.doneAt).slice(0, 10)) + (r.doneByName ? ' · ' + r.doneByName : '') : dueText(r, data.today)}</span>${voicePlayer(r)}</li>`;
 		});
@@ -324,7 +324,7 @@
 			const ed = e.target.closest('[data-task-edit]');
 			if (ed) {
 				const t = (data.sent || []).concat(data.assigned || []).find(function (x) { return String(x.id) === ed.dataset.taskEdit; });
-				return taskModal({ task: t, projectLabel: t && t.projectNo ? t.projectNo + ' — ' + t.projectName : '' }).then(function (r) { if (r) PS.router.refresh(); });
+				return taskModal({ task: t, projectLabel: t && t.projectNo ? t.projectName + ' — ' + t.projectNo : '' }).then(function (r) { if (r) PS.router.refresh(); });
 			}
 			if (e.target.closest('[data-new-task]')) taskModal().then(function (r) { if (r) PS.router.refresh(); });
 		});
@@ -351,20 +351,20 @@
 			<div class="ps-tasks">
 			${assignedBlock(data, showEmp)}
 			${block('⚠️', PS.t('عروض متأخرة — لازم قرار'), data.lateOffers, PS.t('لا توجد عروض متأخرة'), function (r) {
-				return html`<li class="ps-task__item is-danger"><a href="#/projet?id=${r.projectId}"><strong class="ps-mono">${r.projectNo}</strong> ${L.label(r.itemTypeId)} — ${r.projectName}</a>
+				return html`<li class="ps-task__item is-danger">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo })} <span class="ps-small">${L.label(r.itemTypeId)}</span>
 					<span class="ps-small">${PS.t('الأجل')} ${F.date(r.dueDate)} · <strong>${PS.t('متأخر')} ${r.daysLate} ${PS.t('يوم')}</strong>${who(r, showEmp)}</span></li>`;
 			}, data.lateOffers.length ? html` <a class="ps-btn ps-btn--small ps-btn--ghost" href="#/offres?late=1${data.employeeId ? '&employeeId=' + data.employeeId : ''}">${PS.t('فتح في العروض ←')}</a>` : '')}
 			${block('📞', PS.t('متابعات مبرمجة اليوم أو فائتة'), data.followupsDue, PS.t('لا توجد متابعات مبرمجة اليوم'), function (r) {
 				const overdue = r.nextDate < data.today;
-				return html`<li class="ps-task__item ${overdue ? 'is-danger' : 'is-warning'}"><a href="#/projet?id=${r.projectId}&tab=followups"><strong class="ps-mono">${r.projectNo}</strong> ${r.projectName}</a>
+				return html`<li class="ps-task__item ${overdue ? 'is-danger' : 'is-warning'}">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo }, { hash: '&tab=followups' })}
 					<span class="ps-small">${overdue ? PS.t('كانت مبرمجة') : PS.t('اليوم')} ${F.date(r.nextDate)}${r.companyName ? ' · ' + r.companyName : ''}${who(r, showEmp)}</span></li>`;
 			})}
 			${block('🕒', PS.t('مشاريع بدون متابعة منذ أكثر من 7 أيام'), data.noFollowup, PS.t('كل المشاريع متابعة'), function (r) {
-				return html`<li class="ps-task__item"><a href="#/projet?id=${r.projectId}&tab=followups"><strong class="ps-mono">${r.projectNo}</strong> ${r.projectName}</a>
+				return html`<li class="ps-task__item">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo }, { hash: '&tab=followups' })}
 					<span class="ps-small">${r.lastDate ? PS.t('آخر متابعة ') + F.date(r.lastDate) : PS.t('لا توجد متابعة مسجلة')}${who(r, showEmp)}</span></li>`;
 			})}
 			${block('🚚', PS.t('تسليمات هذا الأسبوع'), data.deliveries, PS.t('لا توجد تسليمات هذا الأسبوع'), function (r) {
-				return html`<li class="ps-task__item ${r.late ? 'is-danger' : ''}"><a href="#/projet?id=${r.projectId}"><strong class="ps-mono">${r.projectNo}</strong> ${L.label(r.itemTypeId)} — ${r.projectName}</a>
+				return html`<li class="ps-task__item ${r.late ? 'is-danger' : ''}">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo })} <span class="ps-small">${L.label(r.itemTypeId)}</span>
 					<span class="ps-small">${PS.t('أجل التسليم')} ${F.date(r.deliveryDueDate)}${r.late ? html` · <strong>${PS.t('متأخر')} ${r.delayDays} ${PS.t('يوم')}</strong>` : ''}${who(r, showEmp)}</span></li>`;
 			}, data.deliveries.length ? html` <a class="ps-btn ps-btn--small ps-btn--ghost" href="#/livraison${data.employeeId ? '?employeeId=' + data.employeeId : ''}">${PS.t('فتح في التسليم ←')}</a>` : '')}
 			${sentBlock(data)}

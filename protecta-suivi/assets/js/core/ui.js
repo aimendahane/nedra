@@ -243,5 +243,16 @@ PS.ui = (function () {
 		};
 	}
 
-	return { esc, html, raw, toast, empty, badge, modal, confirm, autocomplete, showErrors, getPath, setPath, debounce };
+	/**
+	 * Projet dans une liste (1.5.0) : le NOM d'abord (en gras), puis le numéro en plus petit
+	 * (PRJ-… ou P029, + l'ancien numéro d'un projet importé). Lien vers la fiche sauf link: false.
+	 */
+	function projectTitle(p, opts) {
+		const o = opts || {};
+		const no = [p.no, p.oldNo].filter(Boolean).join(' · ');
+		const inner = html`<strong class="ps-ptitle__name">${p.name || PS.t('(بدون اسم)')}</strong><span class="ps-ptitle__no" dir="ltr">${no}</span>`;
+		return o.link === false ? html`<span class="ps-ptitle">${inner}</span>` : html`<a class="ps-ptitle" href="#/projet?id=${p.id}${o.hash || ''}">${inner}</a>`;
+	}
+
+	return { esc, html, raw, toast, projectTitle, empty, badge, modal, confirm, autocomplete, showErrors, getPath, setPath, debounce };
 })();

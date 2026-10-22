@@ -171,7 +171,7 @@ function ps_rest_file_upload( WP_REST_Request $r ) {
 	if ( empty( $files['file'] ) ) {
 		return new WP_Error( 'ps_upload', ps__( 'لم يتم اختيار ملف' ), array( 'status' => 400 ) );
 	}
-	$id = ps_file_store( (int) $r['id'], $files['file'], get_current_user_id() );
+	$id = ps_file_store( (int) $r['id'], $files['file'], get_current_user_id(), $r->get_param( 'displayName' ) );
 	if ( is_wp_error( $id ) ) {
 		return $id;
 	}
@@ -184,7 +184,7 @@ function ps_rest_file_delete( WP_REST_Request $r ) {
 		return new WP_Error( 'ps_not_found', ps__( 'الملف غير موجود' ), array( 'status' => 404 ) );
 	}
 	if ( ! ps_file_can_delete( $f, get_current_user_id() ) ) {
-		return new WP_Error( 'ps_forbidden', ps__( 'يمكن حذف الملف من رافعه خلال 24 ساعة، أو من الإدارة.' ), array( 'status' => 403 ) );
+		return new WP_Error( 'ps_forbidden', ps__( 'حذف الملف: للمسؤول عن المشروع والإدارة، أو لمن أضافه خلال 24 ساعة.' ), array( 'status' => 403 ) );
 	}
 	ps_file_soft_delete( $f, get_current_user_id() );
 	return rest_ensure_response( array( 'ok' => true ) );
@@ -198,17 +198,44 @@ function ps_rest_file_download( WP_REST_Request $r ) {
 	if ( ! $f || $f['deleted_at'] ) {
 		return new WP_Error( 'ps_not_found', ps__( 'الملف غير موجود' ), array( 'status' => 404 ) );
 	}
-	$path = ps_storage_dir( 'files/' . $f['stored_name'] );
-	$real = realpath( $path );
-	if ( ! $real || ! str_starts_with( $real, realpath( ps_storage_dir( 'files' ) ) ) || ! is_readable( $real ) ) {
-		return new WP_Error( 'ps_not_found', ps__( 'الملف غير موجود على الخادم' ), array( 'status' => 404 ) );
+	if ( ! ps_file_can_download( $f, get_current_user_id() ) ) {
+		return new WP_Error( 'ps_forbidden', ps__( 'ليس لديك صلاحية لهذا الملف.' ), array( 'status' => 403 ) );
 	}
-	$inline = preg_match( '#^(image/|application/pdf)#', (string) $f['mime'] );
+	$tmp = null;
+	if ( 'drive' === ( $f['storage'] ?? 'local' ) ) {
+		// 1.5.0 : fichier dans Google Drive → récupéré par le serveur (jamais de lien Drive public).
+		$tmp = ps_gdrive_fetch( $f );
+		if ( is_wp_error( $tmp ) ) {
+			return $tmp;
+		}
+		$real = $tmp;
+	} else {
+		$path = ps_storage_dir( 'files/' . $f['stored_name'] );
+		$real = realpath( $path );
+		if ( ! $real || ! str_starts_with( $real, realpath( ps_storage_dir( 'files' ) ) ) || ! is_readable( $real ) ) {
+			return new WP_Error( 'ps_not_found', ps__( 'الملف غير موجود على الخادم' ), array( 'status' => 404 ) );
+		}
+	}
+	while ( ob_get_level() > 0 ) {
+		ob_end_clean();
+	}
+	// Seuls images (hors SVG) et PDF s'ouvrent dans le navigateur ; tout le reste est téléchargé.
+	$inline = preg_match( '#^(image/(png|jpeg|gif|webp)|application/pdf)$#', (string) $f['mime'] );
 	nocache_headers();
 	header( 'Content-Type: ' . $f['mime'] );
 	header( 'Content-Length: ' . filesize( $real ) );
 	header( 'X-Content-Type-Options: nosniff' );
-	header( "Content-Disposition: " . ( $inline ? 'inline' : 'attachment' ) . "; filename*=UTF-8''" . rawurlencode( $f['original_name'] ) );
+	header( "Content-Disposition: " . ( $inline ? 'inline' : 'attachment' ) . "; filename*=UTF-8''" . rawurlencode( ps_file_download_name( $f ) ) );
 	readfile( $real );
+	if ( $tmp ) {
+		unlink( $tmp ); // copie temporaire venue de Drive
+	}
 	exit;
+}
+
+/** Nom du fichier téléchargé : nom d'affichage + extension d'origine (si le nom d'affichage n'en a pas). */
+function ps_file_download_name( array $f ): string {
+	$name = ps_file_label( $f );
+	$ext  = strtolower( pathinfo( (string) $f['original_name'], PATHINFO_EXTENSION ) );
+	return ( $ext && strtolower( pathinfo( $name, PATHINFO_EXTENSION ) ) !== $ext ) ? $name . '.' . $ext : $name;
 }

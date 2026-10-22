@@ -127,7 +127,8 @@ async function step2(browser) {
 	await page.waitForSelector('.ps-table--list tbody tr');
 	check('3 projets listés', (await page.textContent('[data-results] [role=status]')).includes('3'));
 	const headers = await page.$$eval('.ps-table--list thead th', (e) => e.map((x) => x.textContent.trim()));
-	check('colonnes du cahier §4 dans l\'ordre (السنة … رابط ملف المشاريع)', headers[0].startsWith('السنة') && headers[21].startsWith('رابط ملف المشاريع'), headers.slice(0, 3).join('|'));
+	// 1.5.0 (demande du client) : le projet (nom puis numéro) en 1re colonne, puis les colonnes du cahier §4.
+	check('colonnes : المشروع d\'abord, puis السنة … رابط ملف المشاريع', headers[0].startsWith('المشروع') && headers[1].startsWith('السنة') && headers.some((h) => h.startsWith('رابط ملف المشاريع')), headers.slice(0, 3).join('|'));
 	await page.screenshot({ path: SHOTS + '/s2-04-base-projets.png', fullPage: true });
 	await page.fill('[data-search]', 'مستشفي');
 	await page.waitForTimeout(900);
@@ -165,6 +166,7 @@ async function step2(browser) {
 	await page.waitForSelector('[data-file]', { state: 'attached' });
 	// Fichier fourni en mémoire (Playwright gère mal les chemins locaux non latins).
 	await page.setInputFiles('[data-file]', { name: 'عرض-السعر.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF') });
+	await page.click('.ps-modal [data-btn=ok]'); // 1.5.0 : fenêtre « اسم العرض » avant l'envoi
 	await page.waitForSelector('.ps-table tbody tr', { timeout: 6000 });
 	check('fichier PDF envoyé et listé', (await page.textContent('.ps-table')).includes('.pdf'));
 	const href = await page.getAttribute('.ps-table tbody a', 'href');
@@ -902,7 +904,54 @@ async function step10(browser) {
 	}
 }
 
-const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10 };
+/* Version 1.5.0 : nom du projet d'abord, recherche par numéro, fichiers (types, nom d'affichage, téléchargement), Drive. */
+async function step11(browser) {
+	console.log('1.5.0 — nom d\'abord, recherche par numéro, fichiers joints, carte Google Drive');
+	const { ctx, page } = await newPage(browser, 'idara');
+	await go(page, '#/projets');
+	await page.waitForSelector('.ps-table tbody tr');
+	const first = await page.$eval('.ps-table tbody tr td .ps-ptitle', (a) => ({ name: a.querySelector('.ps-ptitle__name').textContent, no: a.querySelector('.ps-ptitle__no').textContent, bold: getComputedStyle(a.querySelector('.ps-ptitle__name')).fontWeight }));
+	check('Base Projets : nom du projet en gras puis numéro en petit (1re colonne)', first.name.length > 2 && /PRJ-\d{4}-\d+|P\d+/.test(first.no) && Number(first.bold) >= 700, JSON.stringify(first));
+	await page.fill('[data-search]', first.no.trim());
+	await page.waitForTimeout(900);
+	const found = await page.$$eval('.ps-table tbody .ps-ptitle__no', (n) => n.map((x) => x.textContent.trim()));
+	check('recherche par numéro : le projet est trouvé', found.length >= 1 && found.includes(first.no.trim()), found.join(','));
+	await page.click('.ps-table tbody .ps-ptitle');
+	await page.waitForSelector('.ps-ptitle-h1');
+	check('fiche : titre = nom puis numéro', (await page.textContent('.ps-ptitle-h1')).startsWith(first.name.trim()));
+	const pid = page.url().match(/id=(\d+)/)[1];
+	await go(page, '#/projet?id=' + pid + '&tab=files');
+	await page.waitForSelector('[data-file]', { state: 'attached' });
+	const fs = require('fs');
+	const dir = require('os').tmpdir();
+	fs.writeFileSync(dir + '/hack.php', '<?php echo 1;');
+	await page.setInputFiles('[data-file]', dir + '/hack.php');
+	check('fichier .php : refusé avec un message en arabe', await page.waitForFunction(() => /غير مسموح/.test(document.body.textContent), null, { timeout: 4000 }).then(() => true, () => false));
+	fs.writeFileSync(dir + '/offre-fournisseur.pdf', '%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF');
+	await page.setInputFiles('[data-file]', dir + '/offre-fournisseur.pdf');
+	await page.waitForSelector('.ps-modal [data-dn="0"]');
+	await page.fill('.ps-modal [data-dn="0"]', 'عرض المورد النهائي');
+	await page.click('.ps-modal [data-btn=ok]');
+	await page.waitForFunction(() => /عرض المورد النهائي/.test(document.querySelector('.ps-main').textContent), null, { timeout: 8000 });
+	const row = (await page.textContent('.ps-table tbody tr')).replace(/\s+/g, ' ');
+	check('fichier ajouté : nom d\'affichage, nom d\'origine, auteur, date, emplacement « الخادم »', /عرض المورد النهائي/.test(row) && /offre-fournisseur\.pdf/.test(row) && /الخادم/.test(row), row.slice(0, 200));
+	const dl = await page.evaluate(async () => { const a = document.querySelector('.ps-table tbody a[href*="/files/"]'); const r = await fetch(a.href, { credentials: 'same-origin' }); return { status: r.status, type: r.headers.get('content-type'), disp: r.headers.get('content-disposition'), start: (await r.text()).slice(0, 8) }; });
+	check('téléchargement par le site (compte connecté) : contenu et nom d\'affichage', dl.status === 200 && dl.start === '%PDF-1.4' && /%D8%B9%D8%B1%D8%B6/.test(dl.disp || ''), JSON.stringify(dl));
+	const href = await page.$eval('.ps-table tbody a[href*="/files/"]', (a) => a.href);
+	await page.screenshot({ path: SHOTS + '/s11-01-fichiers.png', fullPage: true });
+	await go(page, '#/parametres?tab=general');
+	await page.waitForSelector('[data-gdrive] [data-gd-save]');
+	check('الإعدادات : carte « تخزين الملفات — Google Drive » (2 méthodes, adresse de retour à copier)', !!(await page.$('[name=gd-method][value=oauth]')) && !!(await page.$('[name=gd-method][value=service]')) && /ps_gdrive=callback/.test(await page.textContent('[data-gdrive]')));
+	await (await page.$('[data-gdrive]')).screenshot({ path: SHOTS + '/s11-02-drive.png' });
+	await ctx.close();
+	// Sans connexion : le lien du fichier ne donne rien.
+	const anon = await browser.newContext();
+	const res = await anon.request.get(href.replace(/_wpnonce=[^&]+/, ''));
+	check('lien du fichier sans connexion → refusé', res.status() === 401 || res.status() === 403, String(res.status()));
+	await anon.close();
+}
+
+const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11 };
 
 (async () => {
 	const browser = await chromium.launch();

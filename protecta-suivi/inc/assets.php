@@ -79,7 +79,9 @@ function ps_client_config(): array {
 			'inactivityMinutes' => (int) ps_setting( 'inactivity_minutes' ),
 			'creatorEditHours'  => (int) ps_setting( 'creator_edit_hours' ),
 			'validation'        => ps_validation_rules(),
-			'maxUpload'         => (int) wp_max_upload_size(),
+			'maxUpload'         => ps_file_max_bytes(), // 1.5.0 : réglage « file_max_mb », plafonné par la limite du serveur
+			'serverMaxUpload'   => (int) wp_max_upload_size(),
+			'blockedExts'       => ps_file_blocked_exts(),
 		),
 		'partyRoles' => ps_party_roles(),
 		'today'      => ps_today(),

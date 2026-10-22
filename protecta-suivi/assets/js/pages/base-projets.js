@@ -18,6 +18,8 @@
 
 	/** Colonnes : [clé de tri, titre, rendu]. */
 	const COLUMNS = [
+		// 1.5.0 : le projet d'abord — nom en gras, numéro (PRJ-… / P029, ancien numéro) en petit.
+		['name', PS.t('المشروع'), function (r) { return ui.projectTitle({ id: r.id, name: r.name, no: r.projectNo, oldNo: r.oldNo }); }],
 		['receivedYear', PS.t('السنة'), function (r) { return r.receivedYear; }],
 		// Numéro du fichier Excel importé (P029…) affiché tel quel (1.4.0), sinon le numéro d'ordre.
 		['seq', PS.t('رقم'), function (r) { return /^P\d+$/.test(r.projectNo || '') ? r.projectNo : r.seq; }],
@@ -30,13 +32,11 @@
 		['companyName', PS.t('اسم الشركة'), function (r) { return r.companyName || ''; }],
 		['directPerson', PS.t('شخص المباشر'), function (r) { return r.directPerson || ''; }],
 		['directPhone', PS.t('رقم شخص المباشر'), function (r) { return html`<span dir="ltr">${r.directPhone || ''}</span>`; }],
-		['name', PS.t('اسم المشروع'), function (r) { return html`<a href="#/projet?id=${r.id}">${r.name}</a>`; }],
 		[null, PS.t('الأصناف'), function (r) { return r.itemTypeIds.map(L.label).join(PS.t('، ')); }],
 		['receivedDate', PS.t('تاريخ استلام الطلب'), function (r) { return F.date(r.receivedDate); }],
 		['sentDate', PS.t('تاريخ إرسال الطلب'), function (r) { return F.date(r.sentDate); }],
 		['followerEmpId', PS.t('الموظف المتابع'), function (r) { return L.label(r.followerEmpId); }],
 		['intermediaryEmpId', PS.t('الموظف الوسيط'), function (r) { return L.label(r.intermediaryEmpId); }],
-		['projectNo', PS.t('رقم المشروع'), function (r) { return html`<a class="ps-mono" href="#/projet?id=${r.id}">${r.projectNo}</a>`; }],
 		['followupStatusId', PS.t('حالة المتابعة'), function (r) { return L.badge(r.followupStatusId, L.label(r.followupStatusId)); }],
 		['offerStatus', PS.t('حالة العرض'), function (r) { return L.offerBadge(r.offerStatus); }],
 		[null, 'NOTE', function (r) { return html`<span class="ps-clip" title="${r.note || ''}">${r.note || ''}</span>`; }],
@@ -148,8 +148,7 @@
 	function cards(rows) {
 		return html`<div class="ps-cards ps-mobile-only">${rows.map(function (r) {
 			return html`<a class="ps-pcard" href="#/projet?id=${r.id}">
-				<div class="ps-pcard__top"><span class="ps-mono">${r.projectNo}</span> ${L.badge(r.urgencyId)} ${r.priority ? html`<span class="ps-badge ps-prio ps-prio--${r.priority}">${r.priority}</span>` : ''}</div>
-				<div class="ps-pcard__name">${r.name}</div>
+				<div class="ps-pcard__top">${ui.projectTitle({ name: r.name, no: r.projectNo, oldNo: r.oldNo }, { link: false })} ${L.badge(r.urgencyId)} ${r.priority ? html`<span class="ps-badge ps-prio ps-prio--${r.priority}">${r.priority}</span>` : ''}</div>
 				<div class="ps-muted ps-small">${r.companyName || '—'} · ${L.short(r.placeId)} · ${F.date(r.receivedDate)}</div>
 				<div class="ps-pcard__badges">${L.offerBadge(r.offerStatus)} ${L.badge(r.followupStatusId, L.label(r.followupStatusId))}</div>
 			</a>`;

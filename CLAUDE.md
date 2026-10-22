@@ -29,13 +29,14 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 1.3.3 | Retour client : toujours pas de son → panneau « اختبار الصوت » (diagnostic) + étapes Telegram | ✅ terminée, tests verts | 1.3.3 · base v4 |
 | 1.3.4 | Retour client : son OK sur mobile, muet sur PC → liste de choix du micro | ✅ terminée, tests verts | 1.3.4 · base v4 |
 | 1.3.5 | Capture client : cloche sans « ربط Telegram » (Telegram pas activé) + lecteur « 0:00 » → indication + durée | ✅ terminée, tests verts | 1.3.5 · base v4 |
-| 1.4.0 | Demande client : import du vrai fichier Excel, الوسيط هامش الربح, règles موظف, ورقة الحسابات, Telegram à la connexion | ✅ terminée, tests verts | **1.4.0** · base v5 |
+| 1.4.0 | Demande client : import du vrai fichier Excel, الوسيط هامش الربح, règles موظف, ورقة الحسابات, Telegram à la connexion | ✅ terminée, tests verts | 1.4.0 · base v5 |
+| 1.5.0 | Demande client : nom du projet d'abord + recherche par numéro, fichiers joints (règles), stockage Google Drive | ✅ terminée, tests verts | **1.5.0** · base v6 |
 
-### Tests (dernier passage complet, version 1.4.0) — détail : `docs/TEST-RESULTS.txt`
-- `sh protecta-suivi/tests/run-all.sh` → **724 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
-  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0) passés.
-- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.4.0.zip $PWD/dist/protecta-suivi-1.3.5.zip` (chemins absolus) →
-  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.3.5 → 1.4.0 avec données : **aucune perte**.
+### Tests (dernier passage complet, version 1.5.0) — détail : `docs/TEST-RESULTS.txt`
+- `sh protecta-suivi/tests/run-all.sh` → **787 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
+  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0) passés.
+- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.5.0.zip $PWD/dist/protecta-suivi-1.4.0.zip` (chemins absolus) →
+  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.4.0 → 1.5.0 avec données : **aucune perte**.
 
 ### Prochaines actions
 1. Dès que l'accès GitHub est rétabli : `git push -u origin claude/sweet-hopper-le9393` puis
@@ -265,6 +266,25 @@ chaque décision prise seul.
   s'il n'a pas de préférence) → réglage `default_lang` (ar). E-mails/Telegram : langue du destinataire (`ps_with_lang`).
 - Données saisies jamais traduites ; valeurs de listes traduites seulement si le libellé est encore celui par défaut.
 - « Item » / « Article » pour صنف ; « Decision needed » / « Décision requise » pour لازم قرار.
+
+### Version 1.5.0 — règles demandées par le client (fichiers, affichage)
+- **Affichage** : partout où un projet est listé, NOM en gras puis numéro en petit (`PS.ui.projectTitle`) ; ancien
+  numéro d'import (`oldNo` = legacy_id « xlsx:P029 » ou « no » du prototype) affiché à côté. Recherche sur le nom,
+  project_no et l'ancien numéro (Base Projets et Suivi Offres / Livraison).
+- **Fichiers joints** : plusieurs par projet, tout type SAUF exécutables/scripts (`ps_file_blocked_exts()`, testé sur
+  chaque partie du nom) + contenu vérifié (`ps_file_check_upload`) ; message en arabe. Taille max = réglage
+  `file_max_mb` (20 Mo) plafonné par la limite PHP. Nom d'affichage (`display_name`), date, auteur. Nom sur le disque
+  = hex aléatoire « .bin ». Stockage local : uploads/protecta-suivi/files (dossier protégé existant, choix du
+  client), jamais la Médiathèque. Téléchargement UNIQUEMENT via GET /ps/v1/files/<id> (connexion + `ps_access` +
+  projet non supprimé ou الإدارة). Ajout : intervenants du projet (موظف compris). Retrait (corbeille) :
+  مسؤول المشروع + الإدارة + l'auteur pendant 24 h (choix du client).
+- **Google Drive** (`inc/services/gdrive.php`, choix du client : « les fichiers vivent dans Drive, le site sert
+  d'accès ») : OAuth Gmail (scope drive.file, refresh token) ou compte de service (JWT RS256, Drive partagé). Fichier
+  d'abord local, puis envoyé (resumable) ; copie locale effacée seulement si md5Checksum Google == md5 local.
+  Drive absent/en panne → le fichier attend sur le serveur (choix du client), envoyé par Cron / « مزامنة الآن » /
+  shutdown (verrou 10 min). Lecture : le serveur récupère le fichier (stream) puis l'envoie. Secrets dans l'option
+  `ps_gdrive` (hors JSON, jamais renvoyés). Corbeille du site : le fichier reste dans Drive. Testé avec Google
+  SIMULÉ (pre_http_request) : aucune vérification possible contre le vrai Google depuis ce conteneur.
 
 ### Version 1.4.0 — décisions
 - **Import Excel** (`inc/services/import-excel.php`) : colonnes reconnues par leur titre ; une ligne = un صنف ; même

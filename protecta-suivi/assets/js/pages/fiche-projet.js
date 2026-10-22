@@ -286,7 +286,7 @@
 		else if (!perm.canEdit) banner = html`<div class="ps-alert ps-alert--info">${PS.t('عرض فقط: التعديل للمسؤول عن المشروع والإدارة')}${PS.config.settings.creatorEditHours ? PS.t(' (أو لمن أنشأه خلال ') + PS.config.settings.creatorEditHours + PS.t(' ساعة)') : ''}.</div>`;
 		else if (perm.editReason === 'creator') banner = html`<div class="ps-alert ps-alert--warning">${PS.t('يمكنك تعديل هذا المشروع حتى')} ${PS.format.dateTime(perm.editUntil)}.</div>`;
 		return html`<div class="ps-page-head">
-			<h1><span class="ps-mono">${p.projectNo}</span> — ${p.name}</h1>
+			<h1 class="ps-ptitle-h1">${p.name}<span class="ps-ptitle__no" dir="ltr">${[p.projectNo, p.oldNo].filter(Boolean).join(' · ')}</span></h1>
 			<div class="ps-page-head__badges">${L.offerBadge(p.computed.offerStatus)} ${L.badge(p.followupStatusId, L.label(p.followupStatusId))} ${p.computed.priority ? html`<span class="ps-badge ps-prio ps-prio--${p.computed.priority}">${p.computed.priority}</span>` : ''}</div>
 			<div class="ps-page-head__actions">
 				${PS.router.can('ps_assign_tasks') && !p.deletedAt ? html`<button type="button" class="ps-btn" data-action="new-task">📌 ${PS.t('مهمة')}</button>` : ''}
@@ -401,7 +401,7 @@
 		else if (a === 'save') save(false);
 		else if (a === 'reset') { clearDraftLocal(); state.draft = emptyDraft(); state.restored = false; state.lastSaved = null; render(); }
 		else if (a === 'cancel') { state.draft = projectToDraft(state.project); state.dirty = false; render(); }
-		else if (a === 'new-task') { PS.taskModal({ projectId: state.project.id, projectLabel: state.project.projectNo + ' — ' + state.project.name }); return; }
+		else if (a === 'new-task') { PS.taskModal({ projectId: state.project.id, projectLabel: state.project.name + ' — ' + state.project.projectNo }); return; }
 		else if (a === 'delete') removeProject();
 		else if (a === 'restore') restoreProject();
 		else return;

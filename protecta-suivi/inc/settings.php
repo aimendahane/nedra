@@ -25,6 +25,7 @@ function ps_default_settings(): array {
 		'followup_alert_days'   => 7,   // Alerte suivi : pas de suivi depuis N jours.
 		'duplicate_window_days' => 60,  // Détection de doublons : fenêtre en jours.
 		'creator_edit_hours'    => 24,  // Le créateur d'un projet peut modifier ses infos pendant N heures.
+		'file_max_mb'           => 20,  // 1.5.0 : taille maximale d'un fichier joint (Mo).
 
 		// E-mail récapitulatif du matin (étape 5).
 		'digest_enabled' => false,

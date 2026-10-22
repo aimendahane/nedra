@@ -166,7 +166,7 @@ function ps_items_list( array $args, int $user_id, ?string $today = null ): arra
 	$lists = ps_lists_by_id();
 	$code  = fn( $id ) => $id ? ( $lists[ (int) $id ]['code'] ?? null ) : null;
 	$rows  = $wpdb->get_results(
-		'SELECT i.*, p.project_no, p.name AS project_name, p.received_date, p.sent_date, p.urgency_id, p.responsible_emp_id, p.follower_emp_id, p.intermediary_emp_id, p.created_by, p.created_at AS project_created_at, p.deleted_at, c.name AS company_name
+		'SELECT i.*, p.project_no, p.legacy_id, p.name AS project_name, p.received_date, p.sent_date, p.urgency_id, p.responsible_emp_id, p.follower_emp_id, p.intermediary_emp_id, p.created_by, p.created_at AS project_created_at, p.deleted_at, c.name AS company_name
 		 FROM ' . ps_table( 'items' ) . ' i JOIN ' . ps_table( 'projects' ) . ' p ON p.id = i.project_id AND p.deleted_at IS NULL
 		 LEFT JOIN ' . ps_table( 'project_parties' ) . " pp ON pp.project_id = p.id AND pp.role = 'owner'
 		 LEFT JOIN " . ps_table( 'companies' ) . ' c ON c.id = pp.company_id
@@ -220,7 +220,7 @@ function ps_items_list( array $args, int $user_id, ?string $today = null ): arra
 			continue;
 		}
 		if ( '' !== $q ) {
-			$hay = ps_normalize_text( $r['project_no'] . ' ' . $r['project_name'] . ' ' . $r['company_name'] . ' ' . ( $lists[ (int) $r['item_type_id'] ]['label'] ?? '' ) . ' ' . $r['offer_invoice_no'] . ' ' . $r['supplier_invoice_no'] );
+			$hay = ps_normalize_text( $r['project_no'] . ' ' . ps_project_old_no( $r ) . ' ' . $r['project_name'] . ' ' . $r['company_name'] . ' ' . ( $lists[ (int) $r['item_type_id'] ]['label'] ?? '' ) . ' ' . $r['offer_invoice_no'] . ' ' . $r['supplier_invoice_no'] );
 			if ( ! str_contains( $hay, $q ) ) {
 				continue;
 			}

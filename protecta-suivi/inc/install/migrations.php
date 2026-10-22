@@ -31,6 +31,7 @@ function ps_migrations(): array {
 		3 => 'ps_migration_003_notifications',
 		4 => 'ps_migration_004_task_voice',
 		5 => 'ps_migration_005_broker_margin',
+		6 => 'ps_migration_006_files_drive',
 	);
 	return apply_filters( 'ps_migrations', $migrations );
 }
@@ -91,6 +92,15 @@ function ps_migration_004_task_voice(): void {
  * (dbDelta : ajoute seulement ; « الرتبة » existante est gardée).
  */
 function ps_migration_005_broker_margin(): void {
+	ps_apply_schema();
+}
+
+/**
+ * Migration 6 (1.5.0) : fichiers joints — nom d'affichage, empreinte MD5, emplacement (serveur / Google Drive)
+ * sur {prefix}ps_files ; dossier Drive du projet sur {prefix}ps_projects. ADD COLUMN seulement : les fichiers
+ * existants restent « local » (sur le serveur), rien n'est déplacé par la migration.
+ */
+function ps_migration_006_files_drive(): void {
 	ps_apply_schema();
 }
 

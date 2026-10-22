@@ -20,6 +20,7 @@ PS.settingsTabs = PS.settingsTabs || {};
 	const ui = PS.ui;
 	const html = ui.html;
 	const L = PS.lists;
+	const F = PS.format;
 	const TABS = [['lists', PS.t('📋 القوائم')], ['rules', PS.t('✔ قواعد التحقق')], ['general', PS.t('⚙ عام')], ['users', PS.t('👤 المستخدمون')], ['data', PS.t('💾 البيانات')]];
 	/** Listes dont la couleur est utilisée (pastilles, graphiques). */
 	const COLORED = ['urgency', 'followup_status', 'offer_status', 'delivery_status'];
@@ -217,6 +218,97 @@ PS.settingsTabs = PS.settingsTabs || {};
 		};
 	}
 
+	/**
+	 * « 📁 تخزين الملفات — Google Drive » (1.5.0) : les fichiers joints sont rangés dans le Drive de la société.
+	 * Deux méthodes : compte Gmail (client OAuth + bouton « ربط ») ou Workspace (compte de service + Drive partagé).
+	 */
+	function gdriveCard(sec) {
+		// Retour de Google après « ربط » : #/parametres?tab=general&gdrive=ok|error:…
+		const back = (location.hash.match(/[?&]gdrive=([^&]+)/) || [])[1];
+		if (back) {
+			const msg = decodeURIComponent(back);
+			ui.toast(msg === 'ok' ? PS.t('✔ تم ربط Google Drive') : msg.replace(/^error:/, ''), msg === 'ok' ? 'success' : 'error');
+			history.replaceState(null, '', location.pathname + location.search + '#/parametres?tab=general');
+		}
+		PS.api.get('gdrive').then(function (s) { draw(s); }).catch(function (e) { sec.innerHTML = html`<div class="ps-alert ps-alert--error">${errMsg(e)}</div>`.html; });
+		function draw(s) {
+			const method = s.method || 'oauth';
+			sec.innerHTML = html`<h2 class="ps-card__title">📁 ${PS.t('تخزين الملفات — Google Drive')}</h2>
+				<p class="ps-small">${PS.t('الفريق يضيف ويفتح الملفات من الموقع، والملفات نفسها تُحفظ في Google Drive الخاص بالشركة (مجلد لكل مشروع) لتوفير مساحة الخادم. لا أحد يرى رابط Drive: الفتح يمر عبر الموقع بعد التحقق من الصلاحيات.')}</p>
+				${s.connected
+					? html`<div class="ps-alert ps-alert--success">✔ ${PS.t('مربوط بـ Google Drive')}${s.account ? html` — <span dir="ltr">${s.account}</span>` : ''} · ☁ ${s.inDrive} ${PS.t('ملف في Drive')} · 🖥 ${s.pending} ${PS.t('ملف على الخادم في الانتظار')} (${F.size(s.localBytes)})</div>`
+					: html`<div class="ps-alert ps-alert--warning">${PS.t('غير مربوط: الملفات تبقى على الخادم إلى أن يتم الربط، ثم تُنقل تلقائيًا إلى Drive.')} (🖥 ${s.pending} ${PS.t('ملف')}، ${F.size(s.localBytes)})</div>`}
+				${s.lastError ? html`<p class="ps-small ps-text-danger">${PS.t('آخر خطأ:')} ${s.lastError}</p>` : ''}
+				<div class="ps-row">
+					<label class="ps-check"><input type="radio" name="gd-method" value="oauth" ${method === 'oauth' ? ui.raw('checked') : ''}> ${PS.t('حساب Gmail عادي')}</label>
+					<label class="ps-check"><input type="radio" name="gd-method" value="service" ${method === 'service' ? ui.raw('checked') : ''}> ${PS.t('Google Workspace (Drive مشترك للشركة)')}</label>
+				</div>
+				<form data-gd-form class="ps-mt ps-gd-form" novalidate>
+					<div data-gd="oauth" ${method === 'oauth' ? '' : ui.raw('hidden')}>
+						<ol class="ps-small ps-gd-steps">
+							<li>${PS.t('افتح')} <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" rel="noopener" dir="ltr">console.cloud.google.com</a> ${PS.t('بحساب Gmail الشركة ← أنشئ مشروعًا ← فعّل «Google Drive API».')}</li>
+							<li>${PS.t('APIs & Services ← OAuth consent screen ← External ← أضف بريدك في «Test users» (أو اضغط Publish).')}</li>
+							<li>${PS.t('Credentials ← Create credentials ← OAuth client ID ← النوع «Web application» ← في «Authorized redirect URIs» الصق هذا الرابط:')}<br><code dir="ltr" class="ps-code-inline">${s.redirectUri}</code> <button type="button" class="ps-btn ps-btn--small" data-copy="${s.redirectUri}">📋 ${PS.t('نسخ')}</button></li>
+							<li>${PS.t('انسخ Client ID و Client Secret هنا ← «حفظ وربط Google Drive» ← وافق في صفحة Google.')}</li>
+						</ol>
+						<div class="ps-grid">
+							<label class="ps-field" data-key="clientId"><span class="ps-field__label">Client ID</span><input name="clientId" dir="ltr" value="${s.clientId || ''}" autocomplete="off"></label>
+							<label class="ps-field" data-key="clientSecret"><span class="ps-field__label">Client Secret</span><input name="clientSecret" type="password" dir="ltr" autocomplete="new-password" placeholder="${s.hasSecret ? PS.t('محفوظ — اتركه فارغًا للإبقاء عليه') : ''}"></label>
+						</div>
+					</div>
+					<div data-gd="service" ${method === 'service' ? '' : ui.raw('hidden')}>
+						<ol class="ps-small ps-gd-steps">
+							<li>${PS.t('Google Cloud ← فعّل «Google Drive API» ← IAM & Admin ← Service accounts ← أنشئ حسابًا ← Keys ← Add key ← JSON (يُحمَّل ملف).')}</li>
+							<li>${PS.t('في Google Drive: أنشئ «Drive مشترك» (Shared drive) ← أضف بريد حساب الخدمة (client_email) كـ «مدير محتوى».')}</li>
+							<li>${PS.t('الصق محتوى ملف JSON ورابط المجلد هنا ← «حفظ وربط Google Drive».')}</li>
+						</ol>
+						<div class="ps-grid">
+							<label class="ps-field ps-span-2" data-key="saJson"><span class="ps-field__label">${PS.t('مفتاح حساب الخدمة (محتوى ملف JSON)')}</span><textarea name="saJson" dir="ltr" rows="4" placeholder="${s.hasKey ? PS.t('محفوظ — اتركه فارغًا للإبقاء عليه') : '{ "type": "service_account", … }'}"></textarea></label>
+						</div>
+					</div>
+					<label class="ps-field ps-mt" data-key="folderId"><span class="ps-field__label">${PS.t('مجلد Drive (رابط أو معرّف) — اختياري مع Gmail: يُنشأ مجلد «Protecta Suivi» تلقائيًا')}</span><input name="folderId" dir="ltr" value="${s.folderId || ''}"></label>
+				</form>
+				<div class="ps-row">
+					<button type="button" class="ps-btn ps-btn--primary" data-gd-save>☁ ${PS.t('حفظ وربط Google Drive')}</button>
+					${s.connected ? html`<button type="button" class="ps-btn" data-gd-sync>🔄 ${PS.t('مزامنة الآن')} (${s.pending})</button><button type="button" class="ps-btn ps-btn--danger" data-gd-off>${PS.t('فك الربط')}</button>` : ''}
+				</div>`.html;
+			const form = sec.querySelector('[data-gd-form]');
+			sec.onchange = function (e) {
+				if (e.target.name !== 'gd-method') return;
+				sec.querySelectorAll('[data-gd]').forEach(function (d) { d.hidden = d.dataset.gd !== e.target.value; });
+			};
+			sec.onclick = function (e) {
+				const cp = e.target.closest('[data-copy]');
+				if (cp) { navigator.clipboard.writeText(cp.dataset.copy).then(function () { ui.toast(PS.t('تم النسخ'), 'success'); }).catch(function () {}); return; }
+				if (e.target.closest('[data-gd-save]')) {
+					const m = sec.querySelector('[name=gd-method]:checked').value;
+					const body = { method: m, folderId: form.folderId.value, clientId: form.clientId.value, clientSecret: form.clientSecret.value, saJson: form.saJson.value };
+					PS.api.post('gdrive/config', body).then(function (r) {
+						ui.showErrors(form, {});
+						if (r.authUrl) { window.location.href = r.authUrl; return; } // accord chez Google, puis retour ici
+						ui.toast(PS.t('✔ تم ربط Google Drive'), 'success');
+						draw(r.status);
+					}).catch(function (er) {
+						if (er.data && er.data.data && er.data.data.errors) ui.showErrors(form, er.data.data.errors);
+						ui.toast(errMsg(er), 'error');
+					});
+				}
+				if (e.target.closest('[data-gd-sync]')) {
+					PS.api.post('gdrive/sync').then(function (r) {
+						ui.toast(PS.t('أُرسل إلى Drive: ') + r.sent + (r.failed ? ' · ' + PS.t('فشل: ') + r.failed : '') + ' · ' + PS.t('في الانتظار: ') + r.pending, r.failed ? 'error' : 'success');
+						draw(r.status);
+					}).catch(function (er) { ui.toast(errMsg(er), 'error'); });
+				}
+				if (e.target.closest('[data-gd-off]')) {
+					ui.confirm(PS.t('فك ربط Google Drive؟ الملفات الموجودة في Drive تبقى هناك، لكن لن تُفتح من الموقع حتى إعادة الربط.'), PS.t('فك الربط'), 'danger').then(function (ok) {
+						if (!ok) return;
+						PS.api.post('gdrive/disconnect').then(draw).catch(function (er) { ui.toast(errMsg(er), 'error'); });
+					});
+				}
+			};
+		}
+	}
+
 	function generalTab(box) {
 		return PS.api.get('settings').then(function (d) {
 			const s = d.settings;
@@ -270,6 +362,7 @@ PS.settingsTabs = PS.settingsTabs || {};
 				<p class="ps-muted ps-small">${PS.t('احفظ أولًا ثم جرّب. إذا وصل البريد إلى «Spam»، استعمل SMTP.')}</p>
 				<div data-test-result></div>
 			</form>
+			<section class="ps-card" data-gdrive><p class="ps-muted">${PS.t('جاري التحميل…')}</p></section>
 			<section class="ps-card" data-sound-test>
 				<h2 class="ps-card__title">🎙 ${PS.t('اختبار الصوت')}</h2>
 				<p class="ps-small">${PS.t('إذا كانت الرسائل الصوتية بدون صوت: قم بهذا الاختبار على نفس الهاتف، ثم أرسل لقطة شاشة للنتيجة.')}</p>
@@ -324,6 +417,7 @@ PS.settingsTabs = PS.settingsTabs || {};
 					.catch(function (er) { ui.toast(errMsg(er), 'error'); });
 			};
 			soundTest(box.querySelector('[data-sound-test]'));
+			gdriveCard(box.querySelector('[data-gdrive]'));
 			box.querySelector('[data-regen]').onclick = function () {
 				ui.confirm(PS.t('تجديد الرمز؟ الرابط القديم يتوقف عن العمل، ويجب تحديث أمر الـ Cron في cPanel.'), PS.t('تجديد'), 'danger').then(function (ok) {
 					if (!ok) return;

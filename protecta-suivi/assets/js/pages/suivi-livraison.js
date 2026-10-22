@@ -36,7 +36,7 @@
 	function rowHtml(r) {
 		const cls = r.computed.deliveryLate ? 'is-late' : (L.code(r.deliveryStatusId) === 'delivered' ? 'is-done' : '');
 		return html`<tr class="${cls}" data-row="${r.id}">
-			<td><a class="ps-mono" href="#/projet?id=${r.projectId}">${r.projectNo}</a><div class="ps-small ps-muted ps-clip">${r.projectName}</div></td>
+			<td>${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo })}</td>
 			<td>${L.label(r.itemTypeId)}</td>
 			<td>${r.offerInvoiceNo || html`<span class="ps-text-danger ps-small">—</span>`}</td>
 			<td>${cell(r, 'supplierInvoiceNo', 'text')}</td>
@@ -51,8 +51,8 @@
 
 	function cardHtml(r) {
 		return html`<div class="ps-icard ${r.computed.deliveryLate ? 'is-late' : ''}" data-row="${r.id}">
-			<div class="ps-pcard__top"><a class="ps-mono" href="#/projet?id=${r.projectId}">${r.projectNo}</a> ${statusCell(r)}</div>
-			<div class="ps-pcard__name">${L.label(r.itemTypeId)} — ${r.projectName}</div>
+			<div class="ps-pcard__top">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo })} ${statusCell(r)}</div>
+			<div class="ps-pcard__name">${L.label(r.itemTypeId)}</div>
 			<div class="ps-small">${PS.t('المطلوب:')} ${F.date(r.deliveryDueDate) || '—'} · ${PS.t('الفعلي:')} ${F.date(r.deliveryActualDate) || '—'} · ${PS.t('تأخير:')} <strong>${r.computed.delayDays}</strong> ${PS.t('يوم')}</div>
 			${r.canEdit ? html`<div class="ps-icard__edit ps-grid ps-grid--tight">${cell(r, 'deliveryDueDate', 'date')}${cell(r, 'deliveryActualDate', 'date')}</div>` : ''}
 		</div>`;

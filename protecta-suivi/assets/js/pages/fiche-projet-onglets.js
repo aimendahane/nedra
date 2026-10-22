@@ -91,13 +91,14 @@ PS.projectTabs = (function () {
 				<h2 class="ps-card__title">${PS.t('ملفات المشروع')} <span class="ps-muted">(${rows.length})</span></h2>
 				${project.filesLink ? html`<p>🔗 ${PS.t('رابط ملف المشاريع:')} <a href="${project.filesLink}" target="_blank" rel="noopener noreferrer" dir="ltr">${project.filesLink}</a></p>` : ''}
 				${canAdd ? html`<label class="ps-dropzone" data-drop>
-					<input type="file" multiple hidden data-file accept=".pdf,.xls,.xlsx,.csv,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp">
-					📎 ${PS.t('اضغط أو اسحب الملفات هنا (PDF، Excel، Word، صور — الحد الأقصى')} ${F.size(PS.config.settings.maxUpload)})
+					<input type="file" multiple hidden data-file>
+					📎 ${PS.t('اضغط أو اسحب الملفات هنا (كل الأنواع ما عدا البرامج والسكربتات — الحد الأقصى')} ${F.size(PS.config.settings.maxUpload)})
 				</label><div data-progress></div>` : ''}
 				${rows.length ? html`<div class="ps-table-wrap"><table class="ps-table">
-					<thead><tr><th>${PS.t('الملف')}</th><th>${PS.t('الحجم')}</th><th>${PS.t('رفعه')}</th><th>${PS.t('التاريخ')}</th><th></th></tr></thead>
+					<thead><tr><th>${PS.t('الملف')}</th><th>${PS.t('الحجم')}</th><th>${PS.t('رفعه')}</th><th>${PS.t('التاريخ')}</th><th>${PS.t('المكان')}</th><th></th></tr></thead>
 					<tbody>${rows.map(function (f) {
-						return html`<tr><td><a href="${f.url}" target="_blank" rel="noopener">${fileIcon(f.mime)} ${f.name}</a></td><td>${F.size(f.size)}</td><td>${f.author}</td><td>${F.dateTime(f.createdAt)}</td>
+						return html`<tr><td><a href="${f.url}" target="_blank" rel="noopener"><strong>${fileIcon(f.mime)} ${f.name}</strong></a>${f.originalName && f.originalName !== f.name ? html`<div class="ps-small ps-muted" dir="auto">${f.originalName}</div>` : ''}</td><td>${F.size(f.size)}</td><td>${f.author}</td><td>${F.dateTime(f.createdAt)}</td>
+							<td>${f.storage === 'drive' ? html`<span class="ps-small" title="${PS.t('محفوظ في Google Drive')}">☁ Drive</span>` : html`<span class="ps-small ps-muted" title="${PS.t('على الخادم (يُرسل إلى Google Drive عند ربطه)')}">🖥 ${PS.t('الخادم')}</span>`}</td>
 							<td>${f.canDelete ? html`<button type="button" class="ps-icon-btn ps-icon-btn--sm" data-del-file="${f.id}" aria-label="${PS.t('حذف')}">🗑</button>` : ''}</td></tr>`;
 					})}</tbody></table></div>` : ui.empty('📂', PS.t('لا توجد ملفات.'))}
 			</section>`.html;
@@ -130,20 +131,47 @@ PS.projectTabs = (function () {
 		return '📄';
 	}
 
+	/** Extension refusée (même liste que le serveur ; le serveur vérifie aussi le contenu). */
+	function blockedExt(name) {
+		const parts = String(name).toLowerCase().replace(/^\.+/, '').split('.').slice(String(name).startsWith('.') ? 0 : 1);
+		return parts.find(function (p) { return (PS.config.settings.blockedExts || []).indexOf(p.trim()) >= 0; }) || null;
+	}
+
+	/** Avant l'envoi : nom d'affichage de chaque fichier (pré-rempli avec le nom du fichier). */
 	function upload(list, project, box) {
-		const filesArr = Array.prototype.slice.call(list || []);
-		if (!filesArr.length) return;
+		const all = Array.prototype.slice.call(list || []);
+		const ok = all.filter(function (f) {
+			const bad = blockedExt(f.name);
+			if (bad) { ui.toast(f.name + ': ' + PS.t('نوع الملف غير مسموح (.') + bad + PS.t('): الملفات التنفيذية والبرمجية ممنوعة لحماية الموقع.'), 'error'); return false; }
+			if (f.size > PS.config.settings.maxUpload) { ui.toast(f.name + PS.t(': الملف كبير جدًا') + ' (' + F.size(PS.config.settings.maxUpload) + ')', 'error'); return false; }
+			return true;
+		});
+		if (!ok.length) return;
+		ui.modal({
+			title: '📎 ' + PS.t('إضافة ملفات') + ' (' + ok.length + ')',
+			body: html`<p class="ps-small ps-muted">${PS.t('اسم العرض: يظهر للفريق بدل اسم الملف (يمكن تركه كما هو).')}</p><div class="ps-grid">${ok.map(function (f, i) {
+				return html`<label class="ps-field ps-span-2"><span class="ps-field__label" dir="auto">${f.name} · ${F.size(f.size)}</span><input data-dn="${i}" value="${f.name.replace(/\.[^.]+$/, '')}" maxlength="200"></label>`;
+			})}</div>`,
+			buttons: [{ id: 'ok', label: '⬆ ' + PS.t('رفع'), kind: 'primary' }, { id: 'cancel', label: PS.t('إلغاء') }],
+			onButton: function (id, mbox, close) {
+				if (id !== 'ok') return true;
+				const names = ok.map(function (f, i) { return mbox.querySelector('[data-dn="' + i + '"]').value.trim(); });
+				close('ok');
+				send(ok, names, project, box);
+				return false;
+			},
+		});
+	}
+
+	function send(filesArr, names, project, box) {
 		const progress = box.querySelector('[data-progress]');
 		let done = 0;
 		progress.innerHTML = html`<p class="ps-muted">${PS.t('جاري الرفع… (0/')}${filesArr.length})</p>`.html;
 		filesArr.reduce(function (p, file) {
 			return p.then(function () {
-				if (file.size > PS.config.settings.maxUpload) {
-					ui.toast(file.name + PS.t(': الملف كبير جدًا'), 'error');
-					return null;
-				}
 				const fd = new FormData();
 				fd.append('file', file);
+				if (names[filesArr.indexOf(file)]) fd.append('displayName', names[filesArr.indexOf(file)]);
 				return PS.api.post('projects/' + project.id + '/files', fd).then(function () {
 					done++;
 					progress.innerHTML = html`<p class="ps-muted">${PS.t('جاري الرفع… (')}${done}/${filesArr.length})</p>`.html;
