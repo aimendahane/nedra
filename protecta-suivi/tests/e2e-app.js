@@ -846,7 +846,63 @@ async function step9(browser) {
 	}
 }
 
-const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9 };
+/* Version 1.4.0 : import Excel, numéros P…, هامش الربح du الوسيط, ورقة حسابات الفريق, invitation Telegram. */
+async function step10(browser) {
+	console.log('1.4.0 — import Excel, numéros P…, هامش الربح, ورقة الحسابات, Telegram à la connexion');
+	{
+		const { ctx, page } = await newPage(browser, 'idara');
+		// Invitation Telegram à la connexion (Telegram activé, compte non lié).
+		check('connexion : fenêtre « اربط حسابك بـ Telegram » (compte non lié)', await page.waitForSelector('.ps-modal', { timeout: 5000 }).then(async () => /Telegram/.test(await page.textContent('.ps-modal h2')), () => false));
+		await page.screenshot({ path: SHOTS + '/s10-01-telegram-connexion.png' });
+		await page.click('.ps-modal [data-btn=later]');
+		await page.reload();
+		await page.waitForSelector('.ps-nav__link');
+		await page.waitForTimeout(1200);
+		check('« لاحقًا » : plus de fenêtre pendant cette session', !(await page.$('.ps-modal')));
+
+		// Import Excel par l'écran.
+		await go(page, '#/parametres?tab=data');
+		await page.setInputFiles('[data-xl] input[type=file]', __dirname + '/fixtures/excel-equipe.xlsx');
+		await page.click('[data-xl-preview]');
+		await page.waitForSelector('[data-xl-report] .ps-alert', { timeout: 15000 });
+		const prev = (await page.textContent('[data-xl-report]')).replace(/\s+/g, ' ');
+		check('aperçu Excel : 4 projets, cases vides comptées, avertissements', /4 مشروع سيتم استيراده/.test(prev) && /خانات فارغة/.test(prev) && /صُحّح/.test(prev), prev.slice(0, 200));
+		await page.screenshot({ path: SHOTS + '/s10-02-apercu-excel.png', fullPage: true });
+		await page.click('[data-xl-run]');
+		await page.click('.ps-modal [data-btn=ok]');
+		await page.waitForFunction(() => /تم الاستيراد/.test(document.querySelector('[data-xl-report]').textContent), null, { timeout: 15000 });
+		await go(page, '#/projets');
+		await page.waitForTimeout(800);
+		const nos = await page.$$eval('.ps-table tbody tr', (t) => t.map((r) => r.textContent));
+		check('Base Projets : numéros du fichier affichés (P901…)', nos.some((t) => t.includes('P901')) && nos.some((t) => t.includes('P902')), nos.slice(0, 3).join(' | ').slice(0, 200));
+
+		// هامش الربح du الوسيط dans la fiche.
+		await go(page, '#/projet');
+		await page.waitForSelector('[data-bind="parties.broker.margin"]');
+		check('fiche : الوسيط → champ « هامش الربح » (à la place de « الرتبة »)', !(await page.$('[data-bind="parties.broker.rank"]')) && !!(await page.$('[data-bind="parties.owner.rank"]')));
+
+		// ورقة حسابات الفريق.
+		await go(page, '#/parametres?tab=users');
+		await page.click('[data-sheet-new]');
+		await page.waitForSelector('tr[data-emp]');
+		const logins = await page.$$eval('tr[data-emp] [name=login]', (i) => i.map((x) => x.value));
+		check('ورقة الحسابات : employés sans compte proposés avec un identifiant latin', logins.length > 0 && logins.every((l) => /^[a-z0-9.]+$/.test(l)), logins.join(', '));
+		await page.$$eval('tr[data-emp] [data-pick]', (c) => c.forEach((x, i) => { x.checked = i < 2; }));
+		await page.click('.ps-modal [data-btn=ok]');
+		await page.waitForSelector('[data-sheet]', { timeout: 8000 });
+		const sheet = await page.$$eval('[data-sheet] tbody tr', (t) => t.map((r) => r.textContent));
+		check('ورقة الحسابات : 2 comptes créés, mots de passe affichés une seule fois', sheet.length === 2 && sheet.every((t) => /[A-Za-z2-9]{10}/.test(t)), sheet.join(' | '));
+		await page.screenshot({ path: SHOTS + '/s10-03-feuille-comptes.png' });
+		const [popup] = await Promise.all([page.waitForEvent('popup'), page.evaluate(() => { window.print = function () {}; }).then(() => page.click('.ps-modal [data-btn=print]'))]);
+		await popup.waitForLoadState();
+		check('feuille imprimable : adresse du site + accès + étapes (Telegram)', /ProtectaTestBot/.test(await popup.content()) && /localhost:8081/.test(await popup.content()));
+		await popup.screenshot({ path: SHOTS + '/s10-04-feuille-imprimable.png', fullPage: true });
+		await popup.close();
+		await ctx.close();
+	}
+}
+
+const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10 };
 
 (async () => {
 	const browser = await chromium.launch();

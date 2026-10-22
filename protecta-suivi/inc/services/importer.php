@@ -49,6 +49,8 @@ function ps_import_prototype( array $projects, array $options, bool $dry_run, in
 	$ctx = array(
 		'user'     => $user_id,
 		'urgent'   => 'VU' === ( $options['urgentAs'] ?? 'U' ) ? 'VU' : 'U',
+		// Fichier Excel (1.4.0) : valeurs de الأهمية inconnues ajoutées à la liste (jamais perdues), libellé du journal.
+		'excel'    => ! empty( $options['excel'] ),
 		'currency' => ps_clean_id( $options['currencyId'] ?? null ) ?: ps_list_default_id( 'currency' ),
 		'report'   => array(
 			'total'       => count( $projects ),
@@ -73,8 +75,9 @@ function ps_import_prototype( array $projects, array $options, bool $dry_run, in
 		$ctx['report']['backup'] = basename( $backup );
 	}
 
-	// Projets avec un numéro PRJ-AAAA-NNN valide d'abord (pour garder leurs numéros).
-	usort( $projects, fn( $a, $b ) => (int) ! ps_import_valid_no( $a['no'] ?? '' ) <=> (int) ! ps_import_valid_no( $b['no'] ?? '' ) );
+	// Projets avec un numéro valide (PRJ-AAAA-NNN ou P123) d'abord (pour garder leurs numéros).
+	$numbered = fn( $p ) => ps_import_valid_no( $p['no'] ?? '' ) || ps_import_excel_no( $p['no'] ?? '' );
+	usort( $projects, fn( $a, $b ) => (int) ! $numbered( $a ) <=> (int) ! $numbered( $b ) );
 
 	$wpdb->query( 'START TRANSACTION' );
 	try {
@@ -91,6 +94,11 @@ function ps_import_prototype( array $projects, array $options, bool $dry_run, in
 	$wpdb->query( $dry_run ? 'ROLLBACK' : 'COMMIT' );
 	ps_lists_by_id( true );
 	return $ctx['report'];
+}
+
+/** Numéro du fichier Excel de l'équipe : « P029 », « P176 »… (1.4.0, conservé tel quel). */
+function ps_import_excel_no( $no ): bool {
+	return is_string( $no ) && (bool) preg_match( '/^P\d{1,6}$/i', trim( $no ) );
 }
 
 function ps_import_valid_no( $no ): bool {
@@ -123,10 +131,12 @@ function ps_import_list( string $key, $text, array &$ctx, bool $create = true ):
 		return $ctx['cache'][ $ck ];
 	}
 	$norm = ps_normalize_text( $name );
-	$id   = null;
+	// Comparaison tolérante (1.4.0) : sans espaces et ظ = ض (« مفاتيح و برايز » = « مفاتيح وبرايز », « منضومة » = « منظومة »).
+	$loose = static fn( $s ) => strtr( preg_replace( '/\s+/u', '', ps_normalize_text( (string) $s ) ), array( 'ظ' => 'ض' ) );
+	$id    = null;
 	foreach ( ps_list_values( $key ) as $v ) {
 		$aliases = array_map( 'ps_normalize_text', (array) $v['aliases'] );
-		if ( ps_normalize_text( $v['label'] ) === $norm || ( $code && $v['code'] && strtoupper( $v['code'] ) === $code )
+		if ( ps_normalize_text( $v['label'] ) === $norm || $loose( $v['label'] ) === $loose( $name ) || ( $code && $v['code'] && strtoupper( $v['code'] ) === $code )
 			|| ( $v['code'] && strtoupper( $v['code'] ) === strtoupper( $text ) ) || in_array( ps_normalize_text( $text ), $aliases, true ) ) {
 			$id = $v['id'];
 			break;
@@ -180,7 +190,7 @@ function ps_import_one( array $p, int $index, array &$ctx ): void {
 	};
 	$resp     = $emp( $p['resp'] ?? '' );
 	$follower = $emp( $p['emp'] ?? '' );
-	if ( $is_tenders( $p['emp'] ?? '' ) || $is_tenders( $p['resp'] ?? '' ) ) {
+	if ( $is_tenders( $p['emp'] ?? '' ) || $is_tenders( $p['resp'] ?? '' ) || $is_tenders( $p['mid'] ?? '' ) ) {
 		$source   = ps_list_id_by_code( 'source', 'tenders' );
 		$follower = $follower ?: $resp;
 		ps_import_count( $ctx, 'source', ps__( 'موظف «موقع العطاءات»' ), ps__( 'مصدر «موقع العطاءات»' ) );
@@ -222,7 +232,15 @@ function ps_import_one( array $p, int $index, array &$ctx ): void {
 			$ctx['report']['warnings'][] = sprintf( ps__( '%1$s: الرقم مستعمل ← %2$s' ), $no, sprintf( 'PRJ-%d-%03d', $year, $seq ) );
 			$no = sprintf( 'PRJ-%d-%03d', $year, $seq );
 		}
+	} elseif ( ps_import_excel_no( $no ) && ! $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $t WHERE year = %d AND seq = %d", (int) substr( $recv, 0, 4 ), (int) substr( $no, 1 ) ) ) ) {
+		// Numéro « P029 » du fichier Excel gardé tel quel (problème 09) ; seq = son nombre.
+		$no   = strtoupper( $no );
+		$year = (int) substr( $recv, 0, 4 );
+		$seq  = (int) substr( $no, 1 );
 	} else {
+		if ( ps_import_excel_no( $no ) ) {
+			$ctx['report']['warnings'][] = sprintf( ps__( '%s: الرقم مستعمل في نفس السنة ← رقم جديد' ), $label );
+		}
 		$year = (int) substr( $recv, 0, 4 );
 		$seq  = 1 + (int) $wpdb->get_var( $wpdb->prepare( "SELECT MAX(seq) FROM $t WHERE year = %d", $year ) );
 		$no   = sprintf( 'PRJ-%d-%03d', $year, $seq );
@@ -256,8 +274,8 @@ function ps_import_one( array $p, int $index, array &$ctx ): void {
 			'place_id'            => ps_import_list( 'place', $p['place'] ?? '', $ctx ),
 			'category_id'         => ps_import_list( 'category', $p['cls'] ?? '', $ctx ),
 			'urgency_id'          => $urgency,
-			'importance_kind_id'  => ps_import_list( 'importance', $p['imc'] ?? '', $ctx, false ),
-			'importance_size_id'  => ps_import_list( 'importance', $p['imv'] ?? '', $ctx, false ),
+			'importance_kind_id'  => ps_import_list( 'importance', $p['imc'] ?? '', $ctx, $ctx['excel'] ),
+			'importance_size_id'  => ps_import_list( 'importance', $p['imv'] ?? '', $ctx, $ctx['excel'] ),
 			'followup_status_id'  => $fu,
 			'source_id'           => $source,
 			'offer_amount'        => $amount,
@@ -378,6 +396,6 @@ function ps_import_one( array $p, int $index, array &$ctx ): void {
 		++$ctx['report']['competitors'];
 	}
 
-	ps_log( $pid, 'import', 'project', $pid, null, null, 'النسخة الأولى (prototype)', $ctx['user'] );
+	ps_log( $pid, 'import', 'project', $pid, null, null, $ctx['excel'] ? 'ملف Excel' : 'النسخة الأولى (prototype)', $ctx['user'] );
 	++$ctx['report']['imported'];
 }

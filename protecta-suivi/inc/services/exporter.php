@@ -25,7 +25,7 @@ function ps_export_projects_table( array $args ): array {
 	$out             = array();
 	foreach ( $rows as $r ) {
 		$out[] = array(
-			$r['receivedYear'], $r['seq'], $code( $r['placeId'] ), $code( $r['urgencyId'] ), $lab( $r['importanceKindId'] ), $lab( $r['importanceSizeId'] ),
+			$r['receivedYear'], preg_match( '/^P\d+$/', (string) $r['projectNo'] ) ? $r['projectNo'] : $r['seq'], $code( $r['placeId'] ), $code( $r['urgencyId'] ), $lab( $r['importanceKindId'] ), $lab( $r['importanceSizeId'] ),
 			$months[ $r['month'] - 1 ] ?? '', $lab( $r['categoryId'] ), $r['companyName'], $r['directPerson'], $r['directPhone'], $r['name'],
 			implode( ps__( '، ' ), array_map( 'ps_list_label_t', $r['itemTypeIds'] ) ), $r['receivedDate'], $r['sentDate'], $lab( $r['followerEmpId'] ),
 			$lab( $r['intermediaryEmpId'] ), $r['projectNo'], $lab( $r['followupStatusId'] ), $offer( $r['offerStatus'] ), $r['note'], $r['filesLink'],

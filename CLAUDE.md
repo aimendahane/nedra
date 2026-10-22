@@ -28,13 +28,14 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 1.3.2 | Retour client : toujours muet sur Android + Telegram → détection du silence, secours de lecture | ✅ terminée, tests verts | 1.3.2 · base v4 |
 | 1.3.3 | Retour client : toujours pas de son → panneau « اختبار الصوت » (diagnostic) + étapes Telegram | ✅ terminée, tests verts | 1.3.3 · base v4 |
 | 1.3.4 | Retour client : son OK sur mobile, muet sur PC → liste de choix du micro | ✅ terminée, tests verts | 1.3.4 · base v4 |
-| 1.3.5 | Capture client : cloche sans « ربط Telegram » (Telegram pas activé) + lecteur « 0:00 » → indication + durée | ✅ terminée, tests verts | **1.3.5** · base v4 |
+| 1.3.5 | Capture client : cloche sans « ربط Telegram » (Telegram pas activé) + lecteur « 0:00 » → indication + durée | ✅ terminée, tests verts | 1.3.5 · base v4 |
+| 1.4.0 | Demande client : import du vrai fichier Excel, الوسيط هامش الربح, règles موظف, ورقة الحسابات, Telegram à la connexion | ✅ terminée, tests verts | **1.4.0** · base v5 |
 
-### Tests (dernier passage complet, version 1.3.5) — détail : `docs/TEST-RESULTS.txt`
-- `sh protecta-suivi/tests/run-all.sh` → **669 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
-  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues) passés.
-- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.3.5.zip $PWD/dist/protecta-suivi-1.3.4.zip` (chemins absolus) →
-  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.3.4 → 1.3.5 avec données : **aucune perte**.
+### Tests (dernier passage complet, version 1.4.0) — détail : `docs/TEST-RESULTS.txt`
+- `sh protecta-suivi/tests/run-all.sh` → **724 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
+  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0) passés.
+- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.4.0.zip $PWD/dist/protecta-suivi-1.3.5.zip` (chemins absolus) →
+  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.3.5 → 1.4.0 avec données : **aucune perte**.
 
 ### Prochaines actions
 1. Dès que l'accès GitHub est rétabli : `git push -u origin claude/sweet-hopper-le9393` puis
@@ -44,7 +45,7 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
    et nouvelle migration si la structure change (tests/test-migrations.php à étendre).
 
 ### Vérification avec le fichier Excel réel du client (19/10/2026) — `docs/verif-excel/`
-9 problèmes listés au client — 03, 04, 05, 06, 07, 08 corrigés en 1.1.0 (design) ; restent 01, 02, 09 : 01 date d'envoi = date du jour au lieu
+9 problèmes listés au client — 03, 04, 05, 06, 07, 08 corrigés en 1.1.0 (design) ; restent 01, 02 (09 corrigé en 1.4.0 : numéros P… conservés à l'import) : 01 date d'envoi = date du jour au lieu
 de تاريخ إرسال العرض du projet (bug) ; 02 champs date au format du navigateur ; 03 flèche verte pour المرفوضة ↑ ;
 04 tableaux Recap coupés sur mobile ; 05 fond du menu coupé ; 06 menu « إدخال مشروع » surligné sur une fiche ;
 07 lecture seule peu visible ; 08 numéro de projet coupé ; 09 numérotation P176… non conservée.
@@ -264,6 +265,23 @@ chaque décision prise seul.
   s'il n'a pas de préférence) → réglage `default_lang` (ar). E-mails/Telegram : langue du destinataire (`ps_with_lang`).
 - Données saisies jamais traduites ; valeurs de listes traduites seulement si le libellé est encore celui par défaut.
 - « Item » / « Article » pour صنف ; « Decision needed » / « Décision requise » pour لازم قرار.
+
+### Version 1.4.0 — décisions
+- **Import Excel** (`inc/services/import-excel.php`) : colonnes reconnues par leur titre ; une ligne = un صنف ; même
+  « رقم » = un projet (date de réception = la plus ancienne, envoi = la plus récente, حالة المتابعة = la plus avancée).
+  Passe par `ps_import_prototype` (aperçu ROLLBACK, sauvegarde, jamais d'écrasement, legacy_id `xlsx:P029`).
+  « حالة المتابعة » du fichier = offre remise (تم التسليم → مرسل) / en attente d'infos (→ قيد الإعداد) ;
+  « حالة العرض » du fichier = réponse du client (→ حالة المتابعة du projet ; رفض → مرفوض, تأكيد/تسليم/دفع → مقبول).
+  المسؤول عن المشروع = الموظف المتابع (pas de colonne المسؤول). Numéro P029 gardé (project_no « P029 », seq 29) ;
+  les projets saisis ensuite gardent PRJ-AAAA-NNN (suite des seq). Date 2005 corrigée si السنة + الشهر concordent.
+  الأهمية 1/2/3X/M/L ajoutées à la liste telles quelles (signification à confirmer). Correspondance tolérante
+  (espaces, ظ/ض). Le vrai fichier n'est PAS dans le dépôt (données client) ; test = fixtures/excel-equipe.xlsx fictif.
+- **الوسيط** : champ `margin` (« هامش الربح », texte libre) ; « الرتبة » masquée pour le الوسيط sauf si déjà remplie.
+- **موظف créateur (24 h)** : `ps_creator_limits_check()` → pas de modification/suppression des أصناف d'autres
+  employés ni des montants si le projet a des أصناف d'autres ; PUT /items : le créateur موظف ne touche qu'aux siens.
+- **ورقة الحسابات** : POST /users/access-sheet (ps_manage_users), tout ou rien, e-mail facultatif, mot de passe
+  10 caractères lisibles, renvoyé une seule fois ; impression/CSV côté navigateur.
+- **Telegram à la connexion** : fenêtre une fois par session (sessionStorage) tant que non lié et Telegram activé.
 
 ### Version 1.2.0 — décisions (Telegram, vocal)
 - Telegram SANS webhook : getUpdates (bouton « تحقق » automatique toutes les 3 s pendant 2 min + Cron) → marche

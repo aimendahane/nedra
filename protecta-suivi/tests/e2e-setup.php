@@ -31,6 +31,12 @@ foreach ( array( array( 'idara', 'ps_admin', 'سارة الإدارة', null ), 
 }
 // Date figée du site de test (voir ps_today()) : les résultats attendus du jeu de démonstration sont calculés au 19/10/2026.
 update_option( 'ps_test_today', '2026-10-19' );
+// TELEGRAM=1 : Telegram « activé » avec un faux bot (aucun appel réseau tant qu'on ne lie pas de compte).
+if ( getenv( 'TELEGRAM' ) ) {
+	update_option( 'ps_telegram_token', '123456:TEST' );
+	update_option( 'ps_telegram_bot', 'ProtectaTestBot' );
+	ps_update_settings( array( 'telegram_enabled' => true ) );
+}
 // DEMO=1 : charge aussi le jeu de démonstration (30 projets, voir fixtures/demo-expected.md).
 if ( getenv( 'DEMO' ) ) {
 	require __DIR__ . '/fixtures/demo.php';

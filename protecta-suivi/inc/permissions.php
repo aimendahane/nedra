@@ -93,3 +93,41 @@ function ps_user_involved_in_project( array $project, array $item_employee_ids, 
 	$people = array( (int) $project['responsible_emp_id'], (int) $project['follower_emp_id'], (int) $project['intermediary_emp_id'] );
 	return in_array( $emp, $people, true ) || in_array( $emp, array_map( 'intval', $item_employee_ids ), true );
 }
+
+/**
+ * 1.4.0 (demande du client) : un موظف qui a créé le projet (fenêtre de 24 h) ne touche pas aux données des
+ * AUTRES employés : ni aux أصناف d'un autre (type, quantité, employé, أجل, suppression), ni aux montants de
+ * l'offre et de l'achat quand le projet contient des أصناف d'autres employés.
+ *
+ * @param array $in       Saisie (ps_project_input).
+ * @param array $existing Projet actuel (ps_project_load).
+ * @return WP_Error|null
+ */
+function ps_creator_limits_check( array $in, array $existing, int $user_id ): ?WP_Error {
+	if ( 'creator' !== ps_project_edit_reason( $existing['fields'], $user_id ) || user_can( $user_id, 'ps_edit_own_projects' ) ) {
+		return null; // الإدارة, مسؤول, ou le مسؤول عن المشروع : pas de limite
+	}
+	$emp     = (int) ps_user_employee_id( $user_id );
+	$others  = array_filter( $existing['items'], fn( $i ) => (int) $i['employee_id'] !== $emp );
+	$errors  = array();
+	$by_id   = array_column( $in['items'], null, 'id' );
+	foreach ( $others as $old ) {
+		$new = $by_id[ (int) $old['id'] ] ?? null;
+		$num = static fn( $v ) => null === $v || '' === $v ? null : (float) $v;
+		if ( ! $new || (int) $new['item_type_id'] !== (int) $old['item_type_id'] || (int) $new['employee_id'] !== (int) $old['employee_id']
+			|| $num( $new['quantity'] ) !== $num( $old['quantity'] ) || (string) $new['due_date'] !== (string) $old['due_date'] ) {
+			$errors['items'] = ps__( 'لا يمكنك تعديل أو حذف صنف موظف آخر (للمسؤول عن المشروع والإدارة فقط).' );
+		}
+	}
+	if ( $others ) {
+		foreach ( array( 'offer_amount', 'offer_currency_id', 'purchase_amount', 'purchase_currency_id' ) as $col ) {
+			$a = $in['fields'][ $col ] ?? null;
+			$b = $existing['fields'][ $col ] ?? null;
+			$same = str_ends_with( $col, '_id' ) ? (int) $a === (int) $b : ( ( null === $a || '' === $a ) ? ( null === $b || '' === $b ) : ( null !== $b && '' !== $b && abs( (float) $a - (float) $b ) < 0.0005 ) );
+			if ( ! $same ) {
+				$errors[ str_replace( '_id', '', $col ) ] = ps__( 'مبالغ العرض والشراء يعدّلها المسؤول عن المشروع أو الإدارة فقط (المشروع فيه أصناف موظفين آخرين).' );
+			}
+		}
+	}
+	return $errors ? new WP_Error( 'ps_forbidden', reset( $errors ), array( 'status' => 403, 'errors' => $errors ) ) : null;
+}

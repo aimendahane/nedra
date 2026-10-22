@@ -99,7 +99,19 @@ switch ( $phase ) {
 		$before = unserialize( file_get_contents( $arg ) );
 		$bad    = array();
 		foreach ( $before as $k => $v ) {
-			if ( $v != $snap[ $k ] ) {
+			$now = $snap[ $k ];
+			// Colonnes ajoutées par une migration (ex. margin en 1.4.0) : absentes avant, elles doivent être vides.
+			if ( is_array( $v ) && isset( $v[0] ) && is_array( $v[0] ) && is_array( $now ) ) {
+				foreach ( $now as $i => $row ) {
+					foreach ( array_diff_key( $row, $v[ $i ] ?? $v[0] ) as $col => $val ) {
+						if ( null !== $val ) {
+							$bad[] = "$k.$col";
+						}
+						unset( $now[ $i ][ $col ] );
+					}
+				}
+			}
+			if ( $v != $now ) {
 				$bad[] = $k;
 			}
 		}

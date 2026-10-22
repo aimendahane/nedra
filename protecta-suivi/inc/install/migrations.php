@@ -30,6 +30,7 @@ function ps_migrations(): array {
 		2 => 'ps_migration_002_tasks',
 		3 => 'ps_migration_003_notifications',
 		4 => 'ps_migration_004_task_voice',
+		5 => 'ps_migration_005_broker_margin',
 	);
 	return apply_filters( 'ps_migrations', $migrations );
 }
@@ -83,6 +84,14 @@ function ps_migration_003_notifications(): void {
 function ps_migration_004_task_voice(): void {
 	ps_apply_schema();
 	ps_ensure_storage();
+}
+
+/**
+ * Migration 5 (1.4.0) : « هامش الربح » du الوسيط — ADD COLUMN margin sur {prefix}ps_project_parties
+ * (dbDelta : ajoute seulement ; « الرتبة » existante est gardée).
+ */
+function ps_migration_005_broker_margin(): void {
+	ps_apply_schema();
 }
 
 /**

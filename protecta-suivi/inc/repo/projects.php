@@ -27,7 +27,7 @@ const PS_PROJECT_FIELDS = array(
 );
 
 /** Coordonnées d'un intervenant (الطرف). */
-const PS_PARTY_FIELDS = array( 'person', 'email', 'phone', 'address', 'position', 'rank_title', 'location' );
+const PS_PARTY_FIELDS = array( 'person', 'email', 'phone', 'address', 'position', 'rank_title', 'margin', 'location' );
 
 /** Colonnes « structure » d'un صنف modifiables depuis Fiche Projet. */
 const PS_ITEM_FIELDS = array( 'item_type_id', 'quantity', 'employee_id', 'due_date' );
@@ -699,6 +699,8 @@ function ps_project_to_api( array $p, int $user_id ): array {
 		'canEdit'        => null !== $reason,
 		'editReason'     => $reason,
 		'editUntil'      => 'creator' === $reason ? ps_creator_edit_until( $f ) : null,
+		// 1.4.0 : موظف créateur → seulement ses أصناف ; montants verrouillés s'il y a des أصناف d'autres employés.
+		'ownItemsOnly'   => 'creator' === $reason && ! user_can( $user_id, 'ps_edit_own_projects' ),
 		'canAddFollowup' => user_can( $user_id, 'ps_add_followup' ) && ps_user_involved_in_project( $f, array_column( $p['items'], 'employee_id' ), $user_id ),
 		'canDelete'      => user_can( $user_id, 'ps_delete' ),
 	);

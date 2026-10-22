@@ -38,6 +38,7 @@ PS.settingsTabs = PS.settingsTabs || {};
 			<li><strong>${PS.t('الشركات:')}</strong> ${r.companies.created} ${PS.t('جديدة،')} ${r.companies.reused} ${PS.t('موجودة ·')} <strong>${PS.t('منافسون:')}</strong> ${r.competitors}</li>
 			${conv('urgency', PS.t('الاستعجال'))}${conv('followup', PS.t('حالة المتابعة'))}${conv('source', PS.t('مصدر الطلب'))}${conv('offer', PS.t('حالة العرض'))}
 		</ul>
+		${r.missing && Object.keys(r.missing).length ? html`<details class="ps-mt" open><summary>${PS.t('خانات فارغة في الملف (عدد الأسطر من')} ${r.rows})</summary><ul class="ps-report">${Object.keys(r.missing).map(function (k) { return html`<li>${PS.t(k)}: <strong>${r.missing[k]}</strong></li>`; })}</ul></details>` : ''}
 		${r.warnings.length ? html`<details class="ps-mt" ${r.warnings.length < 8 ? ui.raw('open') : ''}><summary>${PS.t('تنبيهات (')}${r.warnings.length})</summary><ul class="ps-report">${r.warnings.map(function (w) { return html`<li>${w}</li>`; })}</ul></details>` : ''}`;
 	}
 
@@ -45,6 +46,15 @@ PS.settingsTabs = PS.settingsTabs || {};
 		return Promise.all([PS.api.get('backup/list'), L.load()]).then(function (res) {
 			const backups = res[0];
 			box.innerHTML = html`
+			<section class="ps-card">
+				<h2 class="ps-card__title">📊 ${PS.t('استيراد ملف Excel (جدول المتابعة القديم)')}</h2>
+				<p class="ps-muted ps-small">${PS.t('نفس أعمدة الجدول: السنة، رقم، المكان… حالة العرض، NOTE. كل سطر = صنف؛ الأسطر بنفس «رقم» = مشروع واحد. الأرقام (P029…) تبقى كما هي. المشاريع الموجودة لا تُستبدل أبدًا: يمكن إعادة استيراد نفس الملف بعد تحديثه.')}</p>
+				<form data-xl class="ps-grid">
+					<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('ملف Excel (.xlsx) أو CSV *')}</span><input type="file" name="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" required></label>
+				</form>
+				<div class="ps-row"><button type="button" class="ps-btn" data-xl-preview>🔍 ${PS.t('معاينة')}</button><button type="button" class="ps-btn ps-btn--primary" data-xl-run disabled>📥 ${PS.t('استيراد')}</button></div>
+				<div data-xl-report class="ps-mt"></div>
+			</section>
 			<section class="ps-card">
 				<h2 class="ps-card__title">📥 ${PS.t('استيراد النسخة الأولى (backup.json)')}</h2>
 				<p class="ps-muted ps-small">${PS.t('المشاريع الموجودة (نفس رقم المشروع) لا تُستبدل أبدًا. الملفات المرفقة في النسخة الأولى غير موجودة في ملف النسخة ولا تُستورد.')}</p>
@@ -100,6 +110,28 @@ PS.settingsTabs = PS.settingsTabs || {};
 				}).catch(function (e) { out.innerHTML = ''; ui.toast(PS.settingsTabs.errMsg(e), 'error'); });
 			}
 			imp.addEventListener('change', function () { runBtn.disabled = true; });
+
+			// Fichier Excel de l'équipe (1.4.0).
+			const xl = box.querySelector('[data-xl]');
+			const xlRun = box.querySelector('[data-xl-run]');
+			function doXl(dry) {
+				if (!xl.file.files[0]) { ui.toast(PS.t('اختر ملف Excel'), 'error'); return; }
+				const fd = new FormData();
+				fd.append('file', xl.file.files[0]);
+				fd.append('dryRun', dry ? '1' : '0');
+				const out = box.querySelector('[data-xl-report]');
+				out.innerHTML = ('<p class="ps-muted">' + PS.t('جاري المعالجة…') + '</p>');
+				PS.api.post('import/excel', fd).then(function (r) {
+					out.innerHTML = reportHtml(r).html;
+					xlRun.disabled = !(dry && r.imported > 0);
+					if (!dry) { L.load(true); ui.toast(PS.t('تم استيراد ') + r.imported + PS.t(' مشروع'), 'success'); }
+				}).catch(function (e) { out.innerHTML = ''; ui.toast(PS.settingsTabs.errMsg(e), 'error'); });
+			}
+			xl.addEventListener('change', function () { xlRun.disabled = true; });
+			box.querySelector('[data-xl-preview]').onclick = function () { doXl(true); };
+			xlRun.onclick = function () {
+				ui.confirm(PS.t('استيراد المشاريع المعروضة في المعاينة؟'), PS.t('استيراد')).then(function (ok) { if (ok) doXl(false); });
+			};
 			box.querySelector('[data-preview]').onclick = function () { doImport(true); };
 			runBtn.onclick = function () {
 				ui.confirm(PS.t('استيراد المشاريع المعروضة في المعاينة؟'), PS.t('استيراد')).then(function (ok) { if (ok) doImport(false); });

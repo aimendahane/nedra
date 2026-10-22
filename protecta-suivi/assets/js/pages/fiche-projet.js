@@ -22,6 +22,20 @@
 		['companyName', PS.t('اسم الشركة')], ['person', PS.t('الشخص المسؤول')], ['phone', PS.t('الهاتف'), 'tel'], ['email', PS.t('الإيميل'), 'email'],
 		['address', PS.t('العنوان')], ['position', PS.t('المنصب')], ['rank', PS.t('الرتبة')], ['location', PS.t('الموقع')],
 	];
+	/*
+	 * الوسيط (1.4.0) : « هامش الربح » à la place de « الرتبة » (demande du client). Une ancienne الرتبة déjà saisie
+	 * reste affichée pour ne rien perdre.
+	 */
+	function partyFields(role, p) {
+		if (role !== 'broker') return PARTY_FIELDS;
+		return PARTY_FIELDS.reduce(function (out, f) {
+			if (f[0] === 'rank') {
+				out.push(['margin', PS.t('هامش الربح'), 'text', PS.t('مثلًا: 10% أو 5000')]);
+				if (p.rank) out.push(f);
+			} else out.push(f);
+			return out;
+		}, []);
+	}
 	/** Clés des règles « obligatoire » pour chaque champ d'intervenant. */
 	const PARTY_RULE = { companyName: 'company', person: 'person', phone: 'phone', email: 'email' };
 
@@ -74,7 +88,15 @@
 	function rules() { return PS.config.settings.validation || {}; }
 	function isRequired(ruleKey) { return (rules().required || []).indexOf(ruleKey) !== -1; }
 	function readOnly() { return state.mode === 'edit' && !state.project.permissions.canEdit; }
-	function dis() { return readOnly() ? ui.raw(' disabled') : ''; }
+	function dis(force) { return readOnly() || force ? ui.raw(' disabled') : ''; }
+	/** 1.4.0 : صنف d'un autre employé, verrouillé pour un موظف créateur (le serveur vérifie aussi). */
+	function otherItem(it) {
+		const perm = state.mode === 'edit' && state.project.permissions;
+		if (!perm || !perm.ownItemsOnly || !it.id) return false;
+		const saved = (state.project.items || []).find(function (x) { return x.id === it.id; }); // employé ENREGISTRÉ
+		return !!saved && String(saved.employeeId) !== String(PS.config.user.employeeId);
+	}
+	function amountsLocked() { return state.draft.items.some(otherItem); }
 
 	function fieldWrap(label, ruleKey, inner, extraClass) {
 		const req = ruleKey && isRequired(ruleKey);
@@ -86,7 +108,7 @@
 	function input(path, label, type, ruleKey, extra) {
 		const v = ui.getPath(state.draft, path);
 		return fieldWrap(label, ruleKey === undefined ? path : ruleKey,
-			html`<input type="${type || 'text'}" data-bind="${path}" data-key="${extra && extra.key || path}" value="${v === null || v === undefined ? '' : v}"${type === 'number' ? ui.raw(' step="any" min="0" inputmode="decimal"') : ''}${dis()}>`,
+			html`<input type="${type || 'text'}" data-bind="${path}" data-key="${extra && extra.key || path}" value="${v === null || v === undefined ? '' : v}"${type === 'number' ? ui.raw(' step="any" min="0" inputmode="decimal"') : ''}${dis(extra && extra.locked)}>`,
 			extra && extra.cls);
 	}
 
@@ -97,7 +119,7 @@
 		let options = L.options(listKey, v);
 		if (o.addable && !readOnly()) options += '<option value="__add">' + (listKey === 'place' ? PS.t('+ إضافة مكان جديد') : PS.t('+ إضافة صنف جديد')) + '</option>';
 		return fieldWrap(label, ruleKey === undefined ? path : ruleKey,
-			html`<select data-bind="${path}" data-key="${o.key || path}" data-list="${listKey}"${dis()}>${ui.raw(options)}</select>`, o.cls);
+			html`<select data-bind="${path}" data-key="${o.key || path}" data-list="${listKey}"${dis(o.locked)}>${ui.raw(options)}</select>`, o.cls);
 	}
 
 	/* =====================================================================
@@ -143,11 +165,12 @@
 		}
 		return html`<section class="ps-card">
 			<h2 class="ps-card__title">${PS.t('المبالغ')} <span class="ps-muted">(${PS.t('اختياري')})</span></h2>
+			${amountsLocked() ? html`<p class="ps-small ps-muted">🔒 ${PS.t('مبالغ العرض والشراء يعدّلها المسؤول عن المشروع أو الإدارة فقط (المشروع فيه أصناف موظفين آخرين).')}</p>` : ''}
 			<div class="ps-grid">
-				${input('offerAmount', PS.t('مبلغ العرض'), 'number', 'offer_amount', { key: 'offer_amount' })}
-				${select('offerCurrencyId', PS.t('عملة العرض'), 'currency', 'offer_currency_id', { key: 'offer_currency_id' })}
-				${input('purchaseAmount', PS.t('مبلغ الشراء'), 'number', 'purchase_amount', { key: 'purchase_amount' })}
-				${select('purchaseCurrencyId', PS.t('عملة الشراء'), 'currency', 'purchase_currency_id', { key: 'purchase_currency_id' })}
+				${input('offerAmount', PS.t('مبلغ العرض'), 'number', 'offer_amount', { key: 'offer_amount', locked: amountsLocked() })}
+				${select('offerCurrencyId', PS.t('عملة العرض'), 'currency', 'offer_currency_id', { key: 'offer_currency_id', locked: amountsLocked() })}
+				${input('purchaseAmount', PS.t('مبلغ الشراء'), 'number', 'purchase_amount', { key: 'purchase_amount', locked: amountsLocked() })}
+				${select('purchaseCurrencyId', PS.t('عملة الشراء'), 'currency', 'purchase_currency_id', { key: 'purchase_currency_id', locked: amountsLocked() })}
 				${fieldWrap(PS.t('هامش الربح'), null, html`<input value="${margin}" disabled>`)}
 			</div>
 		</section>`;
@@ -166,11 +189,11 @@
 		const linked = p.companyId ? html`<span class="ps-linked" title="${PS.t('مرتبطة بدليل الشركات')}">🔗</span>` : '';
 		return html`<fieldset class="ps-party">
 			<legend>${PS.config.partyRoles[role]} ${linked}</legend>
-			<div class="ps-grid ps-grid--tight">${PARTY_FIELDS.map(function (f) {
+			<div class="ps-grid ps-grid--tight">${partyFields(role, p).map(function (f) {
 				const rk = PARTY_RULE[f[0]] ? role + '.' + PARTY_RULE[f[0]] : null;
 				const errKey = 'parties.' + role + '.' + (PARTY_RULE[f[0]] || f[0]);
 				const v = p[f[0]] || '';
-				return fieldWrap(f[1], rk, html`<input type="${f[2] || 'text'}" data-bind="parties.${role}.${f[0]}" data-key="${errKey}" value="${v}" ${ui.raw(f[0] === 'companyName' ? 'data-company="' + role + '"' : '')}${f[2] === 'tel' || f[2] === 'email' ? ui.raw(' dir="ltr"') : ''}${dis()}>`);
+				return fieldWrap(f[1], rk, html`<input type="${f[2] || 'text'}" data-bind="parties.${role}.${f[0]}" data-key="${errKey}" value="${v}"${f[3] ? ui.raw(' placeholder="' + ui.esc(f[3]) + '"') : ''} ${ui.raw(f[0] === 'companyName' ? 'data-company="' + role + '"' : '')}${f[2] === 'tel' || f[2] === 'email' ? ui.raw(' dir="ltr"') : ''}${dis()}>`);
 			})}</div>
 		</fieldset>`;
 	}
@@ -179,13 +202,14 @@
 		const items = state.draft.items;
 		const edit = state.mode === 'edit';
 		const rows = items.map(function (it, i) {
-			const locked = it.offerStatusCode && it.offerStatusCode !== 'preparing';
-			return html`<tr>
-				<td>${selectCell('items.' + i + '.itemTypeId', 'item_type', 'items.' + i + '.item_type_id', true)}</td>
-				<td><div class="ps-field"><input type="number" step="any" min="0" class="ps-input ps-input--num" data-bind="items.${i}.quantity" data-key="items.${i}.quantity" value="${it.quantity === null ? '' : it.quantity}"${dis()}></div></td>
-				<td>${selectCell('items.' + i + '.employeeId', 'employee', 'items.' + i + '.employee_id')}</td>
-				<td><div class="ps-field ${isRequired('item.due_date') ? 'ps-field--required' : ''}"><input type="date" class="ps-input" data-bind="items.${i}.dueDate" data-key="items.${i}.due_date" value="${it.dueDate || ''}"${dis()}></div></td>
-				${edit ? html`<td>${it.offerStatusCode ? L.offerBadge(it.offerStatusCode) : ''}</td>` : ''}
+			const other = otherItem(it);
+			const locked = other || (it.offerStatusCode && it.offerStatusCode !== 'preparing');
+			return html`<tr ${other ? ui.raw('class="is-locked" title="' + ui.esc(PS.t('لا يمكنك تعديل أو حذف صنف موظف آخر (للمسؤول عن المشروع والإدارة فقط).')) + '"') : ''}>
+				<td>${selectCell('items.' + i + '.itemTypeId', 'item_type', 'items.' + i + '.item_type_id', true, other)}</td>
+				<td><div class="ps-field"><input type="number" step="any" min="0" class="ps-input ps-input--num" data-bind="items.${i}.quantity" data-key="items.${i}.quantity" value="${it.quantity === null ? '' : it.quantity}"${dis(other)}></div></td>
+				<td>${selectCell('items.' + i + '.employeeId', 'employee', 'items.' + i + '.employee_id', false, other)}</td>
+				<td><div class="ps-field ${isRequired('item.due_date') ? 'ps-field--required' : ''}"><input type="date" class="ps-input" data-bind="items.${i}.dueDate" data-key="items.${i}.due_date" value="${it.dueDate || ''}"${dis(other)}></div></td>
+				${edit ? html`<td>${it.offerStatusCode ? L.offerBadge(it.offerStatusCode) : ''}${other ? ' 🔒' : ''}</td>` : ''}
 				<td>${readOnly() || locked ? '' : html`<button type="button" class="ps-icon-btn ps-icon-btn--sm" data-action="remove-item" data-i="${i}" aria-label="${PS.t('حذف الصنف')}">✕</button>`}</td>
 			</tr>`;
 		});
@@ -200,12 +224,12 @@
 		</section>`;
 	}
 
-	function selectCell(path, listKey, errKey, addable) {
+	function selectCell(path, listKey, errKey, addable, locked) {
 		const v = ui.getPath(state.draft, path);
 		const rule = listKey === 'item_type' ? 'item.item_type_id' : 'item.employee_id';
 		let options = L.options(listKey, v);
 		if (addable && !readOnly()) options += ('<option value="__add">+ ' + PS.t('إضافة صنف جديد') + '</option>');
-		return html`<div class="ps-field ${isRequired(rule) ? 'ps-field--required' : ''}"><select class="ps-input" data-bind="${path}" data-key="${errKey}" data-list="${listKey}"${dis()}>${ui.raw(options)}</select></div>`;
+		return html`<div class="ps-field ${isRequired(rule) ? 'ps-field--required' : ''}"><select class="ps-input" data-bind="${path}" data-key="${errKey}" data-list="${listKey}"${dis(locked)}>${ui.raw(options)}</select></div>`;
 	}
 
 	function sectionCompetitors() {

@@ -62,6 +62,7 @@ function ps_register_settings_routes(): void {
 			array( 'methods' => 'POST', 'permission_callback' => ps_rest_permission( 'ps_manage_users' ), 'callback' => 'ps_rest_user_create' ),
 		)
 	);
+	register_rest_route( PS_REST_NS, '/users/access-sheet', array( 'methods' => 'POST', 'permission_callback' => ps_rest_permission( 'ps_manage_users' ), 'callback' => 'ps_rest_users_access_sheet' ) );
 	register_rest_route( PS_REST_NS, '/users/(?P<id>\d+)', array( 'methods' => 'PUT', 'permission_callback' => ps_rest_permission( 'ps_manage_users' ), 'callback' => 'ps_rest_user_update' ) );
 }
 
@@ -464,4 +465,93 @@ function ps_rest_user_update( WP_REST_Request $r ) {
 	}
 	ps_log( null, 'update', 'user', (int) $u->ID, null, null, $u->user_login );
 	return rest_ensure_response( ps_user_to_api( get_userdata( $u->ID ) ) );
+}
+
+/** Mot de passe lisible (sans 0/O, 1/l/I) : à recopier sans erreur depuis la feuille imprimée. */
+function ps_readable_password( int $len = 10 ): string {
+	$chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
+	$out   = '';
+	for ( $i = 0; $i < $len; $i++ ) {
+		$out .= $chars[ random_int( 0, strlen( $chars ) - 1 ) ];
+	}
+	return $out;
+}
+
+/**
+ * « ورقة حسابات الفريق » (1.4.0) : crée en une fois les comptes des employés choisis et/ou donne un nouveau
+ * mot de passe à des comptes existants, puis renvoie UNE SEULE FOIS les accès (nom, identifiant, mot de passe)
+ * pour la feuille à remettre au directeur. Les mots de passe ne sont jamais stockés en clair.
+ *
+ * Corps : { create: [ { employeeId, login, role, email? } ], reset: [ userId… ] }
+ * Tout est vérifié avant d'écrire : une seule erreur → rien n'est créé (422, erreurs par ligne).
+ */
+function ps_rest_users_access_sheet( WP_REST_Request $r ) {
+	$b      = (array) $r->get_json_params();
+	$create = array_values( (array) ( $b['create'] ?? array() ) );
+	$reset  = array_values( array_unique( array_map( 'intval', (array) ( $b['reset'] ?? array() ) ) ) );
+	$errors = array();
+	$logins = array();
+	$emps   = array();
+	foreach ( $create as $i => $c ) {
+		$c     = (array) $c;
+		$login = sanitize_user( (string) ( $c['login'] ?? '' ), true );
+		$emp   = ps_clean_id( $c['employeeId'] ?? null );
+		$email = trim( (string) ( $c['email'] ?? '' ) );
+		if ( strlen( $login ) < 3 ) {
+			$errors[ "create.$i.login" ] = ps__( 'اسم المستخدم (3 أحرف لاتينية على الأقل)' );
+		} elseif ( username_exists( $login ) || isset( $logins[ $login ] ) ) {
+			$errors[ "create.$i.login" ] = ps__( 'اسم المستخدم موجود' );
+		}
+		$logins[ $login ] = true;
+		if ( ! $emp || 'employee' !== ps_list_key_of( $emp ) ) {
+			$errors[ "create.$i.employeeId" ] = ps__( 'موظف غير موجود' );
+		} elseif ( get_users( array( 'meta_key' => 'ps_employee_id', 'meta_value' => (string) $emp, 'fields' => 'ids' ) ) || isset( $emps[ $emp ] ) ) {
+			$errors[ "create.$i.employeeId" ] = ps__( 'هذا الموظف مرتبط بحساب آخر' );
+		}
+		$emps[ $emp ] = true;
+		if ( ! isset( ps_role_definitions()[ (string) ( $c['role'] ?? '' ) ] ) ) {
+			$errors[ "create.$i.role" ] = ps__( 'اختر الدور' );
+		}
+		if ( '' !== $email && ( ! is_email( $email ) || email_exists( $email ) ) ) {
+			$errors[ "create.$i.email" ] = ps__( 'بريد إلكتروني غير صحيح' );
+		}
+	}
+	foreach ( $reset as $uid ) {
+		$u = get_userdata( $uid );
+		if ( ! $u || in_array( 'administrator', $u->roles, true ) || $uid === get_current_user_id() ) {
+			$errors[ "reset.$uid" ] = ps__( 'غير مسموح' );
+		}
+	}
+	if ( ! $create && ! $reset ) {
+		$errors['create'] = ps__( 'اختر موظفًا واحدًا على الأقل' );
+	}
+	if ( $errors ) {
+		return new WP_Error( 'ps_validation', ps__( 'يرجى تصحيح الخانات' ), array( 'status' => 422, 'errors' => $errors ) );
+	}
+
+	$roles = ps_assignable_roles();
+	$out   = array();
+	foreach ( $create as $c ) {
+		$c    = (array) $c;
+		$emp  = (int) $c['employeeId'];
+		$pass = ps_readable_password();
+		$name = (string) ps_list_label( $emp );
+		$id   = wp_insert_user( array( 'user_login' => sanitize_user( (string) $c['login'], true ), 'user_pass' => $pass, 'display_name' => $name, 'user_email' => (string) ( $c['email'] ?? '' ), 'role' => (string) $c['role'] ) );
+		if ( is_wp_error( $id ) ) {
+			return new WP_Error( 'ps_user', $id->get_error_message(), array( 'status' => 422 ) );
+		}
+		update_user_meta( $id, 'ps_employee_id', $emp );
+		update_user_meta( $id, 'ps_daily_email', 1 );
+		ps_log( null, 'create', 'user', $id, null, null, (string) $c['login'] );
+		$out[] = array( 'name' => $name, 'login' => get_userdata( $id )->user_login, 'password' => $pass, 'role' => $roles[ (string) $c['role'] ] ?? '', 'new' => true );
+	}
+	foreach ( $reset as $uid ) {
+		$u    = get_userdata( $uid );
+		$pass = ps_readable_password();
+		wp_set_password( $pass, $uid ); // ferme aussi ses sessions ouvertes
+		ps_log( null, 'update', 'user', $uid, 'password', null, $u->user_login );
+		$role  = array_values( array_intersect( array_keys( $roles ), $u->roles ) )[0] ?? '';
+		$out[] = array( 'name' => $u->display_name, 'login' => $u->user_login, 'password' => $pass, 'role' => $roles[ $role ] ?? '', 'new' => false );
+	}
+	return rest_ensure_response( array( 'site' => home_url( '/' ), 'telegram' => ps_tg_enabled() ? ps_tg_bot() : null, 'accounts' => $out ) );
 }

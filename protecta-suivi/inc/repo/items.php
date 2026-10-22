@@ -48,7 +48,9 @@ function ps_item_can_edit( array $item, array $project, int $user_id ): bool {
 	if ( ! $user_id || ! empty( $project['deleted_at'] ) ) {
 		return false;
 	}
-	if ( ps_project_edit_reason( $project, $user_id ) ) {
+	// الإدارة et le مسؤول : tous les أصناف. Le créateur (fenêtre de 24 h) : seulement les siens (1.4.0).
+	if ( in_array( ps_project_edit_reason( $project, $user_id ), array( 'admin', 'responsible' ), true )
+		|| ( 'creator' === ps_project_edit_reason( $project, $user_id ) && user_can( $user_id, 'ps_edit_own_projects' ) ) ) {
 		return true;
 	}
 	$emp = ps_user_employee_id( $user_id );

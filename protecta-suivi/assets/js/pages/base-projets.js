@@ -19,7 +19,8 @@
 	/** Colonnes : [clé de tri, titre, rendu]. */
 	const COLUMNS = [
 		['receivedYear', PS.t('السنة'), function (r) { return r.receivedYear; }],
-		['seq', PS.t('رقم'), function (r) { return r.seq; }],
+		// Numéro du fichier Excel importé (P029…) affiché tel quel (1.4.0), sinon le numéro d'ordre.
+		['seq', PS.t('رقم'), function (r) { return /^P\d+$/.test(r.projectNo || '') ? r.projectNo : r.seq; }],
 		['placeId', PS.t('المكان'), function (r) { return html`<span title="${L.label(r.placeId)}">${L.short(r.placeId)}</span>`; }],
 		['urgencyId', PS.t('الاستعجال'), function (r) { return L.badge(r.urgencyId); }],
 		['importanceKindId', PS.t('الأهمية كصنف'), function (r) { return L.label(r.importanceKindId); }],

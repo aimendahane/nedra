@@ -9,6 +9,7 @@
  *   GET  /backup/file?name=…           télécharger une sauvegarde du serveur
  *   POST /backup/restore               fichier « file » + confirm=استرجاع
  *   POST /import/prototype             fichier « file » + dryRun (1|0), urgentAs (U|VU), currencyId
+ *   POST /import/excel                 fichier « file » (.xlsx ou .csv de l'équipe) + dryRun (1|0)   (1.4.0)
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -48,6 +49,7 @@ function ps_register_data_routes(): void {
 		)
 	);
 	register_rest_route( PS_REST_NS, '/backup/restore', array( 'methods' => 'POST', 'permission_callback' => $perm, 'callback' => 'ps_rest_backup_restore' ) );
+	register_rest_route( PS_REST_NS, '/import/excel', array( 'methods' => 'POST', 'permission_callback' => $perm, 'callback' => 'ps_rest_import_excel' ) );
 	register_rest_route( PS_REST_NS, '/import/prototype', array( 'methods' => 'POST', 'permission_callback' => $perm, 'callback' => 'ps_rest_import_prototype' ) );
 }
 
@@ -120,4 +122,28 @@ function ps_rest_import_prototype( WP_REST_Request $r ) {
 			get_current_user_id()
 		)
 	);
+}
+
+/** Import du fichier Excel de l'équipe (1.4.0) : même aperçu / import que le prototype + « ce qui manque ». */
+function ps_rest_import_excel( WP_REST_Request $r ) {
+	$f = $r->get_file_params()['file'] ?? null;
+	if ( ! $f || ! empty( $f['error'] ) || empty( $f['tmp_name'] ) ) {
+		return new WP_Error( 'ps_upload', ps__( 'اختر ملف Excel' ), array( 'status' => 400 ) );
+	}
+	if ( (int) $f['size'] > 20 * MB_IN_BYTES ) {
+		return new WP_Error( 'ps_upload_size', ps__( 'الملف كبير جدًا' ), array( 'status' => 400 ) );
+	}
+	$rows = ps_xl_read( $f['tmp_name'] );
+	if ( is_wp_error( $rows ) ) {
+		return $rows;
+	}
+	$conv = ps_xl_to_projects( $rows );
+	if ( is_wp_error( $conv ) ) {
+		return $conv;
+	}
+	$report             = ps_import_prototype( $conv['projects'], array( 'excel' => true ), '0' !== (string) $r->get_param( 'dryRun' ), get_current_user_id() );
+	$report['rows']     = $conv['rows'];
+	$report['missing']  = $conv['missing'];
+	$report['warnings'] = array_merge( $conv['warnings'], $report['warnings'] );
+	return rest_ensure_response( $report );
 }

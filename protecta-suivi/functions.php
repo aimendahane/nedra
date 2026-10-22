@@ -32,6 +32,7 @@ require_once __DIR__ . '/inc/services/telegram.php';
 require_once __DIR__ . '/inc/services/digest.php';
 require_once __DIR__ . '/inc/services/notifications.php';
 require_once __DIR__ . '/inc/services/importer.php';
+require_once __DIR__ . '/inc/services/import-excel.php';
 require_once __DIR__ . '/inc/services/exporter.php';
 require_once __DIR__ . '/inc/cron.php';
 require_once __DIR__ . '/inc/assets.php';

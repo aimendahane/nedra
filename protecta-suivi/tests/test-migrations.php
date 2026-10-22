@@ -138,6 +138,7 @@ ps_assert_same( 0, (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'no
 ps_test_section( 'Migration 4 (1.2.0) : message vocal des tâches' );
 $voice_cols = $wpdb->get_col( 'SHOW COLUMNS FROM ' . ps_table( 'tasks' ) );
 ps_assert( ! array_diff( array( 'voice_path', 'voice_mime', 'voice_size', 'voice_seconds' ), $voice_cols ), 'colonnes voice_* ajoutées à ps_tasks' );
+ps_assert( in_array( 'margin', $wpdb->get_col( 'SHOW COLUMNS FROM ' . ps_table( 'project_parties' ) ), true ) && in_array( 'rank_title', $wpdb->get_col( 'SHOW COLUMNS FROM ' . ps_table( 'project_parties' ) ), true ), 'migration 5 : colonne « هامش الربح » (margin) ajoutée, « الرتبة » gardée' );
 
 ps_test_section( 'Mise à jour : listes et réglages de la الإدارة conservés' );
 

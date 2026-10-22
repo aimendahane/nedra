@@ -1,6 +1,6 @@
 #!/bin/sh
 # Lance TOUS les tests (développement local) : PHP, puis navigateur sur un site de test neuf.
-# step6 = version 1.0.1 (tâches libres, e-mail) ; step7 = 1.0.2 (notifications) ; step8 = 1.2.0 (vocal, Telegram) ; step9 = 1.3.0 (langues).
+# step6 = version 1.0.1 (tâches libres, e-mail) ; step7 = 1.0.2 (notifications) ; step8 = 1.2.0 (vocal, Telegram) ; step9 = 1.3.0 (langues) ; step10 = 1.4.0.
 #   sh tests/run-all.sh            (depuis le dossier du thème)
 # Variables : WP=/srv/wp, SHOTS=/tmp/ps-shots (captures d'écran)
 set -u
@@ -30,6 +30,10 @@ for STEP in step3 step4 step5 step6 step7 step8 step9; do
 	(cd "$WP" && sudo -u www-data env PS_TEST=1 DEMO=1 php "$DIR/e2e-setup.php") >/dev/null || fail "préparation démo $STEP"
 	ONLY=$STEP BASE_URL=http://localhost:8081 SHOTS="$SHOTS" node "$DIR/e2e-app.js" || fail "navigateur $STEP"
 done
+
+echo "\n######## Navigateur : step10 = 1.4.0 (import Excel, comptes, Telegram) ########"
+(cd "$WP" && sudo -u www-data env PS_TEST=1 TELEGRAM=1 php "$DIR/e2e-setup.php") >/dev/null || fail "préparation step10"
+ONLY=step10 BASE_URL=http://localhost:8081 SHOTS="$SHOTS" node "$DIR/e2e-app.js" || fail "navigateur step10"
 
 echo
 [ $FAIL -eq 0 ] && echo "=== TOUS LES TESTS SONT PASSÉS ===" || echo "=== ÉCHECS : voir ci-dessus ==="

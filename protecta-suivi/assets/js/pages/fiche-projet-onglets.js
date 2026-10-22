@@ -174,7 +174,7 @@ PS.projectTabs = (function () {
 		date: PS.t('التاريخ'), entry_date: PS.t('التاريخ'), text: PS.t('النص'), next_date: PS.t('المتابعة القادمة'),
 	};
 	const ROLES = { owner: PS.t('المالك'), executor: PS.t('الشركة المنفذة'), direct: PS.t('الشخص المباشر'), broker: PS.t('الوسيط') };
-	const PARTY_COLS = { company_id: PS.t('الشركة'), person: PS.t('الشخص'), email: PS.t('الإيميل'), phone: PS.t('الهاتف'), address: PS.t('العنوان'), position: PS.t('المنصب'), rank_title: PS.t('الرتبة'), location: PS.t('الموقع') };
+	const PARTY_COLS = { company_id: PS.t('الشركة'), person: PS.t('الشخص'), email: PS.t('الإيميل'), phone: PS.t('الهاتف'), address: PS.t('العنوان'), position: PS.t('المنصب'), rank_title: PS.t('الرتبة'), margin: PS.t('هامش الربح'), location: PS.t('الموقع') };
 
 	function fieldLabel(entity, field) {
 		if (!field) return '';

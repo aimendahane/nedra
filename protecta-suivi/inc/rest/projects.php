@@ -171,7 +171,7 @@ function ps_rest_project_update( WP_REST_Request $r ) {
 	}
 	$body = (array) $r->get_json_params();
 	$in   = ps_project_input( $body );
-	$err  = ps_rest_project_check( $in, $existing, ! empty( $body['confirmDuplicates'] ) );
+	$err  = ps_creator_limits_check( $in, $existing, $uid ) ?? ps_rest_project_check( $in, $existing, ! empty( $body['confirmDuplicates'] ) );
 	if ( $err ) {
 		return $err;
 	}

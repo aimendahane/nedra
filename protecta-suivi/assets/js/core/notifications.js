@@ -91,6 +91,28 @@ PS.notifications = (function () {
 		}).catch(function (e) { if (win) win.close(); ui.toast(e.message, 'error'); });
 	}
 
+	/*
+	 * 1.4.0 (demande du client) : à la connexion, tant que le compte n'est pas lié à Telegram (et que Telegram
+	 * est activé), une fenêtre propose « ربط الآن ». Une fois par session ; elle revient à la connexion suivante.
+	 */
+	function promptTelegram() {
+		let seen = false;
+		try { seen = sessionStorage.getItem('ps_tg_prompt') === '1'; } catch (e) { /* stockage indisponible */ }
+		if (seen) return;
+		PS.api.get('me/telegram', { passive: true }).then(function (r) {
+			tg = r;
+			if (!r.enabled || r.linked) return;
+			try { sessionStorage.setItem('ps_tg_prompt', '1'); } catch (e) { /* idem */ }
+			ui.modal({
+				title: '✈ ' + PS.t('اربط حسابك بـ Telegram'),
+				body: html`<p>${PS.t('لتصلك المهام والرسائل الصوتية والإشعارات مباشرة على هاتفك.')}</p>
+					<ol class="ps-small"><li>${PS.t('اضغط «ربط الآن»: يفتح Telegram.')}</li><li>${PS.t('اضغط Start في Telegram.')}</li><li>${PS.t('ارجع هنا: يظهر «مربوط بـ Telegram».')}</li></ol>`,
+				buttons: [{ id: 'link', label: '✈ ' + PS.t('ربط الآن'), kind: 'primary' }, { id: 'later', label: PS.t('لاحقًا') }],
+				onButton: function (id) { if (id === 'link') linkTelegram(); return true; },
+			});
+		}).catch(function () {});
+	}
+
 	function open() {
 		const panel = el('ps-bell-panel');
 		panel.hidden = false;
@@ -146,6 +168,7 @@ PS.notifications = (function () {
 		document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
 		refresh();
 		setInterval(refresh, 60 * 1000);
+		promptTelegram();
 	}
 
 	document.addEventListener('DOMContentLoaded', init);

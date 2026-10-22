@@ -3,6 +3,31 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.4.0 — 2026-10-22 · base v5 — Import du fichier Excel, comptes de l'équipe, règles موظف
+
+- **Import du fichier Excel de l'équipe** (الإعدادات ← البيانات ← « استيراد ملف Excel ») : .xlsx (lu en PHP pur)
+  ou .csv. Une ligne = un صنف ; les lignes du même « رقم » = un projet. **Numéros P029… conservés** (problème 09).
+  Aperçu d'abord (rien n'est écrit) avec « خانات فارغة » (cases vides par colonne) et avertissements ligne par
+  ligne ; sauvegarde automatique avant l'import ; un numéro déjà présent est ignoré (réimport sans doublon).
+  Corrections : date 2005 → 2025 quand السنة et الشهر concordent ; date vide → 1er du mois ; ligne incomplète
+  ignorée ; « حالة المتابعة » du fichier (تم التسليم / في انتظار معلومات) → statut de l'offre du صنف,
+  « حالة العرض » du fichier (réponse du client) → حالة المتابعة du projet et مقبول / مرفوض ; الوسيط « موقع
+  العطاءات » → مصدر موقع العطاءات ; valeurs de الأهمية (1, 2, 3X, M, L) ajoutées à la liste, jamais perdues ;
+  correspondance tolérante des listes (« مفاتيح و برايز » = « مفاتيح وبرايز », ظ = ض). Testé avec le vrai
+  fichier : 175 lignes → 157 projets importés.
+- **الوسيط : « هامش الربح »** à la place de « الرتبة » (une الرتبة déjà saisie reste affichée). Base v5 :
+  migration 5 additive (colonne `margin` sur ps_project_parties).
+- **Un موظف ne modifie pas les أصناف ni les montants des autres employés**, même pendant ses 24 h de créateur
+  (vérifié par le serveur ; dans la fiche, lignes et montants verrouillés 🔒).
+- **« 📄 ورقة حسابات الفريق »** (الإعدادات ← المستخدمون) : crée en une fois les comptes des employés sans compte
+  (identifiant latin proposé, rôle, e-mail facultatif) et/ou un nouveau mot de passe pour des comptes existants ;
+  feuille à imprimer / PDF ou à télécharger (CSV) avec l'adresse du site et les étapes de première connexion.
+  Mots de passe lisibles (sans 0/O/1/l/I), affichés une seule fois.
+- **Telegram à la connexion** : tant que le compte n'est pas lié (et Telegram activé), une fenêtre « اربط حسابك
+  بـ Telegram » propose « ربط الآن » (une fois par session).
+- Base Projets / export : le numéro du fichier (P029…) est affiché dans la colonne « رقم ».
+- Tests : 724 tests PHP ; navigateur step10.
+
 ## 1.3.5 — 2026-10-22 · base v4 — Cloche : où activer Telegram ; durée des messages vocaux
 
 - Cloche 🔔 : tant que Telegram n'est pas activé, la الإدارة voit « Telegram غير مفعّل بعد » + lien vers

@@ -111,6 +111,7 @@ function ps_schema_sql(): array {
   address varchar(255) DEFAULT NULL,
   position varchar(190) DEFAULT NULL,
   rank_title varchar(190) DEFAULT NULL,
+  margin varchar(60) DEFAULT NULL,
   location varchar(255) DEFAULT NULL,
   created_at datetime NOT NULL,
   updated_at datetime NOT NULL,
