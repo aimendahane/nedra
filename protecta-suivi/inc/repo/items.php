@@ -255,8 +255,9 @@ function ps_items_list( array $args, int $user_id, ?string $today = null ): arra
 	if ( 'me' === $emp ) {
 		$emp = $me ?: -1;
 	}
-	$q   = ps_normalize_text( (string) ( $args['q'] ?? '' ) );
-	$out = array();
+	$q      = ps_normalize_text( (string) ( $args['q'] ?? '' ) );
+	$out    = array();
+	$facets = array( 'all' => 0, 'late' => 0 );
 
 	foreach ( $rows as $r ) {
 		$oc = $code( $r['offer_status_id'] ) ?? 'preparing';
@@ -272,9 +273,6 @@ function ps_items_list( array $args, int $user_id, ?string $today = null ): arra
 		if ( ! empty( $args['year'] ) && (int) $args['year'] !== (int) substr( $r['received_date'], 0, 4 ) ) {
 			continue;
 		}
-		if ( ! empty( $args['offerStatus'] ) && $args['offerStatus'] !== $oc ) {
-			continue;
-		}
 		if ( ! empty( $args['notSentReasonId'] ) && ( 'not_sent' !== $oc || (int) $args['notSentReasonId'] !== (int) $r['not_sent_reason_id'] ) ) {
 			continue;
 		}
@@ -285,9 +283,6 @@ function ps_items_list( array $args, int $user_id, ?string $today = null ): arra
 		$late    = ps_calc_is_offer_late( $oc, $r['due_date'], $urg, $today );
 		$dc      = $code( $r['delivery_status_id'] );
 		$d_late  = ps_calc_is_delivery_late( $oc, $dc, $r['delivery_due_date'], $r['delivery_actual_date'], $today );
-		if ( ! empty( $args['late'] ) && ! $late ) {
-			continue;
-		}
 		if ( ! empty( $args['deliveryLate'] ) && ! $d_late ) {
 			continue;
 		}
@@ -299,6 +294,16 @@ function ps_items_list( array $args, int $user_id, ?string $today = null ): arra
 			if ( ! str_contains( $hay, $q ) ) {
 				continue;
 			}
+		}
+		// 1.7.0 : compteurs par statut (filtres rapides) avant le filtre de statut.
+		++$facets['all'];
+		$facets[ $oc ] = ( $facets[ $oc ] ?? 0 ) + 1;
+		$facets['late'] += $late ? 1 : 0;
+		if ( ! empty( $args['offerStatus'] ) && $args['offerStatus'] !== $oc ) {
+			continue;
+		}
+		if ( ! empty( $args['late'] ) && ! $late ) {
+			continue;
 		}
 		$project = array(
 			'id'                 => (int) $r['project_id'],
@@ -362,6 +367,7 @@ function ps_items_list( array $args, int $user_id, ?string $today = null ): arra
 		'page'         => $page,
 		'perPage'      => $per_page,
 		'needDecision' => count( array_filter( $out, fn( $o ) => $o['computed']['late'] ) ),
+		'facets'       => $facets, // 1.7.0 : all, late, et un compteur par code de statut d'offre
 		'rows'         => array_slice( $out, ( $page - 1 ) * $per_page, $per_page ),
 	);
 }

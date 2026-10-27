@@ -264,3 +264,16 @@ L'ancienne colonne « رقم » (numéro d'ordre) est retirée (doublon de رق�
 ## 5. Projet « لا »
 Visible dans Base Projets (« مشروع؟ = لا » + motif) ; absent de Suivi Offres, de Suivi Livraison et des factures ;
 compté à part dans le Recap. Pas de colonne « مشروع؟ » dans Suivi Offres / Factures (elle vaudrait toujours نعم).
+
+---
+
+# Retour client (27/10/2026) — expérience d'utilisation (version 1.7.0)
+
+Constat du client : « l'expérience n'est pas assez bonne ». Réponses au questionnaire : tous les écrans ; trop de
+colonnes, info difficile à trouver, trop de clics, écrans chargés ; sur PC ET téléphone. Solution choisie :
+**« tableau court »** :
+1. Listes (المشاريع، العروض، الفواتير) : seules les colonnes importantes (ordre de la correction 1.6.1) par défaut ;
+   bouton « الأعمدة » pour en ajouter.
+2. Filtres rapides avec compteurs au-dessus des listes.
+3. Clic sur une ligne → panneau latéral avec tous les détails et les actions (modification de l'offre comprise).
+4. Fiche projet : raccourcis de sections, champs secondaires repliés (« المزيد »), sauf champs obligatoires.

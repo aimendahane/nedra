@@ -3,6 +3,30 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.7.0 — 2026-10-27 · base v7 — Expérience d'utilisation : listes courtes, panneau de détails, fiche allégée
+
+Retour du client : « l'expérience n'est pas assez bonne » — trop de colonnes, informations difficiles à trouver,
+trop de clics, écrans chargés (PC et téléphone). Solution choisie par le client : « tableau court ».
+Aucune migration, aucune donnée touchée (l'API ajoute seulement des compteurs `facets` en lecture).
+- **المشاريع، متابعة العروض، الفواتير** : seules les 8 colonnes importantes (ordre validé en 1.6.1) sont affichées ;
+  bouton « ▦ الأعمدة » pour ajouter les autres (choix mémorisé dans le navigateur, « الافتراضي » pour revenir).
+- **Filtres rapides avec compteurs** au-dessus de chaque liste : الكل / مشروع / غير مشروع ; الكل / ⚠ لازم قرار /
+  une puce par حالة العرض ; في الانتظار / متأخرة / تم الرد / نعم / لا / الكل.
+- **Clic sur une ligne (ou une carte sur téléphone) → panneau latéral** :
+  - projet : tous les détails + « فتح بطاقة المشروع »، الملفات، سجل المتابعة، مهمة جديدة ;
+  - offre : tout se modifie au même endroit (رقم فاتورة العرض، المسؤول / المتابع avec le motif، تاريخ الإرسال،
+    حالة العرض + سبب، ملاحظة العرض) + boutons fichiers et factures. Le tableau ne garde que la liste « حالة العرض »
+    pour un changement rapide ;
+  - facture : son formulaire dans le panneau.
+- **Fiche projet allégée** : raccourcis de sections en haut (📎، مشروع؟، المعلومات، الأطراف، الأصناف، المبالغ،
+  المنافسون) ; champs secondaires (الوسيط، المكان، التصنيف، الأهمية، الرابط، ملاحظة المشروع) dans « المزيد من
+  الحقول » — sauf s'ils sont obligatoires dans les règles ; cartes des intervenants : الشركة، الشخص، الهاتف، الإيميل
+  (+ هامش الربح du الوسيط), le reste dans « المزيد ». Un bloc replié s'ouvre tout seul si un de ses champs est en erreur.
+- **Factures sur téléphone** : cartes au lieu du tableau.
+- Plusieurs changements d'une offre en une fois : les questions (motif de non-envoi, justification, date d'envoi)
+  s'enchaînent au lieu de s'exclure.
+- Tests : tests/test-170.php (compteurs) ; navigateur step16 ; steps 2, 3, 4, 14, 15 adaptés.
+
 ## 1.6.2 — 2026-10-27 · base v7 — « المشاريع » corrigé aussi sur téléphone
 
 Retour du client : « tables المشاريع pas corrigées ». Sur un écran de moins de 760 px (téléphone), la liste n'est pas

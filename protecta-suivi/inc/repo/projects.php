@@ -855,6 +855,7 @@ function ps_projects_list( array $args ): array {
 	$q       = ps_normalize_text( (string) ( $args['q'] ?? '' ) );
 	$filters = ps_project_list_filters();
 	$out     = array();
+	$facets  = array( 'yes' => 0, 'no' => 0 );
 
 	foreach ( $rows as $r ) {
 		$pid   = $r['id'];
@@ -908,10 +909,7 @@ function ps_projects_list( array $args ): array {
 		if ( ! empty( $args['companyId'] ) && (int) ( $owner['company_id'] ?? 0 ) !== (int) $args['companyId'] ) {
 			continue;
 		}
-		// 1.6.0 : « مشروع؟ » — isProject=1 (مشاريع) ou 0 (غير مشروع).
-		if ( isset( $args['isProject'] ) && '' !== (string) $args['isProject'] && (int) $args['isProject'] !== (int) $r['is_project'] ) {
-			continue;
-		}
+
 		$item_labels = array_map( fn( $i ) => $lists[ (int) $i['item_type_id'] ]['label'] ?? '', $its );
 
 		// Recherche générale (texte normalisé).
@@ -929,6 +927,12 @@ function ps_projects_list( array $args ): array {
 			if ( ! str_contains( $hay, $q ) ) {
 				continue;
 			}
+		}
+
+		// 1.6.0 : « مشروع؟ » — isProject=1 (مشاريع) ou 0 (غير مشروع). Compteurs (1.7.0) avant ce filtre.
+		$facets[ 1 === (int) $r['is_project'] ? 'yes' : 'no' ]++;
+		if ( isset( $args['isProject'] ) && '' !== (string) $args['isProject'] && (int) $args['isProject'] !== (int) $r['is_project'] ) {
+			continue;
 		}
 
 		$out[] = array(
@@ -994,6 +998,7 @@ function ps_projects_list( array $args ): array {
 		'total'   => $total,
 		'page'    => $page,
 		'perPage' => $per_page,
+		'facets'  => array( 'isProject' => $facets ), // 1.7.0 : compteurs des filtres rapides
 		'rows'    => array_slice( $out, ( $page - 1 ) * $per_page, $per_page ),
 	);
 }

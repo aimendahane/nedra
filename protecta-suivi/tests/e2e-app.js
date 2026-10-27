@@ -134,7 +134,18 @@ async function step2(browser) {
 	check('3 projets listés', (await page.textContent('[data-results] [role=status]')).includes('3'));
 	const headers = await page.$$eval('.ps-table--list thead th', (e) => e.map((x) => x.textContent.trim()));
 	// 1.6.1 (demande du client) : رقم المشروع، الاسم، مشروع؟ … puis les autres colonnes du cahier §4.
-	check('colonnes : رقم المشروع، الاسم، مشروع؟ d\'abord … رابط ملف المشاريع', headers[0].startsWith('رقم المشروع') && headers[1].startsWith('الاسم') && headers[2].startsWith('مشروع؟') && headers.some((h) => h.startsWith('رابط ملف المشاريع')), headers.slice(0, 4).join('|'));
+	// 1.7.0 : tableau court — les 8 colonnes importantes seulement ; « الأعمدة » ajoute les autres (mémorisé).
+	check('colonnes : رقم المشروع، الاسم، مشروع؟ d\'abord, 8 colonnes par défaut', headers[0].startsWith('رقم المشروع') && headers[1].startsWith('الاسم') && headers[2].startsWith('مشروع؟') && headers.length === 8 && !headers.some((h) => h.startsWith('رابط ملف المشاريع')), headers.join('|'));
+	await page.click('[data-action="columns"]');
+	await page.check('.ps-colpick input[value="link"]');
+	await page.click('.ps-modal [data-btn="ok"]');
+	await page.waitForTimeout(300);
+	const headers2 = await page.$$eval('.ps-table--list thead th', (e) => e.map((x) => x.textContent.trim()));
+	check('« الأعمدة » : رابط ملف المشاريع ajoutée', headers2.length === 9 && headers2[8].startsWith('رابط ملف المشاريع'), headers2.join('|'));
+	await page.click('[data-action="columns"]');
+	await page.click('.ps-modal [data-btn="reset"]');
+	await page.waitForTimeout(300);
+	check('« الافتراضي » : retour aux 8 colonnes', (await page.$$('.ps-table--list thead th')).length === 8);
 	await page.screenshot({ path: SHOTS + '/s2-04-base-projets.png', fullPage: true });
 	await page.fill('[data-search]', 'مستشفي');
 	await page.waitForTimeout(900);
@@ -243,15 +254,15 @@ async function step3(browser) {
 
 	console.log('Étape 3 — Suivi Offres');
 	await go(page, '#/offres');
-	await page.waitForSelector('.ps-table--edit tbody tr');
+	await page.waitForSelector('.ps-table--list tbody tr');
 	// Toutes années confondues : 6 retards en 2026 + E06 (2025) = 7.
 	check('lignes rouges (en retard) : 7, vertes (مقبول) ≥ 7', (await page.$$('tr.is-late')).length === 7 && (await page.$$('tr.is-done')).length >= 7);
 	const decision = (await page.textContent('[data-decision]')).replace(/\s+/g, ' ');
 	check('compteur en haut : « لازم قرار: 7 (منها 3 لك) »', decision.includes('7') && decision.includes('3 لك'), decision);
 	await page.screenshot({ path: SHOTS + '/s3-02-suivi-offres.png', fullPage: true });
-	await page.check('[data-filter="late"]');
+	await page.click('[data-chip="offer"][data-value="late"]');
 	await page.waitForTimeout(800);
-	check('filtre « لازم قرار فقط » : 7 lignes', (await page.$$('.ps-table--edit tbody tr')).length === 7);
+	check('filtre « لازم قرار فقط » : 7 lignes', (await page.$$('.ps-table--list tbody tr')).length === 7);
 	// Mon premier صنف en retard → لم يُرسل (motif obligatoire).
 	const mineSel = 'tr.is-late select[data-field="offerStatusId"]';
 	await page.selectOption(mineSel, { label: 'لم يُرسل' });
@@ -262,7 +273,7 @@ async function step3(browser) {
 	await page.selectOption('.ps-modal [data-q="reason"]', { label: 'السعر غير منافس' });
 	await page.click('.ps-modal [data-btn="ok"]');
 	await page.waitForTimeout(1200);
-	check('après « لم يُرسل » : 6 lignes « لازم قرار »', (await page.$$('.ps-table--edit tbody tr')).length === 6);
+	check('après « لم يُرسل » : 6 lignes « لازم قرار »', (await page.$$('.ps-table--list tbody tr')).length === 6);
 	// Suivant → مرسل : تاريخ إرسال العرض demandé (aujourd'hui proposé).
 	await page.selectOption(mineSel, { label: 'مرسل' });
 	await page.waitForSelector('.ps-modal [data-q="date"]');
@@ -270,7 +281,7 @@ async function step3(browser) {
 	await page.screenshot({ path: SHOTS + '/s3-03-date-envoi.png' });
 	await page.click('.ps-modal [data-btn="ok"]');
 	await page.waitForTimeout(1200);
-	check('après « مرسل » : 5 lignes « لازم قرار »', (await page.$$('.ps-table--edit tbody tr')).length === 5);
+	check('après « مرسل » : 5 lignes « لازم قرار »', (await page.$$('.ps-table--list tbody tr')).length === 5);
 	const menuAfter = await page.$eval('a[href="#/offres"] .ps-nav__count', (e) => e.textContent).catch(() => '0');
 	check('compteur du menu mis à jour : 1', menuAfter === '1', menuAfter);
 
@@ -343,7 +354,7 @@ async function step4(browser) {
 	await page.click('text=السعر غير منافس');
 	await page.waitForTimeout(900);
 	check('clic sur une raison de non-envoi → Suivi Offres filtrée', page.url().includes('#/offres') && page.url().includes('notSentReasonId'));
-	check('2 أصناف « السعر غير منافس »', (await page.$$('.ps-table--edit tbody tr')).length === 2);
+	check('2 أصناف « السعر غير منافس »', (await page.$$('.ps-table--list tbody tr')).length === 2);
 
 	await go(page, '#/recap?year=2026&month=10');
 	await page.waitForSelector('.ps-kpi');
@@ -1063,6 +1074,7 @@ async function step14(browser) {
 	await page.waitForSelector('[data-bind="nonProjectReasonId"]');
 	check('« لا » → liste « سبب عدم اعتباره مشروعا »', (await page.$$eval('[data-bind="nonProjectReasonId"] option', (o) => o.map((x) => x.textContent))).includes('خارج الاختصاص'));
 	await page.selectOption('[data-bind="nonProjectReasonId"]', { label: 'خارج الاختصاص' });
+	await page.click('[data-more="info"] > summary'); // 1.7.0 : ملاحظة المشروع est dans « المزيد »
 	await page.fill('[data-bind="projectNote"]', 'ملاحظة داخلية 1.6.0');
 	await fillProject(page, { name: 'طلب أسعار — غير مشروع', company: 'شركة غير مشروع', companyNew: true });
 	await page.check('input[name="isProject"][value="0"]');
@@ -1094,22 +1106,27 @@ async function step14(browser) {
 	const offerText = await page.textContent('.ps-table');
 	check('Suivi Offres : « غير مشروع » absent ; colonnes المسؤول / المتابع / ملاحظة العرض / الفواتير', !/طلب أسعار — غير مشروع/.test(offerText) && /الموظف المتابع/.test(await page.textContent('.ps-table thead')) && /ملاحظة العرض/.test(await page.textContent('.ps-table thead')));
 	// Changer le المتابع d'une offre : justification obligatoire.
+	// 1.7.0 : la modification se fait dans le panneau de l'offre (clic sur la ligne).
 	const tr = await page.$('.ps-table tbody tr[data-row]:has-text("PRJ-2026")'); // projet de l'année du Recap
 	const rowId = await tr.getAttribute('data-row');
-	const sel = await tr.$('select[data-field="followerEmpId"]');
+	await page.click(`tr[data-row="${rowId}"] td:nth-child(3)`);
+	const sel = await page.waitForSelector('.ps-modal--drawer [data-d="followerEmpId"]');
 	const cur = await sel.inputValue();
 	const other = await sel.$$eval('option', (o, c) => o.map((x) => x.value).find((v) => v && v !== c), cur);
 	await sel.selectOption(other);
-	await page.waitForSelector('.ps-modal [data-q="reason"]');
-	await page.click('.ps-modal [data-btn=ok]');
-	check('المتابع : justification vide → refusée', !!(await page.$('.ps-modal [data-q="reason"]')));
-	await page.fill('.ps-modal [data-q="reason"]', 'إعادة توزيع العمل');
-	await page.click('.ps-modal [data-btn=ok]');
-	await page.waitForTimeout(1200);
+	check('panneau : « سبب التغيير » apparaît dès que المتابع change', await page.isVisible('.ps-modal--drawer [data-d="reason"]'));
+	await page.click('.ps-modal--drawer [data-btn=save]');
+	await page.waitForTimeout(400);
+	check('المتابع : justification vide → refusée', !!(await page.$('.ps-modal--drawer [data-d="reason"]')));
+	await page.fill('.ps-modal--drawer [data-d="reason"]', 'إعادة توزيع العمل');
+	await page.click('.ps-modal--drawer [data-btn=save]');
+	await page.waitForSelector('.ps-modal--drawer', { state: 'detached', timeout: 8000 });
+	await page.waitForTimeout(800);
 	const log = await page.evaluate(async (id) => { const r = (await PS.api.get('items?view=offers&perPage=500')).rows.find((x) => String(x.id) === id); const l = await PS.api.get('projects/' + r.projectId + '/changelog'); return { r: r, l: l.find((x) => x.field === 'follower_emp_id') }; }, rowId);
 	check('المتابع de l\'offre changé + journal avec justification', String(log.r.followerEmpId) === other && log.l && log.l.reason === 'إعادة توزيع العمل', JSON.stringify(log.l));
-	// Factures de l'offre.
-	await page.click(`tr[data-row="${rowId}"] [data-invoices]`);
+	// Factures de l'offre (bouton du panneau).
+	await page.click(`tr[data-row="${rowId}"] td:nth-child(3)`);
+	await page.click('.ps-modal--drawer [data-btn=invoices]');
 	await page.waitForSelector('.ps-modal [data-btn=new]');
 	await page.click('.ps-modal [data-btn=new]');
 	await page.waitForSelector('.ps-modal [name=invoiceNo]');
@@ -1198,7 +1215,8 @@ async function step15(browser) {
 	await page.waitForSelector('.ps-table--list tbody tr');
 	const bp = await heads();
 	check('Base Projets : رقم المشروع | الاسم | مشروع؟ | سبب عدم الاعتبار | المسؤول | المتابع | تاريخ الاستلام | الحالة', bp.slice(0, 8).join('|') === 'رقم المشروع|الاسم|مشروع؟|سبب عدم الاعتبار|المسؤول عن المشروع|الموظف المتابع|تاريخ الاستلام|الحالة', bp.slice(0, 9).join('|'));
-	check('Base Projets : filtre « مشروع؟ » visible sans ouvrir les filtres', await page.isVisible('[data-filter="isProject"]'));
+	const chipTxt = await page.textContent('[data-chips="isProject"]').catch(() => '');
+	check('Base Projets : filtres rapides « مشروع؟ » avec compteurs, sans ouvrir les filtres', await page.isVisible('[data-chip="isProject"][data-value="0"]') && /غير مشروع\s*1/.test(chipTxt), chipTxt.replace(/\s+/g, ' '));
 	await page.click('.ps-sort[data-sort="isProject"]');
 	await page.waitForTimeout(800);
 	await page.click('.ps-sort[data-sort="isProject"]');
@@ -1207,7 +1225,7 @@ async function step15(browser) {
 	check('« مشروع؟ » triable : le projet « لا » en tête, avec son motif', /لا/.test(firstCells[0][0]) && /خارج الاختصاص/.test(firstCells[0][1]), JSON.stringify(firstCells));
 	const yesRow = await page.$$eval('.ps-table--list tbody tr', (t) => t.map((r) => [r.children[3].textContent.trim(), r.children[4].textContent.trim()]).find((c) => /نعم/.test(c[0])));
 	check('projet « نعم » : colonne سبب vide', yesRow && yesRow[1] === '', JSON.stringify(yesRow));
-	await page.selectOption('[data-filter="isProject"]', '0');
+	await page.click('[data-chip="isProject"][data-value="0"]');
 	await page.waitForTimeout(800);
 	check('filtre « مشروع؟ = لا » → seulement les « غير مشروع »', (await page.$$eval('.ps-table--list tbody tr', (t) => t.every((r) => /🚫/.test(r.textContent)))));
 	await page.screenshot({ path: SHOTS + '/s15-02-base-projets.png' });
@@ -1237,8 +1255,8 @@ async function step15(browser) {
 	// Fenêtre « 🧾 » d'une offre : même ordre.
 	await go(page, '#/offres');
 	await page.waitForSelector('.ps-table tbody tr');
-	const btn = await page.$('.ps-table tbody tr:has-text("PRJ-2026") [data-invoices]');
-	await btn.click();
+	await page.click('.ps-table tbody tr:has-text("PRJ-2026") td:nth-child(3)');
+	await page.click('.ps-modal--drawer [data-btn=invoices]');
 	await page.waitForSelector('.ps-modal table');
 	const mh = (await page.$$eval('.ps-modal thead th', (e) => e.map((x) => x.textContent.trim()))).filter((x) => x);
 	check('fenêtre « 🧾 فواتير العرض » : même ordre de colonnes', mh.slice(0, 8).join('|') === fa.slice(0, 8).join('|'), mh.join('|'));
@@ -1264,7 +1282,115 @@ async function step15(browser) {
 	await m.ctx.close();
 }
 
-const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15 };
+/* Version 1.7.0 : listes courtes (colonnes au choix), filtres rapides avec compteurs, panneau de détails, fiche allégée. */
+async function step16(browser) {
+	console.log('1.7.0 — تجربة الاستخدام : جداول قصيرة، لوحة التفاصيل، بطاقة أخف');
+	const { ctx, page } = await newPage(browser, 'idara');
+	const cols = async () => page.$$eval('.ps-table--list thead th', (e) => e.filter((x) => x.textContent.trim()).length);
+
+	// Base Projets : 8 colonnes, panneau au clic.
+	await go(page, '#/projets');
+	await page.waitForSelector('.ps-table--clickable tbody tr[data-open-row]');
+	check('Base Projets : 8 colonnes importantes par défaut', (await cols()) === 8, String(await cols()));
+	const chips = await page.$$eval('[data-chips="isProject"] .ps-qchip', (c) => c.map((x) => x.textContent.replace(/\s+/g, ' ').trim()));
+	check('Base Projets : filtres rapides الكل / مشروع / غير مشروع avec compteurs', chips.length === 3 && chips.every((c) => /\d/.test(c)), chips.join(' | '));
+	await page.click('.ps-table--list tbody tr[data-open-row] >> nth=0 >> td:nth-child(5)');
+	await page.waitForSelector('.ps-modal--drawer');
+	const dr = await page.$eval('.ps-modal--drawer', (d) => ({ kv: d.querySelectorAll('.ps-kv').length, txt: d.textContent, fiche: !!d.querySelector('a[href*="#/projet?id="]'), files: !!d.querySelector('a[href*="tab=files"]') }));
+	check('clic sur une ligne → panneau : tous les détails + actions (البطاقة، الملفات، سجل المتابعة)', dr.kv >= 10 && dr.fiche && dr.files && /المكان/.test(dr.txt), String(dr.kv));
+	await page.screenshot({ path: SHOTS + '/s16-01-projets-panneau.png' });
+	await page.keyboard.press('Escape');
+	check('Échap ferme le panneau', !(await page.$('.ps-modal--drawer')));
+	await page.click('.ps-table--list tbody tr[data-open-row] >> nth=0 >> .ps-pno');
+	await page.waitForSelector('[data-form]');
+	check('le lien du numéro ouvre toujours la fiche (pas le panneau)', page.url().includes('#/projet?id=') && !(await page.$('.ps-modal--drawer')));
+	// Colonnes mémorisées.
+	await go(page, '#/projets');
+	await page.waitForSelector('.ps-table--list tbody tr');
+	await page.click('[data-action="columns"]');
+	await page.check('.ps-colpick input[value="placeId"]');
+	await page.check('.ps-colpick input[value="urgencyId"]');
+	await page.click('.ps-modal [data-btn="ok"]');
+	await page.reload();
+	await page.waitForSelector('.ps-table--list tbody tr');
+	check('« الأعمدة » : choix gardé après rechargement (10 colonnes)', (await cols()) === 10, String(await cols()));
+	await page.click('[data-action="columns"]');
+	await page.click('.ps-modal [data-btn="reset"]');
+	await page.waitForTimeout(300);
+	check('« الافتراضي » : 8 colonnes', (await cols()) === 8);
+	await page.screenshot({ path: SHOTS + '/s16-02-projets.png' });
+
+	// Suivi Offres : chips + panneau de modification.
+	await go(page, '#/offres');
+	await page.waitForSelector('.ps-table--clickable tbody tr[data-open-row]');
+	check('Suivi Offres : 8 colonnes par défaut', (await cols()) === 8, String(await cols()));
+	const lateN = Number(await page.textContent('[data-chip="offer"][data-value="late"] .ps-qchip__n'));
+	await page.click('[data-chip="offer"][data-value="late"]');
+	await page.waitForTimeout(800);
+	check('filtre rapide « لازم قرار » : nombre de lignes = compteur', lateN > 0 && (await page.$$('.ps-table--list tbody tr')).length === lateN, String(lateN));
+	await page.click('[data-chip="offer"][data-value=""]');
+	await page.waitForTimeout(800);
+	await page.screenshot({ path: SHOTS + '/s16-03-offres.png' });
+	const rid = await page.getAttribute('.ps-table--list tbody tr[data-open-row] >> nth=0', 'data-open-row');
+	await page.click(`tr[data-open-row="${rid}"] td:nth-child(3)`);
+	await page.waitForSelector('.ps-modal--drawer [data-d="offerNotes"]');
+	await page.screenshot({ path: SHOTS + '/s16-04-offre-panneau.png' });
+	await page.fill('.ps-modal--drawer [data-d="offerNotes"]', 'ملاحظة من اللوحة 1.7.0');
+	await page.click('.ps-modal--drawer [data-btn=save]');
+	await page.waitForSelector('.ps-modal--drawer', { state: 'detached', timeout: 8000 });
+	const note = await page.evaluate(async (id) => (await PS.api.get('items?view=offers&perPage=500')).rows.find((r) => String(r.id) === id).offerNotes, rid);
+	check('panneau de l\'offre : ملاحظة العرض enregistrée', note === 'ملاحظة من اللوحة 1.7.0', note);
+	check('ملاحظة العرض visible dans le tableau', /ملاحظة من اللوحة 1\.7\.0/.test(await page.textContent(`tr[data-open-row="${rid}"]`)));
+
+	// Factures : chips + panneau.
+	await page.evaluate(async (id) => { await PS.api.post('items/' + id + '/invoices', { invoiceNo: 'FAC-170-1', sentDate: '2026-09-01' }); }, rid);
+	await go(page, '#/factures');
+	await page.waitForSelector('[data-chips="status"]');
+	const lateInv = await page.textContent('[data-chip="status"][data-value="late"]');
+	check('Factures : filtres rapides avec compteurs (متأخرة 1)', /1/.test(lateInv), lateInv.replace(/\s+/g, ' '));
+	await page.click('[data-results] tr[data-open-row] td:nth-child(3)');
+	await page.waitForSelector('.ps-modal--drawer [name=invoiceNo]');
+	check('clic sur une facture → panneau latéral (formulaire)', (await page.inputValue('.ps-modal--drawer [name=invoiceNo]')) === 'FAC-170-1');
+	await page.screenshot({ path: SHOTS + '/s16-05-facture-panneau.png' });
+	await page.click('.ps-modal--drawer [data-btn=close]');
+
+	// Fiche projet : raccourcis, « المزيد ».
+	await go(page, '#/projet');
+	await page.waitForSelector('.ps-jump');
+	check('fiche : 7 raccourcis de sections', (await page.$$('.ps-jump__a')).length === 7);
+	check('fiche : champs secondaires repliés (« المزيد »), الوسيط caché', !(await page.isVisible('[data-bind="intermediaryEmpId"]')) && await page.isVisible('[data-more="info"] > summary'));
+	check('fiche : carte d\'intervenant allégée (العنوان dans « المزيد »)', await page.isVisible('[data-bind="parties.owner.phone"]') && !(await page.isVisible('[data-bind="parties.owner.address"]')));
+	await page.click('[data-more="info"] > summary');
+	await page.selectOption('[data-bind="placeId"]', '__add').catch(() => null); // provoque un nouvel affichage (ajout rapide)
+	if (await page.$('.ps-modal [data-btn=cancel]')) await page.click('.ps-modal [data-btn=cancel]');
+	await page.waitForTimeout(300);
+	check('« المزيد » reste ouvert après un nouvel affichage', await page.isVisible('[data-bind="intermediaryEmpId"]'));
+	await page.click('[data-jump="ps-sec-items"]');
+	await page.waitForTimeout(900);
+	check('raccourci « الأصناف » : la section est à l\'écran', await page.evaluate(() => { const r = document.getElementById('ps-sec-items').getBoundingClientRect(); return r.top >= 0 && r.top < window.innerHeight; }));
+	await go(page, '#/projet');
+	await page.waitForSelector('.ps-jump');
+	await page.screenshot({ path: SHOTS + '/s16-06-fiche.png', fullPage: true });
+	await ctx.close();
+
+	// Téléphone : appui sur une carte → panneau plein écran.
+	const m = await newPage(browser, 'idara', true);
+	await go(m.page, '#/projets');
+	await m.page.waitForSelector('.ps-pcard[data-open-row]');
+	await m.page.click('.ps-pcard[data-open-row] >> nth=0 >> .ps-kvs');
+	await m.page.waitForSelector('.ps-modal--drawer');
+	const w = await m.page.$eval('.ps-modal--drawer .ps-modal__box', (b) => b.getBoundingClientRect().width);
+	check('téléphone : carte → panneau plein écran', w >= 370, String(w));
+	await m.page.screenshot({ path: SHOTS + '/s16-07-mobile-panneau.png' });
+	await m.page.keyboard.press('Escape');
+	await go(m.page, '#/factures?status=all');
+	await m.page.waitForSelector('.ps-icard[data-open-row]');
+	check('téléphone (الفواتير) : cartes, sans défilement horizontal', await m.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
+	await m.page.screenshot({ path: SHOTS + '/s16-08-mobile-factures.png', fullPage: true });
+	await m.ctx.close();
+}
+
+const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15, step16 };
 
 (async () => {
 	const browser = await chromium.launch();

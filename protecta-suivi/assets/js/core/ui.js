@@ -69,13 +69,14 @@ PS.ui = (function () {
 	/* ---------- Modale ---------- */
 
 	/**
-	 * @param {Object} o { title, body (Raw|texte), buttons: [{id, label, kind}], wide }
+	 * @param {Object} o { title, body (Raw|texte), buttons: [{id, label, kind}], wide, drawer }
+	 *   drawer : true → panneau latéral (1.7.0 : détails d'une ligne de liste, plein écran sur téléphone).
 	 * @return Promise<string|null> id du bouton (null si fermée)
 	 */
 	function modal(o) {
 		return new Promise(function (resolve) {
 			const wrap = document.createElement('div');
-			wrap.className = 'ps-modal';
+			wrap.className = 'ps-modal' + (o.drawer ? ' ps-modal--drawer' : '');
 			wrap.innerHTML = html`<div class="ps-modal__box ${o.wide ? 'ps-modal__box--wide' : ''}" role="dialog" aria-modal="true" aria-labelledby="ps-modal-title">
 				<div class="ps-modal__head"><h2 id="ps-modal-title">${o.title || ''}</h2><button type="button" class="ps-icon-btn" data-close aria-label="${PS.t('إغلاق')}">✕</button></div>
 				<div class="ps-modal__body">${o.body || ''}</div>
@@ -202,6 +203,8 @@ PS.ui = (function () {
 			if (!target) { general.push(errors[key]); return; }
 			const field = target.closest('.ps-field') || target.parentNode;
 			field.classList.add('ps-field--error');
+			// 1.7.0 : un champ en erreur dans un bloc « المزيد » replié → ouvrir le bloc.
+			for (let det = field.closest('details'); det; det = det.parentElement && det.parentElement.closest('details')) det.open = true;
 			const msg = document.createElement('span');
 			msg.className = 'ps-field__error';
 			msg.textContent = errors[key];
@@ -348,5 +351,53 @@ PS.ui = (function () {
 		});
 	}).observe(document.documentElement, { childList: true, subtree: true });
 
-	return { esc, html, raw, toast, projectTitle, empty, badge, modal, confirm, autocomplete, showErrors, getPath, setPath, debounce, parseDate, enhanceDates };
+	/* ---------- Listes courtes (1.7.0) : colonnes au choix + filtres rapides ---------- */
+
+	/**
+	 * Colonnes visibles d'une liste : les colonnes « importantes » par défaut, les autres au choix de l'utilisateur
+	 * (mémorisé dans ce navigateur). cols = [{ key, label, important }] ; la 1re colonne est toujours visible.
+	 */
+	function visibleColumns(page, cols) {
+		let saved = null;
+		try { saved = JSON.parse(localStorage.getItem('ps_cols_' + page) || 'null'); } catch (e) { saved = null; }
+		return cols.filter(function (c, i) { return i === 0 || (saved ? saved.indexOf(c.key) !== -1 : c.important); });
+	}
+
+	/** Fenêtre « الأعمدة » : cocher les colonnes à afficher. → Promise<bool> (true si changé). */
+	function chooseColumns(page, cols) {
+		const shown = visibleColumns(page, cols).map(function (c) { return c.key; });
+		return modal({
+			title: PS.t('الأعمدة الظاهرة'),
+			body: html`<p class="ps-small ps-muted">${PS.t('الأعمدة المهمة ظاهرة دائمًا افتراضيًا. اختر ما تريد إضافته (يُحفظ في هذا المتصفح).')}</p>
+				<div class="ps-colpick">${cols.map(function (c, i) {
+					return html`<label class="ps-check"><input type="checkbox" value="${c.key}" ${shown.indexOf(c.key) !== -1 ? raw('checked') : ''} ${i === 0 ? raw('disabled') : ''}> ${c.label}${c.important ? html` <span class="ps-muted ps-small">★</span>` : ''}</label>`;
+				})}</div>`,
+			buttons: [{ id: 'ok', label: PS.t('تطبيق'), kind: 'primary' }, { id: 'reset', label: PS.t('الافتراضي') }, { id: 'cancel', label: PS.t('إلغاء') }],
+			onButton: function (id, wrap) {
+				try {
+					if (id === 'reset') localStorage.removeItem('ps_cols_' + page);
+					if (id === 'ok') localStorage.setItem('ps_cols_' + page, JSON.stringify(Array.prototype.map.call(wrap.querySelectorAll('.ps-colpick input:checked'), function (x) { return x.value; })));
+				} catch (e) { /* stockage indisponible : colonnes par défaut */ }
+				return true;
+			},
+		}).then(function (r) { return r === 'ok' || r === 'reset'; });
+	}
+
+	/**
+	 * Filtres rapides avec compteur : [{ value, label, count, tone }] ; la valeur active est mise en avant.
+	 * tone : '' | 'danger' | 'muted' | 'success'.
+	 */
+	function chips(name, items, current) {
+		return html`<div class="ps-chips" role="group" data-chips="${name}">${items.map(function (it) {
+			const on = String(current || '') === String(it.value || '');
+			return html`<button type="button" class="ps-qchip ${it.tone ? 'ps-qchip--' + it.tone : ''} ${on ? 'is-on' : ''}" data-chip="${name}" data-value="${it.value || ''}" aria-pressed="${on ? 'true' : 'false'}">${it.label}${it.count === undefined || it.count === null ? '' : html` <span class="ps-qchip__n">${it.count}</span>`}</button>`;
+		})}</div>`;
+	}
+
+	/** Ligne « libellé : valeur » (panneaux de détails, cartes téléphone). Rien si la valeur est vide. */
+	function kv(label, value) {
+		return value === '' || value === null || value === undefined ? '' : html`<div class="ps-kv"><span class="ps-kv__k">${label}</span><span class="ps-kv__v">${value}</span></div>`;
+	}
+
+	return { esc, html, raw, toast, projectTitle, empty, badge, modal, confirm, autocomplete, showErrors, getPath, setPath, debounce, parseDate, enhanceDates, visibleColumns, chooseColumns, chips, kv };
 })();

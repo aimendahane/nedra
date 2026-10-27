@@ -1179,5 +1179,19 @@
 	"سبب عدم الاعتبار": "Reason (not a project)",
 	"موظف الصنف": "Item employee",
 	"🚫 لا": "🚫 No",
-	"🧾 الفواتير": "🧾 Invoices"
+	"🧾 الفواتير": "🧾 Invoices",
+	"أقسام البطاقة": "Form sections",
+	"الأعمدة": "Columns",
+	"الأعمدة الظاهرة": "Visible columns",
+	"الأعمدة المهمة ظاهرة دائمًا افتراضيًا. اختر ما تريد إضافته (يُحفظ في هذا المتصفح).": "Important columns are shown by default. Pick the ones you want to add (saved in this browser).",
+	"الافتراضي": "Default",
+	"التفاصيل": "Details",
+	"العرض": "Offer",
+	"المزيد": "More",
+	"المزيد من الحقول": "More fields",
+	"المعلومات": "Information",
+	"تفاصيل العرض": "Offer details",
+	"تفاصيل المشروع": "Project details",
+	"فتح بطاقة المشروع": "Open project form",
+	"معبأة": "filled"
 }

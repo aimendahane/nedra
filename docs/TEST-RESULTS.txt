@@ -1,6 +1,6 @@
 ######## Tests PHP ########
 Site de test installé (thème : protecta-suivi)
-Thème v1.6.2 — WordPress 6.7-alpha-58716 — PHP 8.3.6
+Thème v1.7.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 
 == Activation : base de données ==
   ✔ ps_db_version = dernière migration
@@ -790,9 +790,9 @@ Thème v1.6.2 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ inc/i18n/en.json : JSON valide
   ✔ inc/i18n/fr.json : JSON valide
   ✔ en.json et fr.json ont exactement les mêmes clés
-  ✔ en : chaque texte de l'interface a sa traduction (1163 textes)
+  ✔ en : chaque texte de l'interface a sa traduction (1175 textes)
   ✔ en : traductions non vides, sans arabe, mêmes %s / %d que l'original
-  ✔ fr : chaque texte de l'interface a sa traduction (1163 textes)
+  ✔ fr : chaque texte de l'interface a sa traduction (1175 textes)
   ✔ fr : traductions non vides, sans arabe, mêmes %s / %d que l'original
 
 == Langues : traduction côté serveur ==
@@ -1113,8 +1113,25 @@ Thème v1.6.2 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 == 1.6.0 : sauvegarde / restauration avec factures ==
   ✔ la sauvegarde JSON contient les factures et les alertes
 
+== 1.7.0 : compteurs « مشروع؟ » de Base Projets ==
+  ✔ 3 projets créés (2 « نعم », 1 « لا »)
+  ✔ filtre « لا » : 1 ligne, compteurs نعم 2 / لا 1 (avant le filtre)
+  ✔ les compteurs suivent la recherche
+  ✔ API GET /projects renvoie facets
+
+== 1.7.0 : compteurs par حالة العرض (Suivi Offres) ==
+  ✔ facets.all = 2 offres (le « غير مشروع » exclu) = somme des statuts
+  ✔ facets.late = 1 (أجل dépassé), 2 « قيد الإعداد »
+  ✔ filtre لازم قرار : 1 ligne, compteurs inchangés
+  ✔ filtre « مرسل » : 0 ligne, compteurs inchangés
+
+== 1.7.0 : compteurs des factures ==
+  ✔ filtre « لا » : aucune facture
+  ✔ facets : 2 factures, 1 en attente (en retard), 1 « نعم »
+  ✔ les compteurs des factures suivent la recherche
+
 ----------------------------------------
-Résultat : 921 réussis, 0 échoués
+Résultat : 932 réussis, 0 échoués
 
 ######## Navigateur : fondations (étape 1) ########
 Page de connexion
@@ -1161,7 +1178,9 @@ Tous les contrôles navigateur sont passés.
   ✔ « حفظ رغم ذلك » : PRJ-2026-002 enregistré
 Étape 2 — Base Projets
   ✔ 3 projets listés
-  ✔ colonnes : رقم المشروع، الاسم، مشروع؟ d'abord … رابط ملف المشاريع
+  ✔ colonnes : رقم المشروع، الاسم، مشروع؟ d'abord, 8 colonnes par défaut
+  ✔ « الأعمدة » : رابط ملف المشاريع ajoutée
+  ✔ « الافتراضي » : retour aux 8 colonnes
   ✔ recherche tolérante (« مستشفي ») : 1 résultat
   ✔ filtres conservés dans l'adresse
   ✔ filtre الاستعجال = VU : 1 projet
@@ -1382,6 +1401,7 @@ Tous les contrôles navigateur sont passés.
   ✔ fichier choisi à la création → joint au projet
   ✔ Base Projets : filtre « غير مشروع » + colonne مشروع؟ = لا
   ✔ Suivi Offres : « غير مشروع » absent ; colonnes المسؤول / المتابع / ملاحظة العرض / الفواتير
+  ✔ panneau : « سبب التغيير » apparaît dès que المتابع change
   ✔ المتابع : justification vide → refusée
   ✔ المتابع de l'offre changé + journal avec justification
   ✔ facture enregistrée : آخر أجل للرد calculé (16/10/2026) et en retard
@@ -1401,7 +1421,7 @@ Tous les contrôles navigateur sont passés.
   ✔ « لا » : السبب affiché immédiatement sous la case (même bloc)
   ✔ projet existant : الملفات en haut de البيانات, puis مشروع؟, puis le reste
   ✔ Base Projets : رقم المشروع | الاسم | مشروع؟ | سبب عدم الاعتبار | المسؤول | المتابع | تاريخ الاستلام | الحالة
-  ✔ Base Projets : filtre « مشروع؟ » visible sans ouvrir les filtres
+  ✔ Base Projets : filtres rapides « مشروع؟ » avec compteurs, sans ouvrir les filtres
   ✔ « مشروع؟ » triable : le projet « لا » en tête, avec son motif
   ✔ projet « نعم » : colonne سبب vide
   ✔ filtre « مشروع؟ = لا » → seulement les « غير مشروع »
@@ -1419,6 +1439,31 @@ Tous les contrôles navigateur sont passés.
 
 Tous les contrôles navigateur sont passés.
 
+######## Navigateur : step16 (jeu de démonstration) ########
+1.7.0 — تجربة الاستخدام : جداول قصيرة، لوحة التفاصيل، بطاقة أخف
+  ✔ Base Projets : 8 colonnes importantes par défaut
+  ✔ Base Projets : filtres rapides الكل / مشروع / غير مشروع avec compteurs
+  ✔ clic sur une ligne → panneau : tous les détails + actions (البطاقة، الملفات، سجل المتابعة)
+  ✔ Échap ferme le panneau
+  ✔ le lien du numéro ouvre toujours la fiche (pas le panneau)
+  ✔ « الأعمدة » : choix gardé après rechargement (10 colonnes)
+  ✔ « الافتراضي » : 8 colonnes
+  ✔ Suivi Offres : 8 colonnes par défaut
+  ✔ filtre rapide « لازم قرار » : nombre de lignes = compteur
+  ✔ panneau de l'offre : ملاحظة العرض enregistrée
+  ✔ ملاحظة العرض visible dans le tableau
+  ✔ Factures : filtres rapides avec compteurs (متأخرة 1)
+  ✔ clic sur une facture → panneau latéral (formulaire)
+  ✔ fiche : 7 raccourcis de sections
+  ✔ fiche : champs secondaires repliés (« المزيد »), الوسيط caché
+  ✔ fiche : carte d'intervenant allégée (العنوان dans « المزيد »)
+  ✔ « المزيد » reste ouvert après un nouvel affichage
+  ✔ raccourci « الأصناف » : la section est à l'écran
+  ✔ téléphone : carte → panneau plein écran
+  ✔ téléphone (الفواتير) : cartes, sans défilement horizontal
+
+Tous les contrôles navigateur sont passés.
+
 ######## Navigateur : step10 = 1.4.0 (import Excel, comptes, Telegram) ########
 1.4.0 — import Excel, numéros P…, هامش الربح, ورقة الحسابات, Telegram à la connexion
   ✔ connexion : fenêtre « اربط حسابك بـ Telegram » (compte non lié)
@@ -1433,35 +1478,3 @@ Tous les contrôles navigateur sont passés.
 Tous les contrôles navigateur sont passés.
 
 === TOUS LES TESTS SONT PASSÉS ===
-
-######## release-check 1.6.1 -> 1.6.2 ########
-######## 1. Installation vierge : /home/user/nedra/dist/protecta-suivi-1.6.2.zip ########
-Téléverser le thème : OK
-Thème actif : protecta-suivi 1.6.2
-######## 2. Mise à jour depuis protecta-suivi-1.6.1.zip avec données ########
-Téléverser le thème : OK
-Thème actif : protecta-suivi 1.6.1
-Données de test insérées (projet PRJ-2026-001, comptes wafa et idara, fichier, listes personnalisées)
-Photographie : 1 projet(s), 110 valeurs de listes
-Mise à jour (remplacer le thème) : OK
-Thème après mise à jour : 1.6.2 · base v7
-AUCUNE PERTE : projets, أصناف, intervenants, sociétés, suivis, fichiers, journal, listes, réglages et comptes identiques
-######## Navigateur ########
-Installation vierge (zip final) — http://localhost:8082
-  ✔ page de connexion personnalisée (pas WordPress)
-  ✔ connexion (administrateur du site) → application
-  ✔ saisie d'un projet : PRJ-2026-001 enregistré
-  ✔ Recap : 1 projet
-  ✔ Recap : graphique mensuel dessiné
-  ✔ dossier des sauvegardes inaccessible par URL
-Mise à jour (ancienne version → zip final) avec données — http://localhost:8083
-  ✔ compte créé en 0.1.0 : connexion OK après mise à jour
-  ✔ projet d'avant la mise à jour présent dans Base Projets
-  ✔ سجل المتابعة conservé
-  ✔ fichier joint conservé et téléchargeable
-  ✔ Suivi Livraison : le صنف مقبول d'avant est suivi
-  ✔ Recap après mise à jour : 1 projet, 1 مؤكدة, 12 500 LYD
-  ✔ listes personnalisées conservées (« كهرباء عامة »)
-
-Contrôles de livraison : tout est passé.
-=== LIVRAISON VÉRIFIÉE ===

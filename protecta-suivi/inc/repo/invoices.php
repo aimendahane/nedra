@@ -237,6 +237,7 @@ function ps_invoices_list( array $args, int $user_id, ?string $today = null ): a
 	$emp    = 'me' === $emp ? ( $me ?: -1 ) : $emp;
 	$status = (string) ( $args['status'] ?? 'all' );
 	$q      = ps_normalize_text( (string) ( $args['q'] ?? '' ) );
+	$facets = array( 'all' => 0, 'pending' => 0, 'yes' => 0, 'no' => 0, 'answered' => 0, 'late' => 0 );
 	$out    = array();
 	// 1.6.1 : nombre de fichiers de chaque facture (colonne 📎).
 	$files = array();
@@ -258,6 +259,14 @@ function ps_invoices_list( array $args, int $user_id, ?string $today = null ): a
 		if ( ! empty( $args['month'] ) && (int) $args['month'] !== (int) substr( $r['sent_date'], 5, 2 ) ) {
 			continue;
 		}
+		if ( '' !== $q && ! str_contains( ps_normalize_text( $r['invoice_no'] . ' ' . $r['project_no'] . ' ' . $r['project_name'] . ' ' . ps_project_old_no( $r ) . ' ' . $r['offer_invoice_no'] ), $q ) ) {
+			continue;
+		}
+		// 1.7.0 : compteurs des filtres rapides (avant le filtre de statut).
+		++$facets['all'];
+		$facets[ $r['answer'] ]++;
+		$facets['answered'] += 'pending' !== $r['answer'] ? 1 : 0;
+		$facets['late']     += $api['computed']['late'] ? 1 : 0;
 		$keep = match ( $status ) {
 			'pending'  => 'pending' === $r['answer'],
 			'late'     => $api['computed']['late'],
@@ -268,9 +277,6 @@ function ps_invoices_list( array $args, int $user_id, ?string $today = null ): a
 		if ( ! $keep ) {
 			continue;
 		}
-		if ( '' !== $q && ! str_contains( ps_normalize_text( $r['invoice_no'] . ' ' . $r['project_no'] . ' ' . $r['project_name'] . ' ' . ps_project_old_no( $r ) . ' ' . $r['offer_invoice_no'] ), $q ) ) {
-			continue;
-		}
 		$out[] = $api;
 	}
 	$total    = count( $out );
@@ -279,6 +285,7 @@ function ps_invoices_list( array $args, int $user_id, ?string $today = null ): a
 	return array(
 		'total'     => $total,
 		'replyDays' => $days,
+		'facets'    => $facets,
 		'counts'    => array(
 			'pending' => count( array_filter( $out, fn( $o ) => 'pending' === $o['answer'] ) ),
 			'late'    => count( array_filter( $out, fn( $o ) => $o['computed']['late'] ) ),

@@ -126,11 +126,33 @@
 	 * Sections du formulaire
 	 * ================================================================== */
 
+	/**
+	 * Bloc repliable « المزيد » (1.7.0) : champs secondaires. Son état ouvert / fermé est gardé pendant la saisie
+	 * (state.more) ; il s'ouvre aussi tout seul quand un de ses champs est en erreur (PS.ui.showErrors).
+	 * fields = [[clé de règle, html]] : un champ OBLIGATOIRE n'est jamais caché (il reste dans `visible`).
+	 */
+	function moreBlock(id, fields, label) {
+		const visible = [];
+		const hidden = [];
+		const keep = function (f) { return f[0] === true || (f[0] && isRequired(f[0])); }; // true = toujours visible
+		fields.forEach(function (f) { (keep(f) ? visible : hidden).push(f[1]); });
+		const filled = fields.filter(function (f) { return !keep(f) && f[2]; }).length;
+		return html`${visible}${hidden.length ? html`<details class="ps-more ps-span-all" data-more="${id}" ${state.more && state.more[id] ? ui.raw('open') : ''}>
+			<summary>${label || PS.t('المزيد من الحقول')} <span class="ps-muted ps-small">(${hidden.length}${filled ? ' · ' + filled + ' ' + PS.t('معبأة') : ''})</span></summary>
+			<div class="ps-grid">${hidden}</div>
+		</details>` : ''}`;
+	}
+
+	/*
+	 * 1.7.0 (« trop chargé ») : en premier les champs dont on se sert tous les jours — numéros, nom, dates, المسؤول،
+	 * المتابع، حالة المتابعة، الاستعجال، المصدر، NOTE ; le reste (الوسيط، المكان، التصنيف، الأهمية، الرابط، ملاحظة
+	 * المشروع) dans « المزيد » sauf s'il est obligatoire dans les règles de الإعدادات.
+	 */
 	function sectionInfo() {
 		const d = state.draft;
 		const isRejected = L.followupType(d.followupStatusId) === 'rejected';
 		const offerNoBtn = !readOnly() ? html`<button type="button" class="ps-btn ps-btn--small" data-action="suggest-offer">${PS.t('اقتراح رقم')}</button>` : '';
-		return html`<section class="ps-card">
+		return html`<section class="ps-card" id="ps-sec-info">
 			<h2 class="ps-card__title">${PS.t('معلومات المشروع')} <span class="ps-muted">(${PS.t('الخانات الصفراء إجبارية')})</span></h2>
 			<div class="ps-grid">
 				${state.mode === 'edit' ? fieldWrap(PS.t('رقم المشروع'), null, html`<input value="${state.project.projectNo}" disabled>`) : fieldWrap(PS.t('رقم المشروع'), null, html`<input value="${PS.t('يتولّد تلقائيًا عند الحفظ')}" disabled>`)}
@@ -141,19 +163,21 @@
 				${input('sentDate', PS.t('تاريخ إرسال العرض'), 'date', 'sent_date', { key: 'sent_date' })}
 				${select('responsibleEmpId', PS.t('المسؤول عن المشروع'), 'employee', 'responsible_emp_id', { key: 'responsible_emp_id' })}
 				${select('followerEmpId', PS.t('الموظف المتابع'), 'employee', 'follower_emp_id', { key: 'follower_emp_id' })}
-				${select('intermediaryEmpId', PS.t('الموظف الوسيط'), 'employee', 'intermediary_emp_id', { key: 'intermediary_emp_id' })}
-				${select('placeId', PS.t('المكان'), 'place', 'place_id', { key: 'place_id', addable: true })}
-				${select('categoryId', PS.t('التصنيف'), 'category', 'category_id', { key: 'category_id' })}
-				${select('urgencyId', PS.t('درجة الاستعجال'), 'urgency', 'urgency_id', { key: 'urgency_id' })}
-				${select('importanceKindId', PS.t('الأهمية كصنف'), 'importance', 'importance_kind_id', { key: 'importance_kind_id' })}
-				${select('importanceSizeId', PS.t('الأهمية كحجم'), 'importance', 'importance_size_id', { key: 'importance_size_id' })}
-				${select('sourceId', PS.t('مصدر الطلب'), 'source', 'source_id', { key: 'source_id' })}
 				${select('followupStatusId', PS.t('حالة المتابعة'), 'followup_status', 'followup_status_id', { key: 'followup_status_id' })}
 				${isRejected || d.lossReasonId ? select('lossReasonId', PS.t('سبب الرفض أو الخسارة'), 'loss_reason', 'loss_reason_id', { key: 'loss_reason_id' }) : ''}
-				${input('filesLink', PS.t('رابط ملف المشاريع (Drive / OneDrive)'), 'url', 'files_link', { key: 'files_link', cls: 'ps-span-2' })}
+				${select('urgencyId', PS.t('درجة الاستعجال'), 'urgency', 'urgency_id', { key: 'urgency_id' })}
+				${select('sourceId', PS.t('مصدر الطلب'), 'source', 'source_id', { key: 'source_id' })}
+				${moreBlock('info', [
+					['intermediary_emp_id', select('intermediaryEmpId', PS.t('الموظف الوسيط'), 'employee', 'intermediary_emp_id', { key: 'intermediary_emp_id' }), d.intermediaryEmpId],
+					['place_id', select('placeId', PS.t('المكان'), 'place', 'place_id', { key: 'place_id', addable: true }), d.placeId],
+					['category_id', select('categoryId', PS.t('التصنيف'), 'category', 'category_id', { key: 'category_id' }), d.categoryId],
+					['importance_kind_id', select('importanceKindId', PS.t('الأهمية كصنف'), 'importance', 'importance_kind_id', { key: 'importance_kind_id' }), d.importanceKindId],
+					['importance_size_id', select('importanceSizeId', PS.t('الأهمية كحجم'), 'importance', 'importance_size_id', { key: 'importance_size_id' }), d.importanceSizeId],
+					['files_link', input('filesLink', PS.t('رابط ملف المشاريع (Drive / OneDrive)'), 'url', 'files_link', { key: 'files_link', cls: 'ps-span-2' }), d.filesLink],
+					['project_note', fieldWrap(PS.t('ملاحظة المشروع'), 'project_note', html`<textarea rows="3" data-bind="projectNote" data-key="project_note" placeholder="${PS.t('ملاحظة داخلية عن المشروع (غير نص الطلب)')}"${dis()}>${d.projectNote || ''}</textarea>`, 'ps-span-all'), d.projectNote],
+				])}
 			</div>
 			${fieldWrap(PS.t('NOTE / نص الطلب'), 'note', html`<textarea rows="4" data-bind="note" data-key="note"${dis()}>${d.note || ''}</textarea>`, 'ps-mt')}
-			${fieldWrap(PS.t('ملاحظة المشروع'), 'project_note', html`<textarea rows="3" data-bind="projectNote" data-key="project_note" placeholder="${PS.t('ملاحظة داخلية عن المشروع (غير نص الطلب)')}"${dis()}>${d.projectNote || ''}</textarea>`, 'ps-mt')}
 		</section>`;
 	}
 
@@ -176,7 +200,7 @@
 	 */
 	function sectionYesNo() {
 		const d = state.draft;
-		return html`<section class="ps-card ps-card--yesno" data-section="is-project">
+		return html`<section class="ps-card ps-card--yesno" data-section="is-project" id="ps-sec-yesno">
 			<div class="ps-grid">
 				${yesNo()}
 				${d.isProject === false ? html`${select('nonProjectReasonId', PS.t('سبب عدم اعتباره مشروعا'), 'non_project_reason', null, { key: 'non_project_reason_id', cls: 'ps-field--required' })}
@@ -188,14 +212,14 @@
 	/** Projet existant : les fichiers joints en haut de l'onglet البيانات (même bloc que l'onglet الملفات). */
 	function sectionFilesTop() {
 		if (state.mode === 'create') return sectionNewFiles();
-		return html`<div data-top-files data-section="files"><div class="ps-loading">${PS.t('جاري التحميل…')}</div></div>`;
+		return html`<div data-top-files data-section="files" id="ps-sec-files"><div class="ps-loading">${PS.t('جاري التحميل…')}</div></div>`;
 	}
 
 	/** Fichiers choisis avant l'enregistrement d'un NOUVEAU projet (envoyés juste après la création). */
 	function sectionNewFiles() {
 		if (state.mode !== 'create') return '';
 		const list = state.pendingFiles || [];
-		return html`<section class="ps-card" data-section="files">
+		return html`<section class="ps-card" data-section="files" id="ps-sec-files">
 			<h2 class="ps-card__title">📎 ${PS.t('الملفات المرفقة')} <span class="ps-muted">(${PS.t('اختياري')})</span></h2>
 			<p class="ps-muted ps-small">${PS.t('تُرفع الملفات مباشرة بعد حفظ المشروع (نفس قواعد الملفات المرفقة).')}</p>
 			<input type="file" multiple data-new-files>
@@ -211,7 +235,7 @@
 		} else if (state.mode === 'edit') {
 			margin = PS.t('— (يلزم المبلغان بنفس العملة)');
 		}
-		return html`<section class="ps-card">
+		return html`<section class="ps-card" id="ps-sec-amounts">
 			<h2 class="ps-card__title">${PS.t('المبالغ')} <span class="ps-muted">(${PS.t('اختياري')})</span></h2>
 			${amountsLocked() ? html`<p class="ps-small ps-muted">🔒 ${PS.t('مبالغ العرض والشراء يعدّلها المسؤول عن المشروع أو الإدارة فقط (المشروع فيه أصناف موظفين آخرين).')}</p>` : ''}
 			<div class="ps-grid">
@@ -225,11 +249,22 @@
 	}
 
 	function sectionParties() {
-		return html`<section class="ps-card">
+		return html`<section class="ps-card" id="ps-sec-parties">
 			<h2 class="ps-card__title">${PS.t('الأطراف المتدخلة')}</h2>
 			<p class="ps-muted ps-small">${PS.t('اكتب اسم الشركة واختر من الدليل لتعبئة بياناتها، أو أضف شركة جديدة.')} ${PS.t('بيانات الشركة المرتبطة (🔗: الشخص، الهاتف…) تأتي من دليل الشركات ولا تُكتب في كل مشروع.')}</p>
 			<div class="ps-parties">${Object.keys(PS.config.partyRoles).map(partyCard)}</div>
 		</section>`;
+	}
+
+	/*
+	 * 1.7.0 : carte d'intervenant allégée — الشركة، الشخص، الهاتف، الإيميل (+ هامش الربح du الوسيط) visibles ; العنوان،
+	 * المنصب، الرتبة، الموقع dans « المزيد ».
+	 */
+	const PARTY_MAIN = { companyName: 1, person: 1, phone: 1, email: 1, margin: 1 };
+	function moreParty(role, p, fields) {
+		return moreBlock('party-' + role, fields.map(function (f) {
+			return PARTY_MAIN[f[0]] ? [true, f[1]] : [null, f[1], f[2]];
+		}), PS.t('المزيد'));
 	}
 
 	function partyCard(role) {
@@ -237,14 +272,14 @@
 		const linked = p.companyId ? html`<span class="ps-linked" title="${PS.t('مرتبطة بدليل الشركات')}">🔗</span>` : '';
 		return html`<fieldset class="ps-party">
 			<legend>${PS.config.partyRoles[role]} ${linked}</legend>
-			<div class="ps-grid ps-grid--tight">${partyFields(role, p).map(function (f) {
+			<div class="ps-grid ps-grid--tight">${moreParty(role, p, partyFields(role, p).map(function (f) {
 				const rk = PARTY_RULE[f[0]] ? role + '.' + PARTY_RULE[f[0]] : null;
 				const errKey = 'parties.' + role + '.' + (PARTY_RULE[f[0]] || f[0]);
 				const v = p[f[0]] || '';
 				// 1.6.0 : coordonnée venant de l'annuaire (société liée) → lecture seule ici, modifiée dans « الشركات ».
 				const fromDir = p.companyId && (p.fromDirectory || []).indexOf(f[0]) !== -1;
-				return fieldWrap(f[1] + (fromDir ? ' 🔗' : ''), rk, html`<input type="${f[2] || 'text'}" data-bind="parties.${role}.${f[0]}" data-key="${errKey}" value="${v}"${f[3] ? ui.raw(' placeholder="' + ui.esc(f[3]) + '"') : ''} ${ui.raw(f[0] === 'companyName' ? 'data-company="' + role + '"' : '')}${f[2] === 'tel' || f[2] === 'email' ? ui.raw(' dir="ltr"') : ''}${fromDir ? ui.raw(' readonly data-from-dir title="' + ui.esc(PS.t('من دليل الشركات — يُعدّل من صفحة الشركات')) + '"') : ''}${dis()}>`);
-			})}</div>
+				return [f[0], fieldWrap(f[1] + (fromDir ? ' 🔗' : ''), rk, html`<input type="${f[2] || 'text'}" data-bind="parties.${role}.${f[0]}" data-key="${errKey}" value="${v}"${f[3] ? ui.raw(' placeholder="' + ui.esc(f[3]) + '"') : ''} ${ui.raw(f[0] === 'companyName' ? 'data-company="' + role + '"' : '')}${f[2] === 'tel' || f[2] === 'email' ? ui.raw(' dir="ltr"') : ''}${fromDir ? ui.raw(' readonly data-from-dir title="' + ui.esc(PS.t('من دليل الشركات — يُعدّل من صفحة الشركات')) + '"') : ''}${dis()}>`), v];
+			}))}</div>
 		</fieldset>`;
 	}
 
@@ -263,7 +298,7 @@
 				<td>${readOnly() || locked ? '' : html`<button type="button" class="ps-icon-btn ps-icon-btn--sm" data-action="remove-item" data-i="${i}" aria-label="${PS.t('حذف الصنف')}">✕</button>`}</td>
 			</tr>`;
 		});
-		return html`<section class="ps-card">
+		return html`<section class="ps-card" id="ps-sec-items">
 			<h2 class="ps-card__title">${PS.t('الأصناف المطلوبة')} ${isRequired('items.min_one') ? html`<span class="ps-muted">(${PS.t('صنف واحد على الأقل')})</span>` : ''}</h2>
 			<div data-key="items"></div>
 			<div class="ps-table-wrap"><table class="ps-table ps-table--form">
@@ -297,12 +332,18 @@
 				<td>${readOnly() ? '' : html`<button type="button" class="ps-icon-btn ps-icon-btn--sm" data-action="remove-comp" data-i="${i}" aria-label="${PS.t('حذف المنافس')}">✕</button>`}</td>
 			</tr>`;
 		});
-		return html`<section class="ps-card">
+		return html`<section class="ps-card" id="ps-sec-competitors">
 			<h2 class="ps-card__title">${PS.t('المنافسون')}</h2>
 			${rows.length ? html`<div class="ps-table-wrap"><table class="ps-table ps-table--form">
 				<thead><tr><th>${PS.t('المنافس')}</th><th>${PS.t('الماركة')}</th><th>${PS.t('الأصناف')}</th><th>${PS.t('ملاحظات')}</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : html`<p class="ps-muted">${PS.t('لا يوجد منافسون مسجلون.')}</p>`}
 			${readOnly() ? '' : html`<div class="ps-row"><button type="button" class="ps-btn" data-action="add-comp">+ ${PS.t('منافس')}</button></div>`}
 		</section>`;
+	}
+
+	/** 1.7.0 : raccourcis vers les sections de la fiche (moins de défilement). */
+	function jumpNav() {
+		const items = [['files', '📎 ' + PS.t('الملفات')], ['yesno', PS.t('مشروع؟')], ['info', PS.t('المعلومات')], ['parties', PS.t('الأطراف')], ['items', PS.t('الأصناف')], ['amounts', PS.t('المبالغ')], ['competitors', PS.t('المنافسون')]];
+		return html`<nav class="ps-jump" aria-label="${PS.t('أقسام البطاقة')}">${items.map(function (x) { return html`<button type="button" class="ps-jump__a" data-jump="ps-sec-${x[0]}">${x[1]}</button>`; })}</nav>`;
 	}
 
 	function formActions() {
@@ -359,7 +400,7 @@
 
 	function render() {
 		let body = '';
-		if (state.mode === 'create' || state.tab === 'data') body = html`${sectionFilesTop()}${formHtml()}`;
+		if (state.mode === 'create' || state.tab === 'data') body = html`${jumpNav()}${sectionFilesTop()}${formHtml()}`;
 		else body = html`<div data-tab-body><div class="ps-loading">${PS.t('جاري التحميل…')}</div></div>`;
 		state.main.innerHTML = html`${header()}${tabs()}${body}`.html;
 		bindForm();
@@ -383,6 +424,10 @@
 		form.addEventListener('input', onInput);
 		form.addEventListener('change', onChange);
 		form.addEventListener('submit', function (e) { e.preventDefault(); });
+		// « المزيد » : garder ouvert / fermé entre deux affichages (l'événement toggle ne remonte pas → capture).
+		form.addEventListener('toggle', function (e) {
+			if (e.target.dataset && e.target.dataset.more) { state.more = state.more || {}; state.more[e.target.dataset.more] = e.target.open; }
+		}, true);
 		if (!readOnly()) {
 			form.querySelectorAll('[data-company]').forEach(bindCompany);
 			form.querySelectorAll('[data-competitor]').forEach(bindCompetitor);
@@ -442,6 +487,12 @@
 	}
 
 	function onClick(e) {
+		const jump = e.target.closest('[data-jump]');
+		if (jump) {
+			const target = document.getElementById(jump.dataset.jump);
+			if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			return;
+		}
 		const tab = e.target.closest('[data-tab]');
 		if (tab) {
 			if (state.tab === 'data' && state.dirty && !window.confirm(PS.t('توجد تعديلات غير محفوظة. متابعة؟'))) return;

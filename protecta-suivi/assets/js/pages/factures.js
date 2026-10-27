@@ -6,7 +6,8 @@
  * Une facture « في الانتظار » dont l'échéance est dépassée est en retard (jours affichés).
  *
  * PS.invoices.forOffer(row)   : factures d'une offre (liste + « فاتورة جديدة ») — depuis Suivi Offres ;
- * PS.invoices.open(id)        : fiche d'une facture (modification, fichiers) ;
+ * PS.invoices.open(id, opts)  : fiche d'une facture (modification, fichiers) ; opts.drawer = panneau latéral ;
+ * 1.7.0 — page : tableau court (colonnes au choix), filtres rapides avec compteurs, clic sur la ligne → panneau.
  * PS.invoices.offerFiles(row) : fichiers joints de l'offre.
  */
 window.PS = window.PS || {};
@@ -67,7 +68,7 @@ PS.invoices = (function () {
 	/**
 	 * Formulaire d'une facture (nouvelle : inv = null). → Promise<facture enregistrée | null>
 	 */
-	function form(ctx, inv) {
+	function form(ctx, inv, opts) {
 		const v = inv || { invoiceNo: '', sentDate: PS.config.today, answer: 'pending', amount: null, currencyId: (L.byCode('currency', 'LYD') || {}).id, note: '' };
 		const ro = inv && !inv.canEdit;
 		const dis = ro ? ui.raw(' disabled') : '';
@@ -75,7 +76,8 @@ PS.invoices = (function () {
 		let saved = null;
 		return ui.modal({
 			title: inv ? PS.t('الفاتورة') + ' ' + inv.invoiceNo : PS.t('فاتورة جديدة'),
-			wide: true,
+			wide: !(opts && opts.drawer),
+			drawer: !!(opts && opts.drawer), // 1.7.0 : panneau latéral depuis la page « الفواتير »
 			body: html`<p class="ps-small ps-muted">${PS.t('المشروع')}: <strong>${ctx.projectName || ''}</strong> <span dir="ltr">${ctx.projectNo || ''}</span> · ${PS.t('الصنف')}: ${L.label(ctx.itemTypeId)}</p>
 				<div class="ps-grid" data-inv-form>
 					<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('رقم الفاتورة *')}</span><input name="invoiceNo" data-key="invoiceNo" dir="ltr" value="${v.invoiceNo}"${dis}></label>
@@ -128,30 +130,39 @@ PS.invoices = (function () {
 	 * جواب الحريف، المبلغ والعملة، 📎، ملاحظة الفاتورة — puis الصنف et الموظف المتابع. Même ordre sur la page « الفواتير »
 	 * et dans la fenêtre « 🧾 فواتير العرض ». openAttr = attribut du bouton qui ouvre la facture (data-open / data-btn).
 	 */
-	const HEADERS = [PS.t('رقم الفاتورة'), PS.t('رقم المشروع'), PS.t('تاريخ الإرسال'), PS.t('آخر أجل'), PS.t('جواب الحريف'), PS.t('المبلغ والعملة'), '📎', PS.t('ملاحظة الفاتورة'), PS.t('الصنف'), PS.t('الموظف المتابع')];
+	/*
+	 * Colonnes : [identifiant, titre, rendu(facture, open), importante]. 1.7.0 : la page « الفواتير » n'affiche par
+	 * défaut que les 8 importantes (« الأعمدة » pour الصنف et الموظف المتابع) ; la fenêtre de l'offre les montre toutes.
+	 */
+	function btnOpen(v, open, content, cls, title) { return ui.raw('<button type="button" class="' + cls + '"' + (title ? ' title="' + ui.esc(title) + '"' : '') + ' ' + open(v.id) + '>' + content + '</button>'); }
+	const COLS = [
+		['invoiceNo', PS.t('رقم الفاتورة'), function (v, open) { return html`<span dir="ltr">${btnOpen(v, open, '<strong>' + ui.esc(v.invoiceNo) + '</strong>', 'ps-link')}</span>`; }, true],
+		['projectNo', PS.t('رقم المشروع'), function (v) { return ui.projectTitle({ id: v.projectId, name: v.projectName, no: v.projectNo, oldNo: v.oldNo }, { numberFirst: true }); }, true],
+		['sentDate', PS.t('تاريخ الإرسال'), function (v) { return F.date(v.sentDate); }, true],
+		['deadline', PS.t('آخر أجل'), function (v) { return deadlineHtml(v); }, true],
+		['answer', PS.t('جواب الحريف'), function (v) { return answerBadge(v); }, true],
+		['amount', PS.t('المبلغ والعملة'), function (v) { return html`<span dir="ltr">${v.amount !== null ? F.money(v.amount, L.code(v.currencyId)) : ''}</span>`; }, true],
+		['files', '📎', function (v, open) { return btnOpen(v, open, '📎 ' + (v.filesCount || 0), 'ps-btn ps-btn--small ps-nowrap', PS.t('ملفات الفاتورة')); }, true],
+		['note', PS.t('ملاحظة الفاتورة'), function (v) { return html`<span class="ps-clip" title="${v.note || ''}">${v.note || ''}</span>`; }, true],
+		['itemTypeId', PS.t('الصنف'), function (v) { return L.label(v.itemTypeId); }, false],
+		['followerEmpId', PS.t('الموظف المتابع'), function (v) { return L.label(v.followerEmpId); }, false],
+	];
+	const NOWRAP = { sentDate: 1, deadline: 1, amount: 1 };
 
-	function headRow(extra) {
-		return html`<tr>${HEADERS.map(function (h) { return html`<th>${h}</th>`; })}${extra ? html`<th></th>` : ''}</tr>`;
+	function headRow(extra, cols) {
+		return html`<tr>${(cols || COLS).map(function (c) { return html`<th>${c[1]}</th>`; })}${extra ? html`<th></th>` : ''}</tr>`;
 	}
 
-	function rowCells(v, open) {
-		const btn = function (content, cls, title) { return ui.raw('<button type="button" class="' + cls + '"' + (title ? ' title="' + ui.esc(title) + '"' : '') + ' ' + open(v.id) + '>' + content + '</button>'); };
-		return html`<td dir="ltr">${btn('<strong>' + ui.esc(v.invoiceNo) + '</strong>', 'ps-link')}</td>
-			<td>${ui.projectTitle({ id: v.projectId, name: v.projectName, no: v.projectNo, oldNo: v.oldNo }, { numberFirst: true })}</td>
-			<td class="ps-nowrap">${F.date(v.sentDate)}</td>
-			<td class="ps-nowrap">${deadlineHtml(v)}</td>
-			<td>${answerBadge(v)}</td>
-			<td class="ps-nowrap" dir="ltr">${v.amount !== null ? F.money(v.amount, L.code(v.currencyId)) : ''}</td>
-			<td>${btn('📎 ' + (v.filesCount || 0), 'ps-btn ps-btn--small ps-nowrap', PS.t('ملفات الفاتورة'))}</td>
-			<td><span class="ps-clip" title="${v.note || ''}">${v.note || ''}</span></td>
-			<td>${L.label(v.itemTypeId)}</td>
-			<td>${L.label(v.followerEmpId)}</td>`;
+	function rowCells(v, open, cols) {
+		return html`${(cols || COLS).map(function (c) { return html`<td class="${NOWRAP[c[0]] ? 'ps-nowrap' : ''}">${c[2](v, open)}</td>`; })}`;
 	}
+
+	function colDefs() { return COLS.map(function (c) { return { key: c[0], label: c[1], important: c[3], col: c }; }); }
 
 	/** Fiche d'une facture (lien des alertes : #/factures/ID). */
-	function open(id) {
+	function open(id, opts) {
 		return PS.api.get('invoices/' + id).then(function (inv) {
-			return form({ projectName: inv.projectName, projectNo: inv.projectNo, itemTypeId: inv.itemTypeId, itemId: inv.itemId }, inv);
+			return form({ projectName: inv.projectName, projectNo: inv.projectNo, itemTypeId: inv.itemTypeId, itemId: inv.itemId }, inv, opts);
 		}).catch(function (e) { ui.toast(e.message, 'error'); return null; });
 	}
 
@@ -199,7 +210,7 @@ PS.invoices = (function () {
 		}).catch(function (e) { ui.toast(e.message, 'error'); });
 	}
 
-	return { forOffer: forOffer, open: open, offerFiles: offerFiles, deadlineHtml: deadlineHtml, answerBadge: answerBadge, headRow: headRow, rowCells: rowCells };
+	return { forOffer: forOffer, open: open, offerFiles: offerFiles, deadlineHtml: deadlineHtml, answerBadge: answerBadge, headRow: headRow, rowCells: rowCells, colDefs: colDefs };
 })();
 
 /* ---------------------------------------------------------------------- */
@@ -216,28 +227,58 @@ PS.invoices = (function () {
 
 	function toolbar() {
 		const p = st.params;
-		const opt = function (v, label) { return '<option value="' + v + '"' + ((p.status || 'pending') === v ? ' selected' : '') + '>' + ui.esc(label) + '</option>'; };
 		return html`<div class="ps-card ps-toolbar"><div class="ps-toolbar__row">
 			<input type="search" class="ps-input ps-search" placeholder="🔍 ${PS.t('بحث: رقم الفاتورة، المشروع')}" value="${p.q || ''}" data-search>
-			<select class="ps-input ps-input--auto" data-filter="status" aria-label="${PS.t('الحالة')}">${ui.raw(opt('pending', PS.t('في الانتظار')) + opt('late', PS.t('متأخرة')) + opt('answered', PS.t('تم الرد')) + opt('yes', PS.t('نعم')) + opt('no', PS.t('لا')) + opt('all', PS.t('الكل')))}</select>
 			<select class="ps-input ps-input--auto" data-filter="employeeId" aria-label="${PS.t('الموظف المتابع')}">${ui.raw('<option value="">' + PS.t('كل الموظفين') + '</option>' + (PS.config.user.employeeId ? '<option value="me"' + (p.employeeId === 'me' ? ' selected' : '') + '>' + PS.t('فواتيري فقط') + '</option>' : '') + L.options('employee', p.employeeId, { noEmpty: true }))}</select>
 		</div></div>`;
+	}
+
+	/** 1.7.0 : filtres rapides avec compteurs (remplacent la liste « الحالة »). */
+	function chipsHtml() {
+		const f = st.data.facets || {};
+		return ui.chips('status', [
+			{ value: 'pending', label: PS.t('في الانتظار'), count: f.pending },
+			{ value: 'late', label: '⚠ ' + PS.t('متأخرة'), count: f.late, tone: f.late ? 'danger' : '' },
+			{ value: 'answered', label: PS.t('تم الرد'), count: f.answered },
+			{ value: 'yes', label: PS.t('نعم'), count: f.yes },
+			{ value: 'no', label: PS.t('لا'), count: f.no },
+			{ value: 'all', label: PS.t('الكل'), count: f.all },
+		], st.params.status || 'pending');
+	}
+
+	/* Téléphone : une carte par facture, mêmes champs importants dans le même ordre. */
+	function cardHtml(v) {
+		return html`<div class="ps-icard ${v.computed.late ? 'is-late' : ''}" data-open-row="${v.id}" role="button" tabindex="0">
+			<div class="ps-pcard__top"><strong dir="ltr">${v.invoiceNo}</strong> ${PS.invoices.answerBadge(v)}</div>
+			<div class="ps-kvs">
+				${ui.kv(PS.t('رقم المشروع'), ui.projectTitle({ name: v.projectName, no: v.projectNo, oldNo: v.oldNo }, { link: false, numberFirst: true }))}
+				${ui.kv(PS.t('تاريخ الإرسال'), F.date(v.sentDate))}
+				${ui.kv(PS.t('آخر أجل'), PS.invoices.deadlineHtml(v))}
+				${ui.kv(PS.t('المبلغ والعملة'), v.amount !== null ? html`<span dir="ltr">${F.money(v.amount, L.code(v.currencyId))}</span>` : '')}
+				${ui.kv('📎', String(v.filesCount || 0))}
+				${ui.kv(PS.t('ملاحظة الفاتورة'), v.note || '')}
+			</div>
+		</div>`;
 	}
 
 	function renderRows() {
 		const d = st.data;
 		const box = st.main.querySelector('[data-results]');
 		st.main.querySelector('[data-inv-counts]').innerHTML = html`<span class="ps-badge">${PS.t('في الانتظار')}: <strong>${d.counts.pending}</strong></span> <span class="ps-badge ps-badge--danger">${PS.t('متأخرة')}: <strong>${d.counts.late}</strong></span>`.html;
+		const head = html`<div class="ps-list-head">${chipsHtml()}<button type="button" class="ps-btn ps-btn--ghost ps-btn--small ps-desktop-only" data-action="columns">▦ ${PS.t('الأعمدة')}</button></div>`;
 		if (!d.rows.length) {
-			box.innerHTML = ui.empty('🧾', PS.t('لا توجد فواتير تطابق الفلاتر. تُضاف الفواتير من صفحة «متابعة العروض» (زر 🧾).')).html;
+			box.innerHTML = html`${head}${ui.empty('🧾', PS.t('لا توجد فواتير تطابق الفلاتر. تُضاف الفواتير من صفحة «متابعة العروض» (زر 🧾).'))}`.html;
 			return;
 		}
-		box.innerHTML = html`<p class="ps-muted ps-small" role="status">${d.total} ${PS.t('فاتورة')} · ${PS.t('آخر أجل للرد = تاريخ الإرسال +')} ${d.replyDays} ${PS.t('يوم')}</p>
-			<div class="ps-table-wrap"><table class="ps-table ps-table--list">
-				<thead>${PS.invoices.headRow(false)}</thead>
+		const cols = ui.visibleColumns('factures', PS.invoices.colDefs()).map(function (c) { return c.col; });
+		const open = function (id) { return 'data-open="' + id + '"'; };
+		box.innerHTML = html`${head}<p class="ps-muted ps-small" role="status">${d.total} ${PS.t('فاتورة')} · ${PS.t('آخر أجل للرد = تاريخ الإرسال +')} ${d.replyDays} ${PS.t('يوم')}</p>
+			<div class="ps-table-wrap ps-desktop-only"><table class="ps-table ps-table--list ps-table--clickable">
+				<thead>${PS.invoices.headRow(false, cols)}</thead>
 				<tbody>${d.rows.map(function (v) {
-					return html`<tr class="${v.computed.late ? 'is-late' : ''}" data-inv="${v.id}">${PS.invoices.rowCells(v, function (id) { return 'data-open="' + id + '"'; })}</tr>`;
-				})}</tbody></table></div>`.html;
+					return html`<tr class="${v.computed.late ? 'is-late' : ''}" data-inv="${v.id}" data-open-row="${v.id}" tabindex="0">${PS.invoices.rowCells(v, open, cols)}</tr>`;
+				})}</tbody></table></div>
+			<div class="ps-cards ps-mobile-only">${d.rows.map(cardHtml)}</div>`.html;
 	}
 
 	function load() {
@@ -259,12 +300,23 @@ PS.invoices = (function () {
 		const onSearch = ui.debounce(function (v) { setParam('q', v.trim()); }, 300);
 		st.main.querySelector('[data-search]').addEventListener('input', function (e) { onSearch(e.target.value); });
 		st.main.addEventListener('change', function (e) { if (e.target.dataset.filter) setParam(e.target.dataset.filter, e.target.value); });
+		const openInv = function (id) { PS.invoices.open(Number(id), { drawer: true }).then(load); };
+		st.main.addEventListener('keydown', function (e) {
+			const row = e.target.closest && e.target.closest('[data-open-row]');
+			if (row && e.target === row && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openInv(row.dataset.openRow); }
+		});
 		st.main.addEventListener('click', function (e) {
+			const chip = e.target.closest('[data-chip]');
+			if (chip) { setParam('status', chip.dataset.value); return; }
+			if (e.target.closest('[data-action="columns"]')) { ui.chooseColumns('factures', PS.invoices.colDefs()).then(function (ch) { if (ch) renderRows(); }); return; }
 			const b = e.target.closest('[data-open]');
-			if (b) PS.invoices.open(Number(b.dataset.open)).then(load);
+			if (b) { openInv(b.dataset.open); return; }
+			// Clic sur la ligne / la carte (hors lien du projet) → la facture dans le panneau latéral.
+			const row = e.target.closest('[data-open-row]');
+			if (row && !e.target.closest('a, button, input, select')) openInv(row.dataset.openRow);
 		});
 		return load().then(function () {
-			if (st.params.id) PS.invoices.open(Number(st.params.id)).then(load);
+			if (st.params.id) PS.invoices.open(Number(st.params.id), { drawer: true }).then(load);
 		});
 	}
 

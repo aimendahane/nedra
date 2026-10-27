@@ -728,3 +728,61 @@ a.ps-ptitle:hover .ps-ptitle__num { color: var(--ps-primary); text-decoration: u
 .ps-kv__k { color: var(--ps-text-muted); white-space: nowrap; }
 .ps-kv__v { text-align: end; overflow-wrap: anywhere; }
 .ps-pcard.is-non-project { border-inline-start: 4px solid var(--ps-text-muted); }
+
+/* ===================== 1.7.0 — expérience utilisateur des listes ===================== */
+/* Panneau latéral (détails d'une ligne) : variante de la modale. */
+.ps-modal--drawer { justify-content: flex-end; align-items: stretch; padding: 0; }
+.ps-modal--drawer .ps-modal__box {
+	width: min(560px, 100%); max-height: none; height: 100%;
+	border-radius: 0; border-block: 0; border-inline-end: 0;
+	animation: ps-drawer var(--ps-dur-slow) var(--ps-ease) both;
+}
+@keyframes ps-drawer { from { transform: translateX(-24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ps-modal--drawer .ps-modal__box { animation: none; } }
+.ps-drawer__head { display: grid; gap: 6px; margin-bottom: 12px; }
+.ps-drawer__badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.ps-drawer__section { border-top: 1px solid var(--ps-border); padding-top: 12px; margin-top: 12px; }
+.ps-drawer__section h3 { margin: 0 0 8px; font-size: 14px; color: var(--ps-text-muted); }
+.ps-drawer .ps-kvs, .ps-modal--drawer .ps-kvs { gap: 6px; }
+.ps-modal--drawer .ps-kv { font-size: 14px; padding: 4px 0; border-bottom: 1px dashed var(--ps-border); }
+
+/* Filtres rapides avec compteur. */
+.ps-chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 12px; }
+.ps-qchip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--ps-border); background: var(--ps-surface); color: var(--ps-text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background var(--ps-dur) var(--ps-ease), border-color var(--ps-dur) var(--ps-ease); }
+.ps-qchip:hover { border-color: var(--ps-text-soft); }
+.ps-qchip.is-on { background: var(--ps-primary); border-color: var(--ps-primary); color: var(--ps-on-accent); }
+.ps-qchip__n { min-width: 22px; padding: 0 7px; border-radius: 999px; background: var(--ps-surface-3); color: var(--ps-text-muted); font-size: 12px; line-height: 20px; text-align: center; }
+.ps-qchip.is-on .ps-qchip__n { background: var(--ps-surface); color: var(--ps-primary); }
+.ps-qchip--danger .ps-qchip__n { background: var(--ps-danger); color: var(--ps-on-status); }
+.ps-qchip--muted { color: var(--ps-text-muted); }
+
+/* Tableaux courts : lignes cliquables (ouvrent le panneau de détails). */
+.ps-table--clickable tbody tr[data-open-row] { cursor: pointer; }
+.ps-table--clickable tbody tr[data-open-row]:hover > td { background: var(--ps-surface-2); }
+.ps-table--clickable tbody tr[data-open-row]:focus-visible { outline: 2px solid var(--ps-primary); outline-offset: -2px; }
+.ps-colpick { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px 14px; }
+.ps-list-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.ps-drawer__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.ps-pcard[data-open-row] { cursor: pointer; }
+.ps-pcard[data-open-row]:focus-visible { outline: 2px solid var(--ps-primary); outline-offset: 2px; }
+.ps-drawer__form { display: grid; gap: 12px; }
+.ps-drawer__form .ps-input--code { max-width: none; }
+.ps-readonly { padding: 8px 10px; border-radius: var(--ps-radius-sm); background: var(--ps-surface-2); color: var(--ps-text); min-height: 38px; }
+
+/* 1.7.0 — fiche projet allégée : raccourcis de sections + blocs « المزيد » repliables. */
+.ps-span-all { grid-column: 1 / -1; }
+.ps-jump {
+	position: sticky; top: var(--ps-header-h); z-index: 6;
+	display: flex; gap: 6px; overflow-x: auto; padding: 8px 0; margin-bottom: 8px;
+	background: var(--ps-bg); scrollbar-width: thin;
+}
+.ps-jump__a { flex: none; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--ps-border); background: var(--ps-surface); color: var(--ps-text-muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.ps-jump__a:hover { color: var(--ps-primary); border-color: var(--ps-primary); }
+[id^="ps-sec-"] { scroll-margin-top: calc(var(--ps-header-h) + 56px); }
+.ps-more { border: 1px dashed var(--ps-border); border-radius: var(--ps-radius-sm); padding: 0 12px; }
+.ps-more > summary { cursor: pointer; padding: 10px 0; font-weight: 600; color: var(--ps-primary); list-style: none; }
+.ps-more > summary::-webkit-details-marker { display: none; }
+.ps-more > summary::before { content: "＋ "; }
+.ps-more[open] > summary::before { content: "－ "; }
+.ps-more[open] { padding-bottom: 12px; }
+.ps-party .ps-more { border: 0; padding: 0; }
