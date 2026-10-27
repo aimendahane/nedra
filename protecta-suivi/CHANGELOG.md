@@ -3,6 +3,16 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.6.2 — 2026-10-27 · base v7 — « المشاريع » corrigé aussi sur téléphone
+
+Retour du client : « tables المشاريع pas corrigées ». Sur un écran de moins de 760 px (téléphone), la liste n'est pas
+un tableau mais des cartes, restées dans l'ancien ordre. Aucune donnée touchée, aucune migration.
+- **المشاريع (téléphone)** : chaque carte montre رقم المشروع (puis le nom), puis مشروع؟ (نعم / 🚫 لا), سبب عدم الاعتبار
+  (seulement si لا), المسؤول عن المشروع، الموظف المتابع، تاريخ الاستلام، الحالة — même ordre que le tableau.
+- **متابعة العروض (téléphone)** : رقم المشروع، رقم فاتورة العرض، المسؤول، المتابع، تاريخ الإرسال، puis حالة العرض، 📎، 🧾.
+- Le filtre rapide « مشروع؟ » n'ouvre plus tout le panneau des filtres.
+- Tests : step15 complété (cartes téléphone, pas de défilement horizontal).
+
 ## 1.6.1 — 2026-10-27 · base v7 — Ordre des champs et des colonnes (validé par le client)
 
 Aucune migration, aucune donnée touchée : seuls l'ordre et l'affichage changent (docs/BRIEF.md, « Correction validée »).

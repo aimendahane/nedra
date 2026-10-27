@@ -722,3 +722,9 @@ a.ps-ptitle:hover .ps-ptitle__num { color: var(--ps-primary); text-decoration: u
 /* 1.6.1 — dates lisibles dans les tableaux modifiables (jj/mm/aaaa entier + 📎) */
 .ps-table .ps-date__wrap { min-width: 150px; }
 .ps-table .ps-date { min-width: 104px; }
+/* 1.6.2 — cartes (téléphone) : champs importants « libellé : valeur » dans l'ordre du tableau */
+.ps-kvs { display: grid; gap: 4px; margin-top: 8px; }
+.ps-kv { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
+.ps-kv__k { color: var(--ps-text-muted); white-space: nowrap; }
+.ps-kv__v { text-align: end; overflow-wrap: anywhere; }
+.ps-pcard.is-non-project { border-inline-start: 4px solid var(--ps-text-muted); }

@@ -94,7 +94,7 @@
 
 	function toolbar() {
 		const p = st.params;
-		const active = FILTERS.filter(function (f) { return p[f[0]]; }).length + (p.q ? 1 : 0) + (p.companyId ? 1 : 0) + (p.isProject ? 1 : 0);
+		const active = FILTERS.filter(function (f) { return p[f[0]]; }).length + (p.q ? 1 : 0) + (p.companyId ? 1 : 0);
 		return html`<div class="ps-card ps-toolbar">
 			<div class="ps-toolbar__row">
 				<input type="search" class="ps-input ps-search" placeholder="🔍 ${PS.t('بحث: اسم المشروع، الشركة، الرقم، الهاتف…')}" value="${p.q || ''}" data-search>
@@ -151,12 +151,24 @@
 		</table></div>`;
 	}
 
+	/*
+	 * Téléphone (écran < 760 px) : une carte par projet, avec les MÊMES champs importants et dans le même ordre que le
+	 * tableau (1.6.2 — demande du client) : رقم المشروع، الاسم، مشروع؟، السبب، المسؤول، المتابع، تاريخ الاستلام، الحالة.
+	 */
 	function cards(rows) {
+		const line = function (label, value) { return value === '' || value === null || value === undefined ? '' : html`<div class="ps-kv"><span class="ps-kv__k">${label}</span><span class="ps-kv__v">${value}</span></div>`; };
 		return html`<div class="ps-cards ps-mobile-only">${rows.map(function (r) {
-			return html`<a class="ps-pcard" href="#/projet?id=${r.id}">
-				<div class="ps-pcard__top">${ui.projectTitle({ name: r.name, no: r.projectNo, oldNo: r.oldNo }, { link: false, numberFirst: true })} ${L.badge(r.urgencyId)} ${r.priority ? html`<span class="ps-badge ps-prio ps-prio--${r.priority}">${r.priority}</span>` : ''}</div>
-				<div class="ps-muted ps-small">${r.companyName || '—'} · ${L.short(r.placeId)} · ${F.date(r.receivedDate)}</div>
-				<div class="ps-pcard__badges">${r.isProject === false ? html`<span class="ps-badge ps-badge--muted">🚫 ${PS.t('غير مشروع')}</span>` : ''}${L.offerBadge(r.offerStatus)} ${L.badge(r.followupStatusId, L.label(r.followupStatusId))}</div>
+			return html`<a class="ps-pcard ${r.isProject === false ? 'is-non-project' : ''}" href="#/projet?id=${r.id}">
+				<div class="ps-pcard__top">${ui.projectTitle({ name: r.name, no: r.projectNo, oldNo: r.oldNo }, { link: false, numberFirst: true })} ${L.badge(r.urgencyId)}</div>
+				<div class="ps-kvs">
+					${line(PS.t('مشروع؟'), r.isProject === false ? ui.raw('<span class="ps-badge ps-badge--muted" data-non-project>🚫 ' + ui.esc(PS.t('لا')) + '</span>') : ui.raw('<span class="ps-badge">' + ui.esc(PS.t('نعم')) + '</span>'))}
+					${r.isProject === false ? line(PS.t('سبب عدم الاعتبار'), r.nonProjectReasonId ? L.label(r.nonProjectReasonId) : '—') : ''}
+					${line(PS.t('المسؤول عن المشروع'), L.label(r.responsibleEmpId))}
+					${line(PS.t('الموظف المتابع'), L.label(r.followerEmpId))}
+					${line(PS.t('تاريخ الاستلام'), F.date(r.receivedDate))}
+					${line(PS.t('الحالة'), L.badge(r.followupStatusId, L.label(r.followupStatusId)))}
+				</div>
+				<div class="ps-pcard__badges">${L.offerBadge(r.offerStatus)} ${r.priority ? html`<span class="ps-badge ps-prio ps-prio--${r.priority}">${r.priority}</span>` : ''} <span class="ps-muted ps-small">${r.companyName || ''}</span></div>
 			</a>`;
 		})}</div>`;
 	}
@@ -275,7 +287,7 @@
 		group: 'work',
 		render: function (main, params) {
 			return L.load().then(function () {
-				st = { main: main, params: Object.assign({}, params), data: null, selected: new Set(), showFilters: Object.keys(params).some(function (k) { return k !== 'q' && k !== 'sort' && k !== 'dir' && k !== 'page'; }) };
+				st = { main: main, params: Object.assign({}, params), data: null, selected: new Set(), showFilters: Object.keys(params).some(function (k) { return k !== 'q' && k !== 'isProject' && k !== 'sort' && k !== 'dir' && k !== 'page'; }) };
 				return renderPage();
 			});
 		},

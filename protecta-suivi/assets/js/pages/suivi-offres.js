@@ -172,14 +172,21 @@ PS.items = (function () {
 		</tr>`;
 	}
 
+	/* Téléphone : mêmes champs importants que le tableau, dans le même ordre (1.6.2). */
 	function cardHtml(r) {
 		const cls = r.computed.rowColor === 'late' ? 'is-late' : r.computed.rowColor === 'done' ? 'is-done' : '';
+		const line = function (label, value) { return html`<div class="ps-kv"><span class="ps-kv__k">${label}</span><span class="ps-kv__v">${value}</span></div>`; };
 		return html`<div class="ps-icard ${cls}" data-row="${r.id}">
-			<div class="ps-pcard__top">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo }, { numberFirst: true })} ${L.badge(r.urgencyId)} ${r.computed.late ? html`<span class="ps-badge ps-badge--danger">${PS.t('لازم قرار')}</span>` : ''}</div>
-			<div class="ps-pcard__name">${L.label(r.itemTypeId)}</div>
-			<div class="ps-small ps-muted">${L.label(r.employeeId)} · ${PS.t('الأجل')} ${F.date(r.dueDate)}</div>
-			<div class="ps-small ps-muted">${PS.t('المسؤول')}: ${L.label(r.responsibleEmpId)} · ${PS.t('المتابع')}: ${L.label(r.followerEmpId)}</div>
+			<div class="ps-pcard__top">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo }, { numberFirst: true })} ${r.computed.late ? html`<span class="ps-badge ps-badge--danger">${PS.t('لازم قرار')}</span>` : ''}</div>
+			<div class="ps-kvs">
+				${line(PS.t('رقم فاتورة العرض'), r.offerInvoiceNo || '—')}
+				${line(PS.t('المسؤول عن المشروع'), L.label(r.responsibleEmpId))}
+				${line(PS.t('الموظف المتابع'), L.label(r.followerEmpId))}
+				${line(PS.t('تاريخ الإرسال'), F.date(r.offerDate) || '—')}
+			</div>
 			<div class="ps-icard__edit">${statusCell(r)} ${filesCell(r)} ${invoicesCell(r)}</div>
+			${r.offerNotes ? html`<div class="ps-small">${PS.t('ملاحظة العرض')}: ${r.offerNotes}</div>` : ''}
+			<div class="ps-small ps-muted">${L.label(r.itemTypeId)} · ${L.label(r.employeeId)} · ${PS.t('الأجل')} ${F.date(r.dueDate)} ${L.badge(r.urgencyId)}</div>
 		</div>`;
 	}
 

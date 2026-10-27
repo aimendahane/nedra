@@ -35,13 +35,14 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 1.5.2 | Retour client « not work » : l'option efface aussi toutes les tâches (+ notifications), erreurs serveur lisibles | ✅ terminée, tests verts | 1.5.2 · base v6 |
 | 1.5.3 | Demande client : la الإدارة efface les tâches (🗑, « 🧹 تنظيف المهام ») + مهامي plus courte | ✅ terminée, tests verts | 1.5.3 · base v6 |
 | 1.6.0 | Brief « Fiche Projet, Offres, Factures, alertes Telegram » (docs/BRIEF.md, mise à jour du 27/10) | ✅ terminée, tests verts | 1.6.0 · base v7 |
-| 1.6.1 | Correction validée : ordre des champs (fiche) et des colonnes (Base Projets, Offres, Factures), « مشروع؟ » en colonne | ✅ terminée, tests verts | **1.6.1** · base v7 |
+| 1.6.1 | Correction validée : ordre des champs (fiche) et des colonnes (Base Projets, Offres, Factures), « مشروع؟ » en colonne | ✅ terminée, tests verts | 1.6.1 · base v7 |
+| 1.6.2 | Retour client « tables المشاريع pas corrigées » : cartes téléphone (المشاريع, العروض) dans le nouvel ordre | ✅ terminée, tests verts | **1.6.2** · base v7 |
 
-### Tests (dernier passage complet, version 1.6.1) — détail : `docs/TEST-RESULTS.txt`
+### Tests (dernier passage complet, version 1.6.2) — détail : `docs/TEST-RESULTS.txt`
 - `sh protecta-suivi/tests/run-all.sh` → **921 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
-  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0 + step12 = 1.5.2 + step13 = 1.5.3 + step14 = 1.6.0 + step15 = 1.6.1) passés.
-- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.6.1.zip $PWD/dist/protecta-suivi-1.6.0.zip` (chemins absolus) →
-  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.6.0 → 1.6.1 avec données : **aucune perte**.
+  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0 + step12 = 1.5.2 + step13 = 1.5.3 + step14 = 1.6.0 + step15 = 1.6.1/1.6.2) passés.
+- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.6.2.zip $PWD/dist/protecta-suivi-1.6.1.zip` (chemins absolus) →
+  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.6.1 → 1.6.2 avec données : **aucune perte**.
 
 ### Prochaines actions
 1. Dès que l'accès GitHub est rétabli : `git push -u origin claude/sweet-hopper-le9393` puis
@@ -313,6 +314,8 @@ chaque décision prise seul.
   de Base Projets = حالة المتابعة ; colonne « رقم » retirée ; bloc fichiers HORS du <form> (projet existant : même
   composant que l'onglet الملفات) ; pas de colonne « مشروع؟ » dans Offres / Factures (toujours نعم) ; exports : nouvelles
   colonnes à la fin. Annule la règle 1.5.0 « nom d'abord » pour ces 3 tableaux.
+- **1.6.2** : sur téléphone (< 760 px) les listes sont des CARTES : elles reprennent les mêmes champs importants dans le
+  même ordre (lignes « libellé : valeur », classe `.ps-kv`). Toute future demande d'ordre de colonnes = tableau ET carte.
 
 ### Version 1.5.1 — exception VOULUE par le client à la règle n°1
 - « فسخ الكل و حط les projets hadhom » : option `replaceAll` de POST /import/excel → `ps_projects_wipe()` (DELETE des

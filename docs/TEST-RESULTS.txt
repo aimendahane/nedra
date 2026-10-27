@@ -1,6 +1,6 @@
 ######## Tests PHP ########
 Site de test installé (thème : protecta-suivi)
-Thème v1.6.1 — WordPress 6.7-alpha-58716 — PHP 8.3.6
+Thème v1.6.2 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 
 == Activation : base de données ==
   ✔ ps_db_version = dernière migration
@@ -1412,6 +1412,10 @@ Tous les contrôles navigateur sont passés.
   ✔ Factures : 📎 1 + ملاحظة الفاتورة affichés
   ✔ 📎 de la facture → ouvre la facture (ses fichiers)
   ✔ fenêtre « 🧾 فواتير العرض » : même ordre de colonnes
+  ✔ téléphone (المشاريع) : numéro d'abord, puis مشروع؟ = لا, السبب, المسؤول, المتابع, تاريخ الاستلام, الحالة
+  ✔ téléphone : projet « نعم » sans ligne السبب
+  ✔ téléphone (المشاريع) : pas de défilement horizontal
+  ✔ téléphone (العروض) : رقم فاتورة العرض، المسؤول، المتابع، تاريخ الإرسال puis حالة العرض / 📎
 
 Tous les contrôles navigateur sont passés.
 
@@ -1430,17 +1434,17 @@ Tous les contrôles navigateur sont passés.
 
 === TOUS LES TESTS SONT PASSÉS ===
 
-######## release-check 1.6.0 -> 1.6.1 ########
-######## 1. Installation vierge : /home/user/nedra/dist/protecta-suivi-1.6.1.zip ########
+######## release-check 1.6.1 -> 1.6.2 ########
+######## 1. Installation vierge : /home/user/nedra/dist/protecta-suivi-1.6.2.zip ########
+Téléverser le thème : OK
+Thème actif : protecta-suivi 1.6.2
+######## 2. Mise à jour depuis protecta-suivi-1.6.1.zip avec données ########
 Téléverser le thème : OK
 Thème actif : protecta-suivi 1.6.1
-######## 2. Mise à jour depuis protecta-suivi-1.6.0.zip avec données ########
-Téléverser le thème : OK
-Thème actif : protecta-suivi 1.6.0
 Données de test insérées (projet PRJ-2026-001, comptes wafa et idara, fichier, listes personnalisées)
 Photographie : 1 projet(s), 110 valeurs de listes
 Mise à jour (remplacer le thème) : OK
-Thème après mise à jour : 1.6.1 · base v7
+Thème après mise à jour : 1.6.2 · base v7
 AUCUNE PERTE : projets, أصناف, intervenants, sociétés, suivis, fichiers, journal, listes, réglages et comptes identiques
 ######## Navigateur ########
 Installation vierge (zip final) — http://localhost:8082

@@ -10,7 +10,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PS_VERSION', '1.6.1' );
+define( 'PS_VERSION', '1.6.2' );
 define( 'PS_DB_VERSION', 7 );
 
 define( 'PS_DIR', get_template_directory() );

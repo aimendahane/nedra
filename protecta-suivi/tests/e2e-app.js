@@ -1243,6 +1243,25 @@ async function step15(browser) {
 	const mh = (await page.$$eval('.ps-modal thead th', (e) => e.map((x) => x.textContent.trim()))).filter((x) => x);
 	check('fenêtre « 🧾 فواتير العرض » : même ordre de colonnes', mh.slice(0, 8).join('|') === fa.slice(0, 8).join('|'), mh.join('|'));
 	await ctx.close();
+
+	// 1.6.2 — téléphone : les cartes reprennent les champs importants dans le même ordre.
+	const m = await newPage(browser, 'idara', true);
+	await go(m.page, '#/projets?isProject=0');
+	await m.page.waitForSelector('.ps-pcard');
+	const card = await m.page.$eval('.ps-pcard', (c) => ({ no: c.querySelector('.ps-ptitle__num').textContent.trim(), keys: [...c.querySelectorAll('.ps-kv__k')].map((k) => k.textContent.trim()), txt: c.textContent }));
+	check('téléphone (المشاريع) : numéro d\'abord, puis مشروع؟ = لا, السبب, المسؤول, المتابع, تاريخ الاستلام, الحالة', /PRJ-2026/.test(card.no) && card.keys.join('|') === 'مشروع؟|سبب عدم الاعتبار|المسؤول عن المشروع|الموظف المتابع|تاريخ الاستلام|الحالة' && /🚫 لا/.test(card.txt) && /خارج الاختصاص/.test(card.txt), JSON.stringify(card.keys));
+	await m.page.screenshot({ path: SHOTS + '/s15-05-mobile-projets.png', fullPage: true });
+	await go(m.page, '#/projets');
+	await m.page.waitForSelector('.ps-pcard');
+	const yes = await m.page.$$eval('.ps-pcard', (cs) => cs.map((c) => [...c.querySelectorAll('.ps-kv__k')].map((k) => k.textContent.trim()).join('|')).find((k) => !k.includes('سبب')));
+	check('téléphone : projet « نعم » sans ligne السبب', yes === 'مشروع؟|المسؤول عن المشروع|الموظف المتابع|تاريخ الاستلام|الحالة', yes);
+	check('téléphone (المشاريع) : pas de défilement horizontal', await m.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
+	await go(m.page, '#/offres');
+	await m.page.waitForSelector('.ps-icard');
+	const ok = await m.page.$eval('.ps-icard', (c) => [...c.querySelectorAll('.ps-kv__k')].map((k) => k.textContent.trim()).join('|'));
+	check('téléphone (العروض) : رقم فاتورة العرض، المسؤول، المتابع، تاريخ الإرسال puis حالة العرض / 📎', ok === 'رقم فاتورة العرض|المسؤول عن المشروع|الموظف المتابع|تاريخ الإرسال' && !!(await m.page.$('.ps-icard [data-offer-files]')), ok);
+	await m.page.screenshot({ path: SHOTS + '/s15-06-mobile-offres.png', fullPage: true });
+	await m.ctx.close();
 }
 
 const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15 };
