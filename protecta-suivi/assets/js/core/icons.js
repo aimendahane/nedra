@@ -24,10 +24,11 @@ PS.icons = (function () {
 		moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
 		auto: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18" /><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>',
 		menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+		invoice: '<path d="M6 2h9l5 5v15l-3-2-3 2-3-2-3 2-2-2V2z"/><path d="M9 8h6M9 12h6M9 16h4"/>',
 		logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/>',
 	};
 
-	const PAGES = { taches: 'check', projet: 'plus', projets: 'folder', offres: 'send', livraison: 'truck', recap: 'chart', annuaire: 'building', parametres: 'settings' };
+	const PAGES = { taches: 'check', projet: 'plus', projets: 'folder', offres: 'send', livraison: 'truck', factures: 'invoice', recap: 'chart', annuaire: 'building', parametres: 'settings' };
 
 	function svg(name, cls) {
 		if (!P[name]) return '';

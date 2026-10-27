@@ -50,7 +50,7 @@ function ps_test_reset_data(): void {
 	if ( 'wptest_' !== $wpdb->prefix ) {
 		throw new RuntimeException( 'ps_test_reset_data : base de test uniquement' );
 	}
-	foreach ( array( 'projects', 'project_parties', 'companies', 'competitors', 'project_competitors', 'items', 'followups', 'files', 'changelog' ) as $t ) {
+	foreach ( array( 'projects', 'project_parties', 'companies', 'competitors', 'project_competitors', 'items', 'followups', 'files', 'changelog', 'invoices', 'alerts' ) as $t ) {
 		$wpdb->query( 'DELETE FROM ' . ps_table( $t ) );
 	}
 }

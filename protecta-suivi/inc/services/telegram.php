@@ -12,17 +12,35 @@
  * Ensuite il reçoit sur Telegram : les notifications 🔔 de ses projets, les tâches qui lui sont confiées
  * (avec le message vocal éventuel) et le résumé du matin. « /stop » dans Telegram ou « فك الربط » arrête tout.
  *
- * Sécurité : le token est gardé dans l'option « ps_telegram_token » (jamais renvoyé au navigateur, jamais dans
- * la sauvegarde JSON). Le code de liaison est aléatoire, à usage unique, valable 2 heures.
+ * Sécurité (1.6.0) : le token est défini dans wp-config.php — define( 'PS_TELEGRAM_TOKEN', '123456:ABC…' ); —
+ * jamais dans le code, le dépôt, la sauvegarde JSON ni le HTML. Les sites configurés avant 1.6.0 gardent leur
+ * token dans l'option « ps_telegram_token » (même protection) tant que la constante n'est pas définie.
+ * Le code de liaison est court (8 caractères), aléatoire, à usage unique, valable 10 minutes : l'utilisateur
+ * envoie « /start CODE » au bot (ou ouvre le lien t.me qui le fait pour lui).
  * Un échec d'envoi (Telegram indisponible, bot bloqué) n'empêche jamais l'enregistrement dans l'application.
  */
 
 defined( 'ABSPATH' ) || exit;
 
-const PS_TG_CODE_TTL = 2 * HOUR_IN_SECONDS;
+const PS_TG_CODE_TTL = 10 * MINUTE_IN_SECONDS;
 
+/** Caractères du code de liaison (sans 0/O/1/I/L, faciles à recopier). */
+const PS_TG_CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+/** Token du bot : constante PS_TELEGRAM_TOKEN de wp-config.php (1.6.0), sinon l'ancienne option. */
 function ps_tg_token(): string {
+	if ( defined( 'PS_TELEGRAM_TOKEN' ) && '' !== trim( (string) PS_TELEGRAM_TOKEN ) ) {
+		return trim( (string) PS_TELEGRAM_TOKEN );
+	}
 	return (string) get_option( 'ps_telegram_token', '' );
+}
+
+/** D'où vient le token : 'config' (wp-config.php), 'option' (ancienne configuration) ou '' (aucun). */
+function ps_tg_token_source(): string {
+	if ( defined( 'PS_TELEGRAM_TOKEN' ) && '' !== trim( (string) PS_TELEGRAM_TOKEN ) ) {
+		return 'config';
+	}
+	return '' !== (string) get_option( 'ps_telegram_token', '' ) ? 'option' : '';
 }
 
 /** Telegram actif : réglage activé ET token valide enregistré. */
@@ -30,8 +48,27 @@ function ps_tg_enabled(): bool {
 	return (bool) ps_setting( 'telegram_enabled' ) && '' !== ps_tg_token() && '' !== ps_tg_bot();
 }
 
-/** Nom du bot (sans @), retenu lors de la vérification du token. */
+/**
+ * Nom du bot (sans @), retenu lors de la vérification du token. Avec la constante de wp-config.php, il est
+ * demandé à Telegram (getMe) la première fois, puis à chaque changement de token (empreinte, jamais le token).
+ */
 function ps_tg_bot(): string {
+	if ( 'config' === ps_tg_token_source() ) {
+		$hash = substr( hash( 'sha256', ps_tg_token() ), 0, 16 );
+		if ( get_option( 'ps_telegram_bot_for' ) !== $hash ) {
+			if ( get_transient( 'ps_tg_getme_fail' ) ) {
+				return '';
+			}
+			$me = ps_tg_api( 'getMe' );
+			if ( is_wp_error( $me ) ) {
+				set_transient( 'ps_tg_getme_fail', 1, 10 * MINUTE_IN_SECONDS ); // Telegram injoignable : pas de nouvel essai avant 10 min
+				return '';
+			}
+			update_option( 'ps_telegram_bot', (string) ( $me['username'] ?? '' ), false );
+			update_option( 'ps_telegram_bot_for', $hash, false );
+			delete_option( 'ps_telegram_offset' );
+		}
+	}
 	return (string) get_option( 'ps_telegram_bot', '' );
 }
 
@@ -99,11 +136,39 @@ function ps_tg_chat_id( int $user_id ): string {
 	return (string) get_user_meta( $user_id, 'ps_tg_chat_id', true );
 }
 
-/** Lien de liaison (nouveau code à chaque appel). */
-function ps_tg_link_url( int $user_id ): string {
-	$code = bin2hex( random_bytes( 12 ) );
+/** Nouveau code de liaison (8 caractères, valable 10 minutes, usage unique). */
+function ps_tg_new_code( int $user_id ): string {
+	$code = '';
+	for ( $i = 0; $i < 8; $i++ ) {
+		$code .= PS_TG_CODE_CHARS[ random_int( 0, strlen( PS_TG_CODE_CHARS ) - 1 ) ];
+	}
 	update_user_meta( $user_id, 'ps_tg_code', $code . '|' . ( time() + PS_TG_CODE_TTL ) );
+	return $code;
+}
+
+/** Lien de liaison (nouveau code à chaque appel). */
+function ps_tg_link_url( int $user_id, ?string $code = null ): string {
+	$code = $code ?? ps_tg_new_code( $user_id );
 	return 'https://t.me/' . rawurlencode( ps_tg_bot() ) . '?start=' . $code;
+}
+
+/**
+ * Lie le compte dont le code correspond (« /start CODE »). @return WP_User|null Compte lié, null si code invalide/expiré.
+ */
+function ps_tg_link_by_code( string $given, string $chat ): ?WP_User {
+	$given = strtoupper( trim( $given ) );
+	if ( ! preg_match( '/^[A-Z0-9]{6,24}$/', $given ) ) {
+		return null;
+	}
+	foreach ( get_users( array( 'meta_key' => 'ps_tg_code', 'meta_value' => $given . '|', 'meta_compare' => 'LIKE', 'number' => 5 ) ) as $user ) {
+		list( $code, $until ) = array_pad( explode( '|', (string) get_user_meta( $user->ID, 'ps_tg_code', true ) ), 2, 0 );
+		if ( hash_equals( strtoupper( $code ), $given ) && time() <= (int) $until && ! get_user_meta( $user->ID, 'ps_disabled', true ) ) {
+			update_user_meta( $user->ID, 'ps_tg_chat_id', $chat );
+			delete_user_meta( $user->ID, 'ps_tg_code' );
+			return $user;
+		}
+	}
+	return null;
 }
 
 function ps_tg_unlink( int $user_id ): void {
@@ -135,17 +200,13 @@ function ps_tg_poll(): int {
 		if ( '' === $chat || 'private' !== ( $msg['chat']['type'] ?? '' ) ) {
 			continue;
 		}
-		if ( preg_match( '/^\/start\s+([a-f0-9]{24})$/', $text, $m ) ) {
-			$users = get_users( array( 'meta_key' => 'ps_tg_code', 'meta_value' => $m[1], 'meta_compare' => 'LIKE', 'number' => 1 ) );
-			$user  = $users[0] ?? null;
-			list( $code, $until ) = $user ? array_pad( explode( '|', (string) get_user_meta( $user->ID, 'ps_tg_code', true ) ), 2, 0 ) : array( '', 0 );
-			if ( $user && hash_equals( $code, $m[1] ) && time() <= (int) $until && ! get_user_meta( $user->ID, 'ps_disabled', true ) ) {
-				update_user_meta( $user->ID, 'ps_tg_chat_id', $chat );
-				delete_user_meta( $user->ID, 'ps_tg_code' );
+		if ( preg_match( '/^\/start(?:@\w+)?\s+([A-Za-z0-9]{6,24})$/', $text, $m ) ) {
+			$user = ps_tg_link_by_code( $m[1], $chat );
+			if ( $user ) {
 				++$linked;
 				ps_with_lang( $user, static fn() => ps_tg_api( 'sendMessage', array( 'chat_id' => $chat, 'parse_mode' => 'HTML', 'text' => '✅ <b>' . esc_html( $user->display_name ) . '</b>' . "\n" . ps__( 'تم ربط حسابك بتطبيق «متابعة المشاريع والعروض». ستصلك هنا الإشعارات والمهام.' ) . "\n" . ps__( 'لإيقافها: /stop' ) ) ) );
 			} else {
-				ps_tg_api( 'sendMessage', array( 'chat_id' => $chat, 'text' => ps__( '⚠️ رابط الربط غير صالح أو منتهي. أعد المحاولة من التطبيق (🔔 ← ربط Telegram).' ) ) );
+				ps_tg_api( 'sendMessage', array( 'chat_id' => $chat, 'text' => ps__( '⚠️ رمز الربط غير صالح أو منتهي (صالح 10 دقائق). اطلب رمزًا جديدًا من التطبيق (🔔 ← ربط Telegram).' ) ) );
 			}
 		} elseif ( '/stop' === $text ) {
 			foreach ( get_users( array( 'meta_key' => 'ps_tg_chat_id', 'meta_value' => $chat ) ) as $user ) {
@@ -183,6 +244,7 @@ function ps_tg_send_user( WP_User $u, string $html, ?string $url = null, string 
 		$p['reply_markup'] = $kb;
 	}
 	$r = ps_tg_api( 'sendMessage', $p );
+	$GLOBALS['ps_tg_last_error'] = is_wp_error( $r ) ? $r->get_error_message() : '';
 	if ( is_wp_error( $r ) && str_contains( $r->get_error_message(), 'blocked' ) ) {
 		ps_tg_unlink( $u->ID ); // l'utilisateur a bloqué le bot : on arrête d'essayer
 	}

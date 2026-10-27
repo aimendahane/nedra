@@ -166,6 +166,7 @@ function ps_numeric_settings(): array {
 		'duplicate_window_days' => array( 1, 365, ps__( 'كشف المشاريع المكررة خلال (أيام)' ) ),
 		'creator_edit_hours'    => array( 0, 720, ps__( 'مدة تعديل المشروع من طرف منشئه (ساعات)' ) ),
 		'file_max_mb'           => array( 1, 200, ps__( 'الحجم الأقصى للملف المرفق (ميغابايت)' ) ),
+		'invoice_reply_days'    => array( 1, 365, ps__( 'آخر أجل للرد على الفاتورة (أيام بعد الإرسال)' ) ),
 	);
 }
 
@@ -188,6 +189,8 @@ function ps_rest_settings_get() {
 			'myEmail'        => wp_get_current_user()->user_email,
 			'telegramBot'    => ps_tg_bot(),
 			'telegramTokenSet' => '' !== ps_tg_token(),
+			'telegramTokenSource' => ps_tg_token_source(), // 'config' (wp-config.php) | 'option' | '' — jamais le token
+			'alertsLastRun'  => get_option( 'ps_alerts_last_run' ),
 		)
 	);
 }
@@ -255,13 +258,18 @@ function ps_rest_settings_put( WP_REST_Request $r ) {
 	}
 	// Telegram : token vérifié auprès de Telegram (getMe) avant d'être enregistré ; vide = garder l'ancien.
 	$tg_token = isset( $b['telegram_token'] ) ? trim( (string) $b['telegram_token'] ) : '';
-	if ( '' !== $tg_token ) {
+	if ( '' !== $tg_token && 'config' === ps_tg_token_source() ) {
+		$errors['telegram_token'] = ps__( 'الرمز معرّف في wp-config.php (PS_TELEGRAM_TOKEN): غيّره هناك.' );
+	} elseif ( '' !== $tg_token ) {
 		$bot = ps_tg_save_token( $tg_token );
 		if ( is_wp_error( $bot ) ) {
 			$errors['telegram_token'] = $bot->get_error_message();
 		} else {
 			ps_log( null, 'update', 'settings', null, 'telegram_token', null, '@' . $bot );
 		}
+	}
+	if ( array_key_exists( 'alerts_enabled', $b ) ) {
+		$set['alerts_enabled'] = (bool) $b['alerts_enabled']; // 1.6.0 : « تفعيل التنبيهات » (factures)
 	}
 	if ( array_key_exists( 'telegram_enabled', $b ) ) {
 		$set['telegram_enabled'] = (bool) $b['telegram_enabled'];
@@ -329,6 +337,7 @@ function ps_user_to_api( WP_User $u ): array {
 		'disabled'    => (bool) get_user_meta( $u->ID, 'ps_disabled', true ),
 		'lastLogin'   => ( $t = (int) get_user_meta( $u->ID, 'ps_last_activity', true ) ) ? wp_date( 'Y-m-d H:i', $t ) : null,
 		'isWpAdmin'   => in_array( 'administrator', $u->roles, true ),
+		'telegram'    => '' !== ps_tg_chat_id( (int) $u->ID ), // 1.6.0 : مربوط بتيليغرام / غير مربوط
 	);
 }
 

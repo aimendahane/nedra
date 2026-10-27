@@ -89,6 +89,10 @@ function ps_schema_sql(): array {
   legacy_id varchar(64) DEFAULT NULL,
   legacy_raw longtext DEFAULT NULL,
   drive_folder_id varchar(128) DEFAULT NULL,
+  is_project tinyint(1) NOT NULL DEFAULT 1,
+  non_project_reason_id bigint(20) unsigned DEFAULT NULL,
+  non_project_note text DEFAULT NULL,
+  project_note longtext DEFAULT NULL,
   PRIMARY KEY  (id),
   UNIQUE KEY project_no (project_no),
   UNIQUE KEY year_seq (year,seq),
@@ -97,7 +101,8 @@ function ps_schema_sql(): array {
   KEY follower_emp_id (follower_emp_id),
   KEY responsible_emp_id (responsible_emp_id),
   KEY source_id (source_id),
-  KEY deleted_at (deleted_at)
+  KEY deleted_at (deleted_at),
+  KEY is_project (is_project)
 ) $c;";
 
 	// الأطراف المتدخلة : المالك / الشركة المنفذة / الوسيط / الشخص المباشر.
@@ -195,11 +200,14 @@ function ps_schema_sql(): array {
   delivery_actual_date date DEFAULT NULL,
   delivery_status_id bigint(20) unsigned DEFAULT NULL,
   delivery_notes text DEFAULT NULL,
+  responsible_emp_id bigint(20) unsigned DEFAULT NULL,
+  follower_emp_id bigint(20) unsigned DEFAULT NULL,
   created_at datetime NOT NULL,
   updated_at datetime NOT NULL,
   PRIMARY KEY  (id),
   KEY project_id (project_id),
   KEY employee_id (employee_id),
+  KEY offer_invoice_no (offer_invoice_no),
   KEY offer_status_id (offer_status_id),
   KEY due_date (due_date)
 ) $c;";
@@ -236,9 +244,13 @@ function ps_schema_sql(): array {
   drive_id varchar(128) DEFAULT NULL,
   drive_error varchar(255) DEFAULT NULL,
   drive_tries smallint(5) unsigned NOT NULL DEFAULT 0,
+  item_id bigint(20) unsigned DEFAULT NULL,
+  invoice_id bigint(20) unsigned DEFAULT NULL,
   PRIMARY KEY  (id),
   KEY project_id (project_id),
-  KEY storage (storage)
+  KEY storage (storage),
+  KEY item_id (item_id),
+  KEY invoice_id (invoice_id)
 ) $c;";
 
 	// Journal des modifications (qui, quoi, quand).
@@ -252,6 +264,7 @@ function ps_schema_sql(): array {
   field varchar(60) DEFAULT NULL,
   old_value longtext DEFAULT NULL,
   new_value longtext DEFAULT NULL,
+  reason text DEFAULT NULL,
   created_at datetime NOT NULL,
   PRIMARY KEY  (id),
   KEY project_id (project_id,created_at),
@@ -298,6 +311,50 @@ function ps_schema_sql(): array {
   PRIMARY KEY  (id),
   KEY user_read (user_id,read_at),
   KEY project_id (project_id)
+) $c;";
+
+	// Factures (1.6.0, migration 7) : liées à une offre (صنف), plusieurs par offre (paiements en tranches).
+	// « آخر أجل للرد » n'est PAS stocké : calculé = sent_date + réglage invoice_reply_days (inc/calculs.php).
+	$sql['invoices'] = "CREATE TABLE {$t('invoices')} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  project_id bigint(20) unsigned NOT NULL,
+  item_id bigint(20) unsigned NOT NULL,
+  invoice_no varchar(100) NOT NULL,
+  sent_date date NOT NULL,
+  answer varchar(10) NOT NULL DEFAULT 'pending',
+  answer_date date DEFAULT NULL,
+  amount decimal(15,3) DEFAULT NULL,
+  currency_id bigint(20) unsigned DEFAULT NULL,
+  note text DEFAULT NULL,
+  created_by bigint(20) unsigned DEFAULT NULL,
+  updated_by bigint(20) unsigned DEFAULT NULL,
+  created_at datetime NOT NULL,
+  updated_at datetime NOT NULL,
+  deleted_at datetime DEFAULT NULL,
+  PRIMARY KEY  (id),
+  UNIQUE KEY invoice_no (invoice_no),
+  KEY item_id (item_id),
+  KEY project_id (project_id),
+  KEY answer (answer,sent_date)
+) $c;";
+
+	// Alertes envoyées (1.6.0) : une ligne par personne, facture, type et jour → jamais deux fois le même jour.
+	$sql['alerts'] = "CREATE TABLE {$t('alerts')} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  user_id bigint(20) unsigned NOT NULL,
+  invoice_id bigint(20) unsigned NOT NULL,
+  kind varchar(10) NOT NULL,
+  alert_day date NOT NULL,
+  channel varchar(10) NOT NULL DEFAULT 'telegram',
+  status varchar(10) NOT NULL DEFAULT 'pending',
+  tries smallint(5) unsigned NOT NULL DEFAULT 0,
+  email_sent tinyint(1) NOT NULL DEFAULT 0,
+  error varchar(255) DEFAULT NULL,
+  created_at datetime NOT NULL,
+  sent_at datetime DEFAULT NULL,
+  PRIMARY KEY  (id),
+  UNIQUE KEY once_a_day (user_id,invoice_id,kind,alert_day),
+  KEY status (status)
 ) $c;";
 
 	return $sql;

@@ -171,7 +171,26 @@ function ps_rest_file_upload( WP_REST_Request $r ) {
 	if ( empty( $files['file'] ) ) {
 		return new WP_Error( 'ps_upload', ps__( 'لم يتم اختيار ملف' ), array( 'status' => 400 ) );
 	}
-	$id = ps_file_store( (int) $r['id'], $files['file'], get_current_user_id(), $r->get_param( 'displayName' ) );
+	// 1.6.0 : fichier d'une offre (itemId) ou d'une facture (invoiceId) — qui doit appartenir à ce projet.
+	$links = array();
+	$item  = ps_clean_id( $r->get_param( 'itemId' ) );
+	$inv   = ps_clean_id( $r->get_param( 'invoiceId' ) );
+	if ( $item ) {
+		$row = ps_item_row( $item );
+		if ( ! $row || (int) $row['project_id'] !== (int) $r['id'] ) {
+			return new WP_Error( 'ps_upload', ps__( 'الصنف غير موجود في هذا المشروع' ), array( 'status' => 400 ) );
+		}
+		$links['item_id'] = $item;
+	}
+	if ( $inv ) {
+		$row = ps_invoice_row( $inv );
+		if ( ! $row || (int) $row['project_id'] !== (int) $r['id'] ) {
+			return new WP_Error( 'ps_upload', ps__( 'الفاتورة غير موجودة في هذا المشروع' ), array( 'status' => 400 ) );
+		}
+		$links['invoice_id'] = $inv;
+		$links['item_id']    = (int) $row['item_id'];
+	}
+	$id = ps_file_store( (int) $r['id'], $files['file'], get_current_user_id(), $r->get_param( 'displayName' ), $links );
 	if ( is_wp_error( $id ) ) {
 		return $id;
 	}

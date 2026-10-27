@@ -83,9 +83,10 @@ function ps_files_for_project( int $project_id ): array {
  * Enregistre un fichier envoyé (élément de $_FILES) sur le serveur, puis tente l'envoi dans Google Drive.
  *
  * @param string|null $display_name Nom d'affichage saisi (sinon le nom du fichier).
+ * @param array       $links        1.6.0 : [ 'item_id' => offre, 'invoice_id' => facture ] (vérifiés par l'appelant).
  * @return int|WP_Error Id du fichier.
  */
-function ps_file_store( int $project_id, array $upload, int $user_id, ?string $display_name = null ) {
+function ps_file_store( int $project_id, array $upload, int $user_id, ?string $display_name = null, array $links = array() ) {
 	global $wpdb;
 	$max = ps_file_max_bytes();
 	if ( in_array( (int) ( $upload['error'] ?? 0 ), array( UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE ), true ) ) {
@@ -133,6 +134,8 @@ function ps_file_store( int $project_id, array $upload, int $user_id, ?string $d
 			'storage'       => 'local',
 			'uploaded_by'   => $user_id,
 			'created_at'    => ps_now(),
+			'item_id'       => ! empty( $links['item_id'] ) ? (int) $links['item_id'] : null,
+			'invoice_id'    => ! empty( $links['invoice_id'] ) ? (int) $links['invoice_id'] : null,
 		)
 	);
 	$id = (int) $wpdb->insert_id;
@@ -193,5 +196,7 @@ function ps_file_to_api( array $f, int $user_id ): array {
 		'storage'      => $f['storage'] ?? 'local',
 		'url'          => add_query_arg( '_wpnonce', wp_create_nonce( 'wp_rest' ), rest_url( PS_REST_NS . '/files/' . (int) $f['id'] ) ),
 		'canDelete'    => ps_file_can_delete( $f, $user_id ),
+		'itemId'       => ! empty( $f['item_id'] ) ? (int) $f['item_id'] : null,
+		'invoiceId'    => ! empty( $f['invoice_id'] ) ? (int) $f['invoice_id'] : null,
 	);
 }

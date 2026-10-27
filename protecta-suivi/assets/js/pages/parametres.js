@@ -345,15 +345,21 @@ PS.settingsTabs = PS.settingsTabs || {};
 				<h2 class="ps-card__title ps-mt">${PS.t('إشعارات Telegram')}</h2>
 				<ol class="ps-small ps-steps">
 					<li>${PS.t('في Telegram افتح')} <a href="https://t.me/BotFather" target="_blank" rel="noopener" dir="ltr">@BotFather</a> ← <span dir="ltr">/newbot</span> ← ${PS.t('اختر اسمًا (مثلًا «Protecta Suivi») ← انسخ')} <strong>${PS.t('الرمز (token)')}</strong>.</li>
-					<li>${PS.t('الصقه هنا، فعّل الإشعارات ثم')} <strong>${PS.t('حفظ')}</strong>.</li>
-					<li>${PS.t('كل موظف يربط حسابه من 🔔 ← «ربط Telegram» (ضغطة واحدة).')}</li>
+					<li>${PS.t('في cPanel ← File Manager افتح الملف wp-config.php وأضف قبل السطر «That\'s all, stop editing» هذا السطر (مع رمزك):')}<br><code dir="ltr" class="ps-code-inline">define( 'PS_TELEGRAM_TOKEN', '123456789:AA…' );</code></li>
+					<li>${PS.t('فعّل الإشعارات هنا ثم')} <strong>${PS.t('حفظ')}</strong>${PS.t('، ثم «رسالة تجريبية».')}</li>
+					<li>${PS.t('كل موظف يربط حسابه من 🔔 ← «ربط Telegram»: يظهر رمز من 8 أحرف صالح 10 دقائق، يرسل للبوت')} <span dir="ltr">/start CODE</span> ${PS.t('(أو يضغط على الرابط).')}</li>
 				</ol>
+				${d.telegramTokenSource === 'config' ? html`<p class="ps-alert ps-alert--success" data-tg-source="config">🔒 ${PS.t('الرمز معرّف في wp-config.php (لا يظهر هنا أبدًا).')}</p>` : ''}
+				${d.telegramTokenSource === 'option' ? html`<p class="ps-alert ps-alert--warning" data-tg-source="option">${PS.t('الرمز محفوظ بالطريقة القديمة (يعمل). يُنصح بنقله إلى wp-config.php كما في الخطوة 2.')}</p>` : ''}
 				${d.telegramBot ? html`<p class="ps-alert ps-alert--success">✔ ${PS.t('متصل بالبوت')} <a href="https://t.me/${d.telegramBot}" target="_blank" rel="noopener" dir="ltr">@${d.telegramBot}</a></p>` : ''}
-				<div class="ps-grid">
+				${d.telegramTokenSource === 'config' ? '' : html`<details class="ps-small"><summary>${PS.t('بدون الوصول إلى wp-config.php: لصق الرمز هنا (الطريقة القديمة)')}</summary><div class="ps-grid">
 					<label class="ps-field" data-key="telegram_token"><span class="ps-field__label">${PS.t('رمز البوت (token)')}</span><input class="ps-input" type="password" dir="ltr" name="telegram_token" autocomplete="off" placeholder="${d.telegramTokenSet ? PS.t('محفوظ — اتركه فارغًا للإبقاء عليه') : '123456789:AA…'}"></label>
-				</div>
+				</div></details>`}
 				<label class="ps-check ps-mt"><input type="checkbox" name="telegram_enabled" ${s.telegram_enabled ? ui.raw('checked') : ''}> ${PS.t('تفعيل إشعارات Telegram (الإشعارات 🔔، المهام والرسائل الصوتية، الملخص الصباحي)')}</label>
-				<div class="ps-row"><button type="submit" class="ps-btn ps-btn--primary">💾 ${PS.t('حفظ')}</button><button type="button" class="ps-btn" data-tg-test>✈ ${PS.t('رسالة تجريبية لي على Telegram')}</button></div>
+				<h2 class="ps-card__title ps-mt">🧾 ${PS.t('تنبيهات الفواتير')}</h2>
+				<label class="ps-check"><input type="checkbox" name="alerts_enabled" ${s.alerts_enabled ? ui.raw('checked') : ''}> ${PS.t('تفعيل التنبيهات')}</label>
+				<p class="ps-muted ps-small">${PS.t('كل صباح (Cron): تذكير قبل 3 أيام من آخر أجل للرد، يوم الأجل، ثم مرة يوميًا عند التأخر — للموظف المتابع للعرض (وإلا المسؤول عن المشروع)، على Telegram أو بالبريد. لا تُرسل نفس الرسالة مرتين في نفس اليوم.')} ${PS.t('آخر تشغيل:')} ${d.alertsLastRun || '—'}</p>
+				<div class="ps-row"><button type="submit" class="ps-btn ps-btn--primary">💾 ${PS.t('حفظ')}</button><button type="button" class="ps-btn" data-tg-test>✈ ${PS.t('إرسال رسالة تجريبية')}</button></div>
 				<h2 class="ps-card__title ps-mt">${PS.t('تجربة الإرسال')}</h2>
 				<div class="ps-row">
 					<input class="ps-input" type="email" dir="ltr" data-test-to value="${d.myEmail || ''}" placeholder="${PS.t('البريد الذي يصله الاختبار')}" style="max-width:320px">
@@ -387,7 +393,7 @@ PS.settingsTabs = PS.settingsTabs || {};
 			const form = box.querySelector('[data-general]');
 			form.onsubmit = function (e) {
 				e.preventDefault();
-				const body = { digest_enabled: form.digest_enabled.checked, smtp_enabled: form.smtp_enabled.checked, smtp_secure: form.smtp_secure.value, smtp_pass: form.smtp_pass.value, telegram_enabled: form.telegram_enabled.checked, telegram_token: form.telegram_token.value, default_lang: form.default_lang.value };
+				const body = { digest_enabled: form.digest_enabled.checked, smtp_enabled: form.smtp_enabled.checked, smtp_secure: form.smtp_secure.value, smtp_pass: form.smtp_pass.value, telegram_enabled: form.telegram_enabled.checked, telegram_token: form.telegram_token ? form.telegram_token.value : '', alerts_enabled: form.alerts_enabled.checked, default_lang: form.default_lang.value };
 				['mail_from_email', 'mail_from_name', 'smtp_host', 'smtp_port', 'smtp_user'].forEach(function (k) { body[k] = form[k].value; });
 				Object.keys(d.numeric).forEach(function (k) { body[k] = Number(form[k].value); });
 				PS.api.put('settings', body).then(function (r) {

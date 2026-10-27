@@ -152,7 +152,7 @@
 		const base = {};
 		if (page === 'projets') {
 			['year', 'month', 'followerEmpId', 'placeId', 'sourceId'].forEach(function (k) { if (f[k]) base[k] = f[k]; });
-		} else if (f.year) {
+		} else if (f.year && page !== 'factures') { // factures : celles des projets de la période (pas de filtre d'année)
 			base.year = f.year;
 		}
 		PS.router.go(page, Object.assign(base, extra));
@@ -184,7 +184,7 @@
 			<span class="ps-kpi__label">${label}</span>
 			<span class="ps-kpi__value">${value}</span>
 			${o.sub ? html`<span class="ps-kpi__sub">${o.sub}</span>` : ''}
-			${delta(cmp, o.rate, o.inverse)}
+			${o.noCmp ? '' : delta(cmp, o.rate, o.inverse)}
 		</div>`;
 	}
 
@@ -214,7 +214,25 @@
 			${kpi(PS.t('التسليمات المتأخرة'), k.lateDeliveries, c.lateDeliveries, { inverse: true, cls: k.lateDeliveries ? 'ps-kpi--bad' : '', link: 'livraison|deliveryLate=1' })}
 			${amountsKpi(PS.t('مبالغ العروض'), k.amounts, c.amounts)}
 			${amountsKpi(PS.t('مبالغ المشاريع المؤكدة'), k.confirmedAmounts, c.confirmedAmounts)}
+			${kpi(PS.t('غير مشروع'), k.nonProjects || 0, c.nonProjects, { sub: PS.t('محسوبة على حدة (خارج العروض ونسبة النجاح)'), link: 'projets|isProject=0', cls: 'ps-kpi--muted' })}
 		</div>`;
+	}
+
+	/** Factures (1.6.0) : en attente, en retard, taux نعم / لا, montants par devise. */
+	function invoicesCard(d) {
+		const v = d.invoices || { total: 0 };
+		const money = function (amounts) {
+			const keys = Object.keys(amounts || {});
+			return keys.length ? keys.map(function (cur) { return F.number(amounts[cur], 0) + ' ' + L.code(Number(cur)); }).join(' · ') : '—';
+		};
+		return html`<div class="ps-kpis" data-recap-invoices>
+			${kpi(PS.t('عدد الفواتير'), v.total, null, { link: 'factures|status=all', noCmp: true })}
+			${kpi(PS.t('فواتير في الانتظار'), v.pending, null, { link: 'factures|status=pending', noCmp: true })}
+			${kpi(PS.t('فواتير متأخرة'), v.late, null, { inverse: true, cls: v.late ? 'ps-kpi--bad' : '', link: 'factures|status=late', noCmp: true })}
+			${kpi(PS.t('جواب «نعم»'), F.percent(v.rates && v.rates.yes), null, { sub: v.yes + ' ' + PS.t('فاتورة'), cls: 'ps-kpi--good', link: 'factures|status=yes', noCmp: true })}
+			${kpi(PS.t('جواب «لا»'), F.percent(v.rates && v.rates.no), null, { sub: v.no + ' ' + PS.t('فاتورة'), link: 'factures|status=no', noCmp: true })}
+		</div>
+		<p class="ps-small"><strong>${PS.t('مبالغ الفواتير')}:</strong> ${money(v.amounts)} · <strong>${PS.t('منها «نعم»')}:</strong> ${money(v.yesAmounts)} · <strong>${PS.t('في الانتظار')}:</strong> ${money(v.pendingAmounts)} <span class="ps-muted">(${PS.t('كل عملة على حدة')})</span></p>`;
 	}
 
 	/* ------------------------------------------------------------------ */
@@ -419,13 +437,14 @@
 		const head = html`<div class="ps-page-head"><h1>Recap — ${periodLabel(d)}</h1>
 			<div class="ps-page-head__actions"><button type="button" class="ps-btn" data-action="print">🖨 ${PS.t('طباعة / PDF')}</button></div></div>
 			<p class="ps-print-only ps-muted">${PS.t('مقارنة بنفس الفترة من سنة')} ${d.previousYear} · ${PS.t('طُبع في')} ${F.date(PS.config.today)}</p>`;
-		if (!d.kpis.projects && !d.kpis.cancelled) {
+		if (!d.kpis.projects && !d.kpis.cancelled && !d.kpis.nonProjects) {
 			st.main.innerHTML = html`${head}${filtersBar()}<div class="ps-card">${ui.empty('📊', PS.t('لا توجد مشاريع في هذه الفترة. غيّر السنة أو الفلاتر.'))}</div>`.html;
 			bind();
 			return;
 		}
 		st.main.innerHTML = html`${head}${filtersBar()}${kpiGrid(d)}
 			<div class="ps-recap-grid">
+				${card('🧾 ' + PS.t('الفواتير'), invoicesCard(d), { wide: true })}
 				${card(PS.t('المشاريع حسب الشهر'), chartBox('ch-month', 300, simpleTable([PS.t('الشهر'), PS.t('جارية'), PS.t('مؤكدة'), PS.t('مرفوضة'), PS.t('المجموع')], d.byMonth.map(function (m) { return html`<tr><td>${F.month(m.month)}</td><td>${m.ongoing}</td><td>${m.confirmed}</td><td>${m.rejected}</td><td><strong>${m.total}</strong></td></tr>`; }))), { wide: true })}
 				${card(PS.t('حسب التصنيف'), d.byCategory.length ? chartBox('ch-category', 300, simpleTable([PS.t('التصنيف'), PS.t('العدد'), '%'], d.byCategory.map(function (c) { return html`<tr><td>${c.label}</td><td>${c.count}</td><td>${c.pct.toFixed(1)}</td></tr>`; }))) : ui.empty('🍩', PS.t('لا توجد بيانات')))}
 				${card(PS.t('حسب حالة المتابعة'), statusTable(d))}

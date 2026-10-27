@@ -10,8 +10,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PS_VERSION', '1.5.3' );
-define( 'PS_DB_VERSION', 6 );
+define( 'PS_VERSION', '1.6.0' );
+define( 'PS_DB_VERSION', 7 );
 
 define( 'PS_DIR', get_template_directory() );
 define( 'PS_URL', get_template_directory_uri() );
@@ -45,6 +45,8 @@ function ps_table_names(): array {
 		'changelog',
 		'tasks',
 		'notifications',
+		'invoices', // 1.6.0
+		'alerts',   // 1.6.0
 	);
 }
 

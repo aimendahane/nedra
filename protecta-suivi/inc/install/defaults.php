@@ -33,6 +33,7 @@ function ps_list_labels(): array {
 		'source'          => ps__( 'مصدر الطلب' ),
 		'offer_status'    => ps__( 'حالة العرض' ),
 		'not_sent_reason' => ps__( 'سبب عدم الإرسال' ),
+		'non_project_reason' => ps__( 'سبب عدم اعتباره مشروعا' ),
 		'loss_reason'     => ps__( 'سبب الرفض أو الخسارة' ),
 		'delivery_status' => ps__( 'حالة التسليم' ),
 		'availability'    => ps__( 'المتوفر' ),
@@ -146,6 +147,12 @@ function ps_default_lists(): array {
 		'not_sent_reason' => array_map(
 			fn( $n ) => $v( $n ),
 			array( 'المنتج غير متوفر', 'السعر غير منافس', 'الأجل قصير', 'خارج اختصاصنا', 'معلومات ناقصة من الحريف', 'قرار الإدارة', 'أخرى' )
+		),
+
+		// 1.6.0 : « مشروع؟ = لا » → سبب obligatoire.
+		'non_project_reason' => array_map(
+			fn( $n ) => $v( $n ),
+			array( 'غير مؤكد', 'خارج الاختصاص', 'معلومات غير كافية', 'أخرى' )
 		),
 
 		'loss_reason' => array_map(

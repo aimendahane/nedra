@@ -43,7 +43,10 @@ PS.router = (function () {
 		const parts = h.split('?');
 		const params = {};
 		new URLSearchParams(parts[1] || '').forEach(function (v, k) { params[k] = v; });
-		return { id: parts[0] || DEFAULT_PAGE, params: params };
+		// « #/factures/12 » (lien des alertes Telegram, 1.6.0) = « #/factures?id=12 ».
+		const seg = (parts[0] || '').split('/');
+		if (seg.length > 1 && /^\d+$/.test(seg[1])) params.id = seg[1];
+		return { id: seg[0] || DEFAULT_PAGE, params: params };
 	}
 
 	function go(id, params) {

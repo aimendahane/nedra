@@ -31,6 +31,7 @@
  *   6. Retards : عرض متأخر / لازم قرار, تسليم متأخر, تأخير (أيام), حالة التسليم automatique, couleur des lignes
  *   7. Alerte de suivi (7 jours)
  *   8. Tâche libre en retard (1.0.1)
+ *   9. Factures : آخر أجل للرد, retard, alertes J-3 / jour J / retard ; projet « غير مشروع » (1.6.0)
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -307,4 +308,63 @@ function ps_calc_needs_followup( ?string $followup_type, ?string $urgency_code, 
  */
 function ps_calc_task_late( string $status, ?string $due_date, string $today ): bool {
 	return 'open' === $status && ! empty( $due_date ) && $due_date < $today;
+}
+
+/* ---------------------------------------------------------------------------
+ * Factures (version 1.6.0)
+ *   جواب الحريف : pending (في الانتظار, défaut) / yes (نعم) / no (لا).
+ * ------------------------------------------------------------------------ */
+
+/**
+ * « آخر أجل للرد » = تاريخ إرسال الفاتورة + N jours (réglage invoice_reply_days, 15 par défaut).
+ * Jamais saisi ni stocké : changer N recalcule toutes les échéances sans toucher aux dates d'envoi.
+ */
+function ps_calc_invoice_deadline( string $sent_date, int $days ): string {
+	return gmdate( 'Y-m-d', strtotime( substr( $sent_date, 0, 10 ) . ' 00:00:00 UTC' ) + max( 0, $days ) * DAY_IN_SECONDS );
+}
+
+/**
+ * Facture « en retard » : réponse encore « في الانتظار » ET آخر أجل dépassé (< aujourd'hui).
+ * Le jour même de l'échéance n'est pas un retard (comme pour les أصناف et les tâches).
+ */
+function ps_calc_invoice_late( string $answer, string $deadline, string $today ): bool {
+	return 'pending' === $answer && $deadline < $today;
+}
+
+/** Jours de retard d'une facture (0 si elle n'est pas en retard). */
+function ps_calc_invoice_days_late( string $answer, string $deadline, string $today ): int {
+	return ps_calc_invoice_late( $answer, $deadline, $today ) ? ps_calc_days_between( $deadline, $today ) : 0;
+}
+
+/**
+ * Alerte du jour pour une facture (Telegram / e-mail) — tant que la réponse est « في الانتظار » :
+ *   « before » : l'échéance est dans 1 à $before jours (rappel, 3 jours avant par défaut — envoyé une seule fois) ;
+ *   « due »    : c'est le jour de l'échéance ;
+ *   « late »   : l'échéance est dépassée (une alerte par jour au maximum) ;
+ *   null       : rien à envoyer (réponse reçue, ou échéance encore lointaine).
+ */
+function ps_calc_invoice_alert_kind( string $answer, string $deadline, string $today, int $before = 3 ): ?string {
+	if ( 'pending' !== $answer ) {
+		return null;
+	}
+	$left = ps_calc_days_between( $today, $deadline );
+	if ( $left < 0 ) {
+		return 'late';
+	}
+	if ( 0 === $left ) {
+		return 'due';
+	}
+	return $left <= $before ? 'before' : null;
+}
+
+/**
+ * Taux de réponse des factures : part des « نعم » et des « لا » parmi les factures qui ont une réponse.
+ * null (affiché « — ») si aucune réponse.
+ */
+function ps_calc_invoice_answer_rates( int $yes, int $no ): array {
+	$total = $yes + $no;
+	return array(
+		'yes' => $total ? round( $yes / $total * 100, 1 ) : null,
+		'no'  => $total ? round( $no / $total * 100, 1 ) : null,
+	);
 }

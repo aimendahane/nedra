@@ -56,9 +56,9 @@
 			followupStatusId: (L.values('followup_status').find(function (v) { return v.meta && v.meta.default; }) || {}).id || '',
 			sourceId: '', lossReasonId: '', offerAmount: '', offerCurrencyId: (L.byCode('currency', 'LYD') || {}).id || '',
 			purchaseAmount: '', purchaseCurrencyId: (L.byCode('currency', 'LYD') || {}).id || '',
-			filesLink: '', note: '', parties: {}, items: [{ itemTypeId: '', quantity: '', employeeId: me || '', dueDate: '' }], competitors: [],
+			filesLink: '', note: '', projectNote: '', isProject: '', nonProjectReasonId: '', nonProjectNote: '', parties: {}, items: [{ itemTypeId: '', quantity: '', employeeId: me || '', dueDate: '' }], competitors: [],
 		};
-		Object.keys(PS.config.partyRoles).forEach(function (r) { d.parties[r] = { companyId: null }; });
+		Object.keys(PS.config.partyRoles).forEach(function (r) { d.parties[r] = { companyId: null, fromDirectory: [] }; });
 		return d;
 	}
 
@@ -136,6 +136,9 @@
 				${state.mode === 'edit' ? fieldWrap(PS.t('رقم المشروع'), null, html`<input value="${state.project.projectNo}" disabled>`) : fieldWrap(PS.t('رقم المشروع'), null, html`<input value="${PS.t('يتولّد تلقائيًا عند الحفظ')}" disabled>`)}
 				${fieldWrap(PS.t('رقم العرض'), 'offer_no', html`<span class="ps-inline"><input data-bind="offerNo" data-key="offer_no" value="${d.offerNo || ''}" dir="ltr"${dis()}>${offerNoBtn}</span>`)}
 				${input('name', PS.t('اسم المشروع'), 'text', 'name', { key: 'name', cls: 'ps-span-2' })}
+				${yesNo()}
+				${d.isProject === false ? html`${select('nonProjectReasonId', PS.t('سبب عدم اعتباره مشروعا'), 'non_project_reason', null, { key: 'non_project_reason_id', cls: 'ps-field--required' })}
+					${fieldWrap(PS.t('ملاحظة (اختياري)'), null, html`<input data-bind="nonProjectNote" data-key="non_project_note" value="${d.nonProjectNote || ''}"${dis()}>`)}` : ''}
 				${input('receivedDate', PS.t('تاريخ استلام الطلب'), 'date', 'received_date', { key: 'received_date' })}
 				${input('sentDate', PS.t('تاريخ إرسال العرض'), 'date', 'sent_date', { key: 'sent_date' })}
 				${select('responsibleEmpId', PS.t('المسؤول عن المشروع'), 'employee', 'responsible_emp_id', { key: 'responsible_emp_id' })}
@@ -152,6 +155,32 @@
 				${input('filesLink', PS.t('رابط ملف المشاريع (Drive / OneDrive)'), 'url', 'files_link', { key: 'files_link', cls: 'ps-span-2' })}
 			</div>
 			${fieldWrap(PS.t('NOTE / نص الطلب'), 'note', html`<textarea rows="4" data-bind="note" data-key="note"${dis()}>${d.note || ''}</textarea>`, 'ps-mt')}
+			${fieldWrap(PS.t('ملاحظة المشروع'), 'project_note', html`<textarea rows="3" data-bind="projectNote" data-key="project_note" placeholder="${PS.t('ملاحظة داخلية عن المشروع (غير نص الطلب)')}"${dis()}>${d.projectNote || ''}</textarea>`, 'ps-mt')}
+		</section>`;
+	}
+
+	/**
+	 * « مشروع؟ » (1.6.0) : نعم / لا, obligatoire. « لا » → سبب obligatoire ; le projet sort des offres et des KPI.
+	 */
+	function yesNo() {
+		const v = state.draft.isProject;
+		const radio = function (val, label) {
+			return html`<label class="ps-check"><input type="radio" name="isProject" value="${val}" data-yesno${(val === '1' && v === true) || (val === '0' && v === false) ? ui.raw(' checked') : ''}${dis()}> ${label}</label>`;
+		};
+		return html`<div class="ps-field ps-field--required" data-key="is_project"><span class="ps-field__label">${PS.t('مشروع؟')} <span class="ps-req">*</span></span>
+			<div class="ps-row ps-row--tight" role="radiogroup" aria-label="${PS.t('مشروع؟')}">${radio('1', PS.t('نعم'))}${radio('0', PS.t('لا'))}</div>
+			${v === false ? html`<span class="ps-small ps-muted">${PS.t('لا يظهر في العروض ولا في مؤشرات العروض ونسبة النجاح.')}</span>` : ''}</div>`;
+	}
+
+	/** Fichiers choisis avant l'enregistrement d'un NOUVEAU projet (envoyés juste après la création). */
+	function sectionNewFiles() {
+		if (state.mode !== 'create') return '';
+		const list = state.pendingFiles || [];
+		return html`<section class="ps-card">
+			<h2 class="ps-card__title">📎 ${PS.t('الملفات المرفقة')} <span class="ps-muted">(${PS.t('اختياري')})</span></h2>
+			<p class="ps-muted ps-small">${PS.t('تُرفع الملفات مباشرة بعد حفظ المشروع (نفس قواعد الملفات المرفقة).')}</p>
+			<input type="file" multiple data-new-files>
+			${list.length ? html`<ul class="ps-report">${list.map(function (f, i) { return html`<li>${f.name} <span class="ps-muted">(${PS.format.size(f.size)})</span> <button type="button" class="ps-icon-btn ps-icon-btn--sm" data-action="remove-new-file" data-i="${i}" aria-label="${PS.t('إزالة')}">✕</button></li>`; })}</ul>` : ''}
 		</section>`;
 	}
 
@@ -179,7 +208,7 @@
 	function sectionParties() {
 		return html`<section class="ps-card">
 			<h2 class="ps-card__title">${PS.t('الأطراف المتدخلة')}</h2>
-			<p class="ps-muted ps-small">${PS.t('اكتب اسم الشركة واختر من الدليل لتعبئة بياناتها، أو أضف شركة جديدة.')}</p>
+			<p class="ps-muted ps-small">${PS.t('اكتب اسم الشركة واختر من الدليل لتعبئة بياناتها، أو أضف شركة جديدة.')} ${PS.t('بيانات الشركة المرتبطة (🔗: الشخص، الهاتف…) تأتي من دليل الشركات ولا تُكتب في كل مشروع.')}</p>
 			<div class="ps-parties">${Object.keys(PS.config.partyRoles).map(partyCard)}</div>
 		</section>`;
 	}
@@ -193,7 +222,9 @@
 				const rk = PARTY_RULE[f[0]] ? role + '.' + PARTY_RULE[f[0]] : null;
 				const errKey = 'parties.' + role + '.' + (PARTY_RULE[f[0]] || f[0]);
 				const v = p[f[0]] || '';
-				return fieldWrap(f[1], rk, html`<input type="${f[2] || 'text'}" data-bind="parties.${role}.${f[0]}" data-key="${errKey}" value="${v}"${f[3] ? ui.raw(' placeholder="' + ui.esc(f[3]) + '"') : ''} ${ui.raw(f[0] === 'companyName' ? 'data-company="' + role + '"' : '')}${f[2] === 'tel' || f[2] === 'email' ? ui.raw(' dir="ltr"') : ''}${dis()}>`);
+				// 1.6.0 : coordonnée venant de l'annuaire (société liée) → lecture seule ici, modifiée dans « الشركات ».
+				const fromDir = p.companyId && (p.fromDirectory || []).indexOf(f[0]) !== -1;
+				return fieldWrap(f[1] + (fromDir ? ' 🔗' : ''), rk, html`<input type="${f[2] || 'text'}" data-bind="parties.${role}.${f[0]}" data-key="${errKey}" value="${v}"${f[3] ? ui.raw(' placeholder="' + ui.esc(f[3]) + '"') : ''} ${ui.raw(f[0] === 'companyName' ? 'data-company="' + role + '"' : '')}${f[2] === 'tel' || f[2] === 'email' ? ui.raw(' dir="ltr"') : ''}${fromDir ? ui.raw(' readonly data-from-dir title="' + ui.esc(PS.t('من دليل الشركات — يُعدّل من صفحة الشركات')) + '"') : ''}${dis()}>`);
 			})}</div>
 		</fieldset>`;
 	}
@@ -266,7 +297,7 @@
 	function formHtml() {
 		return html`<form class="ps-form" novalidate data-form>
 			<div data-errors></div>
-			${sectionInfo()}${sectionParties()}${sectionItems()}${sectionAmounts()}${sectionCompetitors()}
+			${sectionInfo()}${sectionParties()}${sectionItems()}${sectionAmounts()}${sectionCompetitors()}${sectionNewFiles()}
 			${formActions()}
 		</form>`;
 	}
@@ -287,7 +318,7 @@
 		else if (perm.editReason === 'creator') banner = html`<div class="ps-alert ps-alert--warning">${PS.t('يمكنك تعديل هذا المشروع حتى')} ${PS.format.dateTime(perm.editUntil)}.</div>`;
 		return html`<div class="ps-page-head">
 			<h1 class="ps-ptitle-h1">${p.name}<span class="ps-ptitle__no" dir="ltr">${[p.projectNo, p.oldNo].filter(Boolean).join(' · ')}</span></h1>
-			<div class="ps-page-head__badges">${L.offerBadge(p.computed.offerStatus)} ${L.badge(p.followupStatusId, L.label(p.followupStatusId))} ${p.computed.priority ? html`<span class="ps-badge ps-prio ps-prio--${p.computed.priority}">${p.computed.priority}</span>` : ''}</div>
+			<div class="ps-page-head__badges">${p.isProject === false ? html`<span class="ps-badge ps-badge--muted" data-non-project>🚫 ${PS.t('غير مشروع')}${p.nonProjectReasonId ? ' — ' + L.label(p.nonProjectReasonId) : ''}</span>` : ''} ${L.offerBadge(p.computed.offerStatus)} ${L.badge(p.followupStatusId, L.label(p.followupStatusId))} ${p.computed.priority ? html`<span class="ps-badge ps-prio ps-prio--${p.computed.priority}">${p.computed.priority}</span>` : ''}</div>
 			<div class="ps-page-head__actions">
 				${PS.router.can('ps_assign_tasks') && !p.deletedAt ? html`<button type="button" class="ps-btn" data-action="new-task">📌 ${PS.t('مهمة')}</button>` : ''}
 				${perm.canDelete && !p.deletedAt ? html`<button type="button" class="ps-btn ps-btn--danger" data-action="delete">🗑 ${PS.t('حذف')}</button>` : ''}
@@ -342,8 +373,10 @@
 		const m = /^parties\.(\w+)\.companyName$/.exec(path);
 		if (m && state.draft.parties[m[1]].companyId) {
 			state.draft.parties[m[1]].companyId = null;
+			state.draft.parties[m[1]].fromDirectory = [];
 			const lg = e.target.closest('fieldset').querySelector('.ps-linked');
 			if (lg) lg.remove();
+			e.target.closest('fieldset').querySelectorAll('[data-from-dir]').forEach(function (x) { x.readOnly = false; x.removeAttribute('data-from-dir'); });
 		}
 		state.dirty = true;
 		saveDraftLocal();
@@ -360,6 +393,14 @@
 			}
 			return;
 		}
+		if (el.hasAttribute('data-yesno')) {
+			state.draft.isProject = el.value === '1';
+			state.dirty = true;
+			saveDraftLocal();
+			rerenderKeepScroll();
+			return;
+		}
+		if (el.hasAttribute('data-new-files')) { addNewFiles(el.files); return; }
 		const path = el.dataset.bind;
 		if (!path || el.tagName !== 'SELECT') return;
 		if (el.value === '__add') { quickAdd(el); return; }
@@ -398,6 +439,7 @@
 		else if (a === 'remove-comp') { d.competitors.splice(i, 1); rerenderKeepScroll(); }
 		else if (a === 'remove-comp-type') { d.competitors[i].itemTypeIds = d.competitors[i].itemTypeIds.filter(function (x) { return String(x) !== btn.dataset.id; }); rerenderKeepScroll(); }
 		else if (a === 'suggest-offer') suggestOfferNo();
+		else if (a === 'remove-new-file') { state.pendingFiles.splice(i, 1); rerenderKeepScroll(); return; }
 		else if (a === 'save') save(false);
 		else if (a === 'reset') { clearDraftLocal(); state.draft = emptyDraft(); state.restored = false; state.lastSaved = null; render(); }
 		else if (a === 'cancel') { state.draft = projectToDraft(state.project); state.dirty = false; render(); }
@@ -459,6 +501,7 @@
 			onNew: function (q) {
 				const p = state.draft.parties[role];
 				p.companyId = null;
+				p.fromDirectory = [];
 				p.companyName = q;
 				ui.toast(PS.t('ستُضاف الشركة إلى الدليل عند حفظ المشروع'), 'info');
 				saveDraftLocal();
@@ -469,8 +512,10 @@
 				p.companyId = c.id;
 				p.companyName = c.name;
 				// Remplit les champs vides avec les coordonnées de la fiche.
+				// 1.6.0 : les coordonnées de la fiche société priment (annuaire = source) ; les vides restent à compléter.
+				p.fromDirectory = [];
 				[['person', 'person'], ['phone', 'phone'], ['email', 'email'], ['address', 'address'], ['position', 'position'], ['rank', 'rank'], ['location', 'website']].forEach(function (m) {
-					if (!p[m[0]] && c[m[1]]) p[m[0]] = c[m[1]];
+					if (c[m[1]]) { p[m[0]] = c[m[1]]; p.fromDirectory.push(m[0]); }
 				});
 				saveDraftLocal();
 				rerenderKeepScroll();
@@ -516,7 +561,9 @@
 				if (req.indexOf(role + '.' + f[0]) !== -1 && empty(p[f[1]]) && !(f[0] === 'company' && p.companyId)) errs['parties.' + role + '.' + f[0]] = PS.t('خانة إجبارية');
 			});
 		});
-		if (req.indexOf('items.min_one') !== -1 && !d.items.length) errs.items = PS.t('لازم صنف واحد على الأقل');
+		if (d.isProject !== true && d.isProject !== false) errs.is_project = PS.t('خانة إجبارية');
+		if (d.isProject === false && !d.nonProjectReasonId) errs.non_project_reason_id = PS.t('خانة إجبارية');
+		if (req.indexOf('items.min_one') !== -1 && !d.items.length && d.isProject !== false) errs.items = PS.t('لازم صنف واحد على الأقل');
 		d.items.forEach(function (it, i) {
 			[['item_type_id', 'itemTypeId'], ['employee_id', 'employeeId'], ['due_date', 'dueDate'], ['quantity', 'quantity']].forEach(function (f) {
 				if (req.indexOf('item.' + f[0]) !== -1 && empty(it[f[1]])) errs['items.' + i + '.' + f[0]] = PS.t('خانة إجبارية');
@@ -545,13 +592,16 @@
 			state.saving = false;
 			state.dirty = false;
 			if (state.mode === 'create') {
+				const files = state.pendingFiles || [];
 				clearDraftLocal();
 				state.lastSaved = p;
 				state.restored = false;
 				state.draft = emptyDraft();
+				state.pendingFiles = [];
 				render();
 				window.scrollTo(0, 0);
 				ui.toast(PS.t('تم حفظ المشروع ') + p.projectNo, 'success');
+				uploadNewFiles(p, files);
 			} else {
 				state.project = p;
 				state.draft = projectToDraft(p);
@@ -569,6 +619,36 @@
 			} else {
 				ui.toast(err.message, 'error');
 			}
+		});
+	}
+
+	/** Ajoute des fichiers à envoyer après la création (mêmes contrôles que l'onglet الملفات ; le serveur revérifie). */
+	function addNewFiles(fileList) {
+		const blocked = PS.config.settings.blockedExts || [];
+		const max = PS.config.settings.maxUpload || 0;
+		state.pendingFiles = state.pendingFiles || [];
+		Array.prototype.forEach.call(fileList || [], function (f) {
+			const parts = f.name.toLowerCase().split('.').slice(1);
+			if (parts.some(function (x) { return blocked.indexOf(x) !== -1; })) { ui.toast(PS.t('نوع الملف غير مسموح: ') + f.name, 'error'); return; }
+			if (max && f.size > max) { ui.toast(PS.t('الملف كبير جدًا: ') + f.name, 'error'); return; }
+			state.pendingFiles.push(f);
+		});
+		rerenderKeepScroll();
+	}
+
+	/** Envoi des fichiers d'un projet qui vient d'être créé (un par un). */
+	function uploadNewFiles(p, files) {
+		if (!files.length) return;
+		let done = 0;
+		files.reduce(function (chain, f) {
+			return chain.then(function () {
+				const fd = new FormData();
+				fd.append('file', f);
+				fd.append('displayName', f.name);
+				return PS.api.post('projects/' + p.id + '/files', fd).then(function () { done++; }).catch(function (e) { ui.toast(f.name + ': ' + e.message, 'error'); });
+			});
+		}, Promise.resolve()).then(function () {
+			if (done) ui.toast(PS.t('تم رفع ') + done + PS.t(' ملف'), 'success');
 		});
 	}
 

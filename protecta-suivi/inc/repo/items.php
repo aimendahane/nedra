@@ -13,6 +13,10 @@
  *     dans « projectSentDate » ; la règle الإرسال ≥ الاستلام reste valable ;
  *   - passer à مرسل sans تاريخ تقديم العرض → date du jour ;
  *   - « متأخر » (livraison) est calculé, jamais choisi à la main.
+ *
+ * 1.6.0 — « المسؤول عن المشروع » et « الموظف المتابع » de l'OFFRE (= ce صنف) : vides = ceux du projet
+ * (pré-remplis), modifiables seulement par مسؤول المشروع et la الإدارة, avec une justification OBLIGATOIRE
+ * enregistrée au journal (qui, quand, ancienne → nouvelle valeur, justification). « رقم فاتورة العرض » unique.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -58,6 +62,19 @@ function ps_item_can_edit( array $item, array $project, int $user_id ): bool {
 }
 
 /**
+ * Peut changer المسؤول / المتابع d'une offre : الإدارة ou مسؤول المشروع du projet (1.6.0).
+ */
+function ps_item_can_assign( array $project, int $user_id ): bool {
+	return in_array( ps_project_edit_reason( $project, $user_id ), array( 'admin', 'responsible' ), true );
+}
+
+/** المسؤول / المتابع effectifs d'une offre : la valeur de l'offre, sinon celle du projet. */
+function ps_item_effective( array $item, array $project, string $col ): ?int {
+	$v = ! empty( $item[ $col ] ) ? $item[ $col ] : ( $project[ $col ] ?? null );
+	return $v ? (int) $v : null;
+}
+
+/**
  * Valide puis enregistre une modification partielle d'un صنف.
  *
  * @param array $body Clés de ps_item_update_fields() présentes = à modifier ; + projectSentDate.
@@ -99,6 +116,43 @@ function ps_item_update( array $item, array $project, array $body, int $user_id 
 		$set[ $col ] = $v;
 	}
 
+	// 1.6.0 : المسؤول / المتابع de l'offre (justification obligatoire, droits مسؤول + الإدارة).
+	$assign = array();
+	foreach ( array( 'responsibleEmpId' => 'responsible_emp_id', 'followerEmpId' => 'follower_emp_id' ) as $key => $col ) {
+		if ( ! array_key_exists( $key, $body ) ) {
+			continue;
+		}
+		$v = ps_clean_id( $body[ $key ] );
+		if ( $v === ps_item_effective( $item, $project, $col ) ) {
+			continue; // aucun changement
+		}
+		if ( ! ps_item_can_assign( $project, $user_id ) ) {
+			return new WP_Error( 'ps_forbidden', ps__( 'تغيير المسؤول أو المتابع للعرض: لمسؤول المشروع والإدارة فقط.' ), array( 'status' => 403 ) );
+		}
+		$row = $v ? ( $lists[ $v ] ?? null ) : null;
+		if ( ! $v ) {
+			$errors[ $key ] = ps__( 'اختر الموظف' );
+		} elseif ( ! $row || 'employee' !== $row['list_key'] ) {
+			$errors[ $key ] = ps__( 'قيمة غير موجودة في القائمة' );
+		} elseif ( $row['is_hidden'] ) {
+			$errors[ $key ] = ps__( 'هذه القيمة لم تعد متاحة' );
+		} else {
+			$assign[ $col ] = $v;
+		}
+	}
+	$reason = ps_clean_text( $body['reason'] ?? null, true );
+	if ( $assign && null === $reason ) {
+		$errors['reason'] = ps__( 'اكتب سبب التغيير (إجباري)' );
+	}
+
+	// « رقم فاتورة العرض » unique dans tout le système.
+	if ( ! empty( $set['offer_invoice_no'] ) ) {
+		$dup = $wpdb->get_var( $wpdb->prepare( 'SELECT p.project_no FROM ' . ps_table( 'items' ) . ' i JOIN ' . ps_table( 'projects' ) . ' p ON p.id = i.project_id WHERE i.offer_invoice_no = %s AND i.id <> %d LIMIT 1', $set['offer_invoice_no'], (int) $item['id'] ) );
+		if ( $dup ) {
+			$errors['offerInvoiceNo'] = ps__( 'رقم فاتورة العرض مستعمل في المشروع ' ) . $dup;
+		}
+	}
+
 	$new        = array_merge( $item, $set );
 	$offer_code = $new['offer_status_id'] ? ( $lists[ (int) $new['offer_status_id'] ]['code'] ?? null ) : null;
 	$changed_to = isset( $set['offer_status_id'] ) && (int) $set['offer_status_id'] !== (int) $item['offer_status_id'] ? $offer_code : null;
@@ -124,7 +178,8 @@ function ps_item_update( array $item, array $project, array $body, int $user_id 
 	}
 
 	if ( 'sent' === $changed_to && empty( $new['offer_date'] ) ) {
-		$set['offer_date'] = ps_today(); // تاريخ تقديم العرض par défaut
+		// تاريخ تقديم العرض par défaut : la date d'envoi du projet si elle existe (1.6.0, problème n°01), sinon aujourd'hui.
+		$set['offer_date'] = ! empty( $project['sent_date'] ) ? $project['sent_date'] : ( $project_sent ? $project_sent : ps_today() );
 	}
 
 	$now = ps_now();
@@ -135,6 +190,10 @@ function ps_item_update( array $item, array $project, array $body, int $user_id 
 			$diff[ $col ] = $v;
 			ps_log( (int) $project['id'], 'update', 'item', (int) $item['id'], $col, ps_field_display( $col, $item[ $col ] ), ps_field_display( $col, $v ), $user_id );
 		}
+	}
+	foreach ( $assign as $col => $v ) {
+		$diff[ $col ] = $v;
+		ps_log( (int) $project['id'], 'update', 'item', (int) $item['id'], $col, ps_list_label( ps_item_effective( $item, $project, $col ) ), ps_list_label( $v ), $user_id, $reason );
 	}
 	if ( $diff ) {
 		$wpdb->update( ps_table( 'items' ), array_merge( $diff, array( 'updated_at' => $now ) ), array( 'id' => (int) $item['id'] ) );
@@ -166,13 +225,29 @@ function ps_items_list( array $args, int $user_id, ?string $today = null ): arra
 	$lists = ps_lists_by_id();
 	$code  = fn( $id ) => $id ? ( $lists[ (int) $id ]['code'] ?? null ) : null;
 	$rows  = $wpdb->get_results(
-		'SELECT i.*, p.project_no, p.legacy_id, p.name AS project_name, p.received_date, p.sent_date, p.urgency_id, p.responsible_emp_id, p.follower_emp_id, p.intermediary_emp_id, p.created_by, p.created_at AS project_created_at, p.deleted_at, c.name AS company_name
-		 FROM ' . ps_table( 'items' ) . ' i JOIN ' . ps_table( 'projects' ) . ' p ON p.id = i.project_id AND p.deleted_at IS NULL
+		'SELECT i.*, p.project_no, p.legacy_id, p.name AS project_name, p.received_date, p.sent_date, p.urgency_id, p.responsible_emp_id AS p_responsible_emp_id, p.follower_emp_id AS p_follower_emp_id, p.intermediary_emp_id, p.created_by, p.created_at AS project_created_at, p.deleted_at, c.name AS company_name
+		 FROM ' . ps_table( 'items' ) . ' i JOIN ' . ps_table( 'projects' ) . ' p ON p.id = i.project_id AND p.deleted_at IS NULL AND p.is_project = 1
 		 LEFT JOIN ' . ps_table( 'project_parties' ) . " pp ON pp.project_id = p.id AND pp.role = 'owner'
 		 LEFT JOIN " . ps_table( 'companies' ) . ' c ON c.id = pp.company_id
 		 ORDER BY i.due_date IS NULL, i.due_date, i.id',
 		ARRAY_A
 	);
+
+	// 1.6.0 : factures et fichiers de chaque offre (compteurs).
+	$inv_count = array();
+	foreach ( $wpdb->get_results( 'SELECT item_id, answer, sent_date FROM ' . ps_table( 'invoices' ) . ' WHERE deleted_at IS NULL', ARRAY_A ) as $v ) {
+		$k                = (int) $v['item_id'];
+		$inv_count[ $k ]  = $inv_count[ $k ] ?? array( 'total' => 0, 'pending' => 0, 'late' => 0 );
+		++$inv_count[ $k ]['total'];
+		if ( 'pending' === $v['answer'] ) {
+			++$inv_count[ $k ]['pending'];
+			$inv_count[ $k ]['late'] += ps_calc_invoice_late( 'pending', ps_calc_invoice_deadline( $v['sent_date'], ps_invoice_reply_days() ), $today ) ? 1 : 0;
+		}
+	}
+	$file_count = array();
+	foreach ( $wpdb->get_results( 'SELECT item_id, COUNT(*) AS n FROM ' . ps_table( 'files' ) . ' WHERE deleted_at IS NULL AND item_id IS NOT NULL AND invoice_id IS NULL GROUP BY item_id', ARRAY_A ) as $f ) {
+		$file_count[ (int) $f['item_id'] ] = (int) $f['n'];
+	}
 
 	$delivery = 'delivery' === ( $args['view'] ?? 'offers' );
 	$me       = ps_user_employee_id( $user_id );
@@ -227,8 +302,8 @@ function ps_items_list( array $args, int $user_id, ?string $today = null ): arra
 		}
 		$project = array(
 			'id'                 => (int) $r['project_id'],
-			'responsible_emp_id' => $r['responsible_emp_id'],
-			'follower_emp_id'    => $r['follower_emp_id'],
+			'responsible_emp_id' => $r['p_responsible_emp_id'],
+			'follower_emp_id'    => $r['p_follower_emp_id'],
 			'intermediary_emp_id'=> $r['intermediary_emp_id'],
 			'created_by'         => $r['created_by'],
 			'created_at'         => $r['project_created_at'],
@@ -260,6 +335,13 @@ function ps_items_list( array $args, int $user_id, ?string $today = null ): arra
 			'deliveryActualDate' => $r['delivery_actual_date'],
 			'deliveryStatusId'   => $r['delivery_status_id'] ? (int) $r['delivery_status_id'] : null,
 			'deliveryNotes'      => $r['delivery_notes'],
+			// 1.6.0 : المسؤول / المتابع de l'offre (valeur effective) + indication « modifié au niveau de l'offre ».
+			'responsibleEmpId'   => ps_item_effective( $r, $project, 'responsible_emp_id' ),
+			'followerEmpId'      => ps_item_effective( $r, $project, 'follower_emp_id' ),
+			'assignOverride'     => ! empty( $r['responsible_emp_id'] ) || ! empty( $r['follower_emp_id'] ),
+			'canAssign'          => ps_item_can_assign( $project, $user_id ),
+			'invoices'           => $inv_count[ (int) $r['id'] ] ?? array( 'total' => 0, 'pending' => 0, 'late' => 0 ),
+			'filesCount'         => $file_count[ (int) $r['id'] ] ?? 0,
 			'computed'           => array(
 				'late'            => $late,
 				'rowColor'        => ps_calc_offer_row_color( $oc, $r['due_date'], $urg, $today ),

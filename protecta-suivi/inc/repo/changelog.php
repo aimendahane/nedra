@@ -12,7 +12,10 @@
 
 defined( 'ABSPATH' ) || exit;
 
-function ps_log( ?int $project_id, string $action, string $entity, ?int $entity_id = null, ?string $field = null, $old = null, $new = null, ?int $user_id = null ): void {
+/**
+ * @param string|null $reason Justification (1.6.0 : obligatoire pour changer المسؤول / المتابع d'une offre).
+ */
+function ps_log( ?int $project_id, string $action, string $entity, ?int $entity_id = null, ?string $field = null, $old = null, $new = null, ?int $user_id = null, ?string $reason = null ): void {
 	global $wpdb;
 	$wpdb->insert(
 		ps_table( 'changelog' ),
@@ -25,6 +28,7 @@ function ps_log( ?int $project_id, string $action, string $entity, ?int $entity_
 			'field'      => $field,
 			'old_value'  => null === $old ? null : (string) $old,
 			'new_value'  => null === $new ? null : (string) $new,
+			'reason'     => $reason,
 			'created_at' => ps_now(),
 		)
 	);
@@ -54,6 +58,7 @@ function ps_changelog_for_project( int $project_id, int $limit = 300 ): array {
 				'field'    => $r['field'],
 				'old'      => $r['old_value'],
 				'new'      => $r['new_value'],
+				'reason'   => $r['reason'] ?? null,
 			);
 		},
 		$rows

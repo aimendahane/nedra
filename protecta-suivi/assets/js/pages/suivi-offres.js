@@ -43,6 +43,24 @@ PS.items = (function () {
 					return true;
 				},
 			}).then(function (r) { return r === 'ok' ? changes : null; });
+		} else if (changes.followerEmpId !== undefined || changes.responsibleEmpId !== undefined) {
+			// 1.6.0 : changer المسؤول / المتابع d'une offre → justification obligatoire (journal).
+			const who = changes.followerEmpId !== undefined ? PS.t('الموظف المتابع') : PS.t('المسؤول عن المشروع');
+			const to = L.label(changes.followerEmpId !== undefined ? changes.followerEmpId : changes.responsibleEmpId);
+			ask = ui.modal({
+				title: PS.t('تغيير') + ' ' + who,
+				body: html`<p>${who}: <strong>${to}</strong></p>
+					<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('سبب التغيير *')}</span><textarea data-q="reason" rows="2"></textarea></label>
+					<p class="ps-small ps-muted">${PS.t('يُسجَّل في سجل التعديلات: من، متى، القيمة القديمة والجديدة والسبب.')}</p>`,
+				buttons: [{ id: 'ok', label: PS.t('حفظ'), kind: 'primary' }, { id: 'cancel', label: PS.t('إلغاء') }],
+				onButton: function (id, box) {
+					if (id !== 'ok') return true;
+					const reason = box.querySelector('[data-q="reason"]').value.trim();
+					if (!reason) { box.querySelector('[data-q="reason"]').focus(); ui.toast(PS.t('اكتب سبب التغيير (إجباري)'), 'error'); return false; }
+					changes.reason = reason;
+					return true;
+				},
+			}).then(function (r) { return r === 'ok' ? changes : null; });
 		} else if ((code === 'sent' || code === 'accepted' || code === 'rejected') && !row.projectSentDate) {
 			ask = ui.modal({
 				title: PS.t('تاريخ إرسال العرض'),
@@ -111,6 +129,21 @@ PS.items = (function () {
 		return html`<input type="${type}" class="ps-input ps-input--sm ${cls || ''}" data-field="${field}" value="${r[field] || ''}">`;
 	}
 
+	/** المسؤول / المتابع de l'offre (1.6.0) : liste si l'utilisateur peut les changer, sinon le nom. */
+	function assignCell(r, field) {
+		if (!r.canAssign) return html`${L.label(r[field])}`;
+		return html`<select class="ps-input ps-input--sm" data-field="${field}" aria-label="${field === 'followerEmpId' ? PS.t('الموظف المتابع') : PS.t('المسؤول عن المشروع')}">${ui.raw(L.options('employee', r[field], { noEmpty: true }))}</select>`;
+	}
+
+	/** Factures de l'offre + fichier joint de l'offre (1.6.0). */
+	function extrasCell(r) {
+		const inv = r.invoices || { total: 0, late: 0 };
+		return html`<span class="ps-row ps-row--tight ps-nowrap">
+			<button type="button" class="ps-btn ps-btn--small ${inv.late ? 'ps-btn--danger' : ''}" data-invoices title="${PS.t('الفواتير')}">🧾 ${inv.total}${inv.late ? html` <span class="ps-badge ps-badge--danger">${inv.late}</span>` : ''}</button>
+			<button type="button" class="ps-btn ps-btn--small" data-offer-files title="${PS.t('ملفات العرض')}">📎 ${r.filesCount || ''}</button>
+		</span>`;
+	}
+
 	function rowHtml(r) {
 		const cls = r.computed.rowColor === 'late' ? 'is-late' : r.computed.rowColor === 'done' ? 'is-done' : '';
 		return html`<tr class="${cls}" data-row="${r.id}">
@@ -122,7 +155,10 @@ PS.items = (function () {
 			<td>${input(r, 'offerDate', 'date')}</td>
 			<td>${statusCell(r)}</td>
 			<td>${input(r, 'offerInvoiceNo', 'text', 'ps-input--code')}</td>
+			<td>${assignCell(r, 'responsibleEmpId')}</td>
+			<td>${assignCell(r, 'followerEmpId')}</td>
 			<td>${input(r, 'offerNotes', 'text')}</td>
+			<td>${extrasCell(r)}</td>
 		</tr>`;
 	}
 
@@ -132,7 +168,8 @@ PS.items = (function () {
 			<div class="ps-pcard__top">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo })} ${L.badge(r.urgencyId)} ${r.computed.late ? html`<span class="ps-badge ps-badge--danger">${PS.t('لازم قرار')}</span>` : ''}</div>
 			<div class="ps-pcard__name">${L.label(r.itemTypeId)}</div>
 			<div class="ps-small ps-muted">${L.label(r.employeeId)} · ${PS.t('الأجل')} ${F.date(r.dueDate)}</div>
-			<div class="ps-icard__edit">${statusCell(r)}</div>
+			<div class="ps-small ps-muted">${PS.t('المسؤول')}: ${L.label(r.responsibleEmpId)} · ${PS.t('المتابع')}: ${L.label(r.followerEmpId)}</div>
+			<div class="ps-icard__edit">${statusCell(r)} ${extrasCell(r)}</div>
 		</div>`;
 	}
 
@@ -147,7 +184,7 @@ PS.items = (function () {
 		}
 		box.innerHTML = html`<p class="ps-muted ps-small" role="status">${d.total} ${PS.t('صنف ·')} <span class="ps-legend ps-legend--late"></span> ${PS.t('متأخر (لازم قرار) ·')} <span class="ps-legend ps-legend--done"></span> ${PS.t('مقبول')}</p>
 			<div class="ps-table-wrap ps-desktop-only"><table class="ps-table ps-table--list ps-table--edit">
-				<thead><tr><th>${PS.t('رقم المشروع')}</th><th>${PS.t('الصنف')}</th><th>${PS.t('الموظف المسؤول')}</th><th>${PS.t('الاستعجال')}</th><th>${PS.t('الأجل المطلوب')}</th><th>${PS.t('تاريخ تقديم العرض')}</th><th>${PS.t('الحالة')}</th><th>${PS.t('رقم فاتورة العرض')}</th><th>${PS.t('ملاحظات')}</th></tr></thead>
+				<thead><tr><th>${PS.t('رقم المشروع')}</th><th>${PS.t('الصنف')}</th><th>${PS.t('الموظف المسؤول')}</th><th>${PS.t('الاستعجال')}</th><th>${PS.t('الأجل المطلوب')}</th><th>${PS.t('تاريخ تقديم العرض')}</th><th>${PS.t('الحالة')}</th><th>${PS.t('رقم فاتورة العرض')}</th><th>${PS.t('المسؤول عن المشروع')}</th><th>${PS.t('الموظف المتابع')}</th><th>${PS.t('ملاحظة العرض')}</th><th>${PS.t('الفواتير / الملفات')}</th></tr></thead>
 				<tbody>${d.rows.map(rowHtml)}</tbody></table></div>
 			<div class="ps-cards ps-mobile-only">${d.rows.map(cardHtml)}</div>`.html;
 	}
@@ -204,6 +241,16 @@ PS.items = (function () {
 			const c = e.target.closest('[data-clear]');
 			if (c) { setParam(c.dataset.clear, ''); render(); return; }
 			if (e.target.closest('[data-action="only-late"]')) { setParam('late', st.params.late ? '' : 1); render(); return; }
+			const invBtn = e.target.closest('[data-invoices]');
+			if (invBtn) {
+				PS.invoices.forOffer(rowById(invBtn.closest('[data-row]').dataset.row)).then(function () { load(); });
+				return;
+			}
+			const fBtn = e.target.closest('[data-offer-files]');
+			if (fBtn) {
+				PS.invoices.offerFiles(rowById(fBtn.closest('[data-row]').dataset.row)).then(function () { load(); });
+				return;
+			}
 			const reason = e.target.closest('[data-reason]');
 			if (reason) {
 				const row = rowById(reason.closest('[data-row]').dataset.row);

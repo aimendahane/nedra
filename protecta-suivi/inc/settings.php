@@ -26,6 +26,7 @@ function ps_default_settings(): array {
 		'duplicate_window_days' => 60,  // Détection de doublons : fenêtre en jours.
 		'creator_edit_hours'    => 24,  // Le créateur d'un projet peut modifier ses infos pendant N heures.
 		'file_max_mb'           => 20,  // 1.5.0 : taille maximale d'un fichier joint (Mo).
+		'invoice_reply_days'    => 15,  // 1.6.0 : آخر أجل للرد = تاريخ إرسال الفاتورة + N jours (calculé, jamais stocké).
 
 		// E-mail récapitulatif du matin (étape 5).
 		'digest_enabled' => false,
@@ -45,6 +46,8 @@ function ps_default_settings(): array {
 
 		// Telegram (1.2.0, voir inc/services/telegram.php). Le token est gardé à part (option ps_telegram_token).
 		'telegram_enabled' => false,
+		// 1.6.0 : « تفعيل التنبيهات » — alertes des factures (J-3, jour J, retard) par Telegram / e-mail de secours.
+		'alerts_enabled'   => true,
 
 		// Jeton secret de l'URL Cron (généré à l'installation, régénérable).
 		'cron_token' => '',

@@ -108,7 +108,7 @@ function ps_notify_from_log( ?int $project_id, string $action, string $entity, ?
 				ps_notify_collect( $project_id, 'update', $t( 'استُرجع المشروع' ), $user_id );
 			} elseif ( $field ) {
 				$kind = 'followup_status_id' === $field ? 'status' : 'update';
-				ps_notify_collect( $project_id, $kind, static fn() => ( ps_validation_fields()[ $field ] ?? $field ) . ': ' . $arrow( $old, $new ), $user_id );
+				ps_notify_collect( $project_id, $kind, static fn() => ps_field_label( $field ) . ': ' . $arrow( $old, $new ), $user_id );
 			}
 			break;
 		case 'item':

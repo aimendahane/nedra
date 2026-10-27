@@ -20,7 +20,7 @@ function ps_core_scripts(): array {
  * Un fichier JS par page (assets/js/pages/<nom>.js), dans l'ordre du menu.
  */
 function ps_page_scripts(): array {
-	return array( 'mes-taches', 'fiche-projet', 'fiche-projet-onglets', 'base-projets', 'suivi-offres', 'suivi-livraison', 'recap', 'annuaire', 'parametres', 'parametres-utilisateurs', 'parametres-donnees' );
+	return array( 'mes-taches', 'fiche-projet', 'fiche-projet-onglets', 'base-projets', 'suivi-offres', 'suivi-livraison', 'factures', 'recap', 'annuaire', 'parametres', 'parametres-utilisateurs', 'parametres-donnees' );
 }
 
 add_action( 'wp_enqueue_scripts', 'ps_enqueue_assets' );
@@ -82,7 +82,9 @@ function ps_client_config(): array {
 			'maxUpload'         => ps_file_max_bytes(), // 1.5.0 : réglage « file_max_mb », plafonné par la limite du serveur
 			'serverMaxUpload'   => (int) wp_max_upload_size(),
 			'blockedExts'       => ps_file_blocked_exts(),
+			'invoiceReplyDays'  => ps_invoice_reply_days(), // 1.6.0
 		),
+		'invoiceAnswers' => ps_invoice_answers(), // 1.6.0 : pending / yes / no
 		'partyRoles' => ps_party_roles(),
 		'today'      => ps_today(),
 	);

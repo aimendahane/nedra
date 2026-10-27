@@ -19,7 +19,7 @@
 	/** Colonnes : [clé de tri, titre, rendu]. */
 	const COLUMNS = [
 		// 1.5.0 : le projet d'abord — nom en gras, numéro (PRJ-… / P029, ancien numéro) en petit.
-		['name', PS.t('المشروع'), function (r) { return ui.projectTitle({ id: r.id, name: r.name, no: r.projectNo, oldNo: r.oldNo }); }],
+		['name', PS.t('المشروع'), function (r) { return html`${ui.projectTitle({ id: r.id, name: r.name, no: r.projectNo, oldNo: r.oldNo })}${r.isProject === false ? html`<span class="ps-badge ps-badge--muted ps-small" data-non-project title="${r.nonProjectReasonId ? L.label(r.nonProjectReasonId) : ''}">🚫 ${PS.t('غير مشروع')}</span>` : ''}`; }],
 		['receivedYear', PS.t('السنة'), function (r) { return r.receivedYear; }],
 		// Numéro du fichier Excel importé (P029…) affiché tel quel (1.4.0), sinon le numéro d'ordre.
 		['seq', PS.t('رقم'), function (r) { return /^P\d+$/.test(r.projectNo || '') ? r.projectNo : r.seq; }],
@@ -59,6 +59,7 @@
 		['sourceId', PS.t('مصدر الطلب'), 'source'],
 		['itemTypeId', PS.t('الصنف'), 'item_type'],
 		['priority', PS.t('الأولوية'), 'priority'],
+		['isProject', PS.t('مشروع؟'), 'isProject'], // 1.6.0
 	];
 
 	let st = null; // { main, params, data, selected:Set }
@@ -73,6 +74,8 @@
 			F.MONTHS.forEach(function (m, i) { h += opt(i + 1, m); });
 		} else if (kind === 'offerStatus') {
 			L.values('offer_status').forEach(function (v) { h += opt(v.code, v.label); });
+		} else if (kind === 'isProject') {
+			h += opt('1', PS.t('مشروع')) + opt('0', PS.t('🚫 غير مشروع'));
 		} else if (kind === 'priority') {
 			['P1', 'P2', 'P3'].forEach(function (p) { h += opt(p, p); });
 		} else {
@@ -150,7 +153,7 @@
 			return html`<a class="ps-pcard" href="#/projet?id=${r.id}">
 				<div class="ps-pcard__top">${ui.projectTitle({ name: r.name, no: r.projectNo, oldNo: r.oldNo }, { link: false })} ${L.badge(r.urgencyId)} ${r.priority ? html`<span class="ps-badge ps-prio ps-prio--${r.priority}">${r.priority}</span>` : ''}</div>
 				<div class="ps-muted ps-small">${r.companyName || '—'} · ${L.short(r.placeId)} · ${F.date(r.receivedDate)}</div>
-				<div class="ps-pcard__badges">${L.offerBadge(r.offerStatus)} ${L.badge(r.followupStatusId, L.label(r.followupStatusId))}</div>
+				<div class="ps-pcard__badges">${r.isProject === false ? html`<span class="ps-badge ps-badge--muted">🚫 ${PS.t('غير مشروع')}</span>` : ''}${L.offerBadge(r.offerStatus)} ${L.badge(r.followupStatusId, L.label(r.followupStatusId))}</div>
 			</a>`;
 		})}</div>`;
 	}

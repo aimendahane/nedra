@@ -8,6 +8,8 @@
  *
  * Choix (voir CLAUDE.md) : un projet dont حالة العرض = ملغى est compté À PART
  * (« ملغى ») et exclu des autres indicateurs (المؤكدة، المرفوضة، قيد الدراسة، المرسلة…).
+ * 1.6.0 : un « غير مشروع » (مشروع؟ = لا) est aussi compté à part (« nonProjects ») et exclu des offres, des
+ * KPI d'offres, de نسبة النجاح, des retards et des alertes de suivi.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -93,8 +95,16 @@ function ps_stats_facts( array $filters = array(), ?string $today = null ): arra
 				'delivery_display' => ps_calc_effective_delivery_status( $dc, $d_late ),
 			);
 		}
+		$non = isset( $p['is_project'] ) && 0 === (int) $p['is_project'];
+		if ( $non ) {
+			foreach ( $its as &$i_ ) {
+				$i_['late']          = false;
+				$i_['delivery_late'] = false;
+			}
+			unset( $i_ );
+		}
 		$offer  = ps_calc_project_offer_status( array_column( $its, 'offer_code' ) );
-		$cancel = 'cancelled' === $offer;
+		$cancel = 'cancelled' === $offer && ! $non;
 		$sent   = ! $cancel && ps_calc_is_offer_sent( $offer, $fu_type );
 		$lf     = $last_fu[ $p['id'] ] ?? null;
 
@@ -117,12 +127,13 @@ function ps_stats_facts( array $filters = array(), ?string $today = null ): arra
 			'followup_type'    => $fu_type,
 			'offer_status'     => $offer,
 			'is_cancelled'     => $cancel,
-			'is_sent'          => $sent,
-			'is_not_sent'      => ! $cancel && ps_calc_is_offer_not_sent( $offer, $fu_type ),
-			'is_confirmed'     => ! $cancel && ps_calc_is_confirmed( $fu_type ),
-			'is_rejected'      => ! $cancel && 'rejected' === $fu_type,
-			'is_delivered'     => ! $cancel && 'delivered' === $fu_type,
-			'is_ongoing'       => ! $cancel && ( 'ongoing' === $fu_type || null === $fu_type ),
+			'is_non_project'   => $non,
+			'is_sent'          => $sent && ! $non,
+			'is_not_sent'      => ! $cancel && ! $non && ps_calc_is_offer_not_sent( $offer, $fu_type ),
+			'is_confirmed'     => ! $cancel && ! $non && ps_calc_is_confirmed( $fu_type ),
+			'is_rejected'      => ! $cancel && ! $non && 'rejected' === $fu_type,
+			'is_delivered'     => ! $cancel && ! $non && 'delivered' === $fu_type,
+			'is_ongoing'       => ! $cancel && ! $non && ( 'ongoing' === $fu_type || null === $fu_type ),
 			'is_closed'        => ps_calc_is_closed( $fu_type ),
 			'company_id'       => $p['company_id'] ? (int) $p['company_id'] : null,
 			'company_name'     => $p['company_name'],
@@ -132,7 +143,7 @@ function ps_stats_facts( array $filters = array(), ?string $today = null ): arra
 			'margin'           => ps_calc_margin( $p['offer_amount'], $p['offer_currency_id'], $p['purchase_amount'], $p['purchase_currency_id'] ),
 			'last_followup'    => $lf['entry_date'] ?? null,
 			'next_followup'    => $lf['next_date'] ?? null,
-			'needs_followup'   => ps_calc_needs_followup( $fu_type, $urgency, $lf['entry_date'] ?? null, $p['updated_at'], $lf['next_date'] ?? null, $today, $days ),
+			'needs_followup'   => ! $non && ps_calc_needs_followup( $fu_type, $urgency, $lf['entry_date'] ?? null, $p['updated_at'], $lf['next_date'] ?? null, $today, $days ),
 			'competitors'      => $comp[ $p['id'] ] ?? array(),
 			'items'            => $its,
 		);
@@ -144,7 +155,7 @@ function ps_stats_facts( array $filters = array(), ?string $today = null ): arra
  * Indicateurs principaux d'un ensemble de projets (brief §6-7).
  */
 function ps_stats_kpis( array $facts ): array {
-	$active    = array_values( array_filter( $facts, fn( $f ) => ! $f['is_cancelled'] ) );
+	$active    = array_values( array_filter( $facts, fn( $f ) => ! $f['is_cancelled'] && empty( $f['is_non_project'] ) ) );
 	$count     = fn( $key ) => count( array_filter( $active, fn( $f ) => $f[ $key ] ) );
 	$confirmed = $count( 'is_confirmed' );
 	$sent      = $count( 'is_sent' );
@@ -153,7 +164,8 @@ function ps_stats_kpis( array $facts ): array {
 
 	return array(
 		'projects'          => count( $active ),
-		'cancelled'         => count( $facts ) - count( $active ),
+		'cancelled'         => count( array_filter( $facts, fn( $f ) => $f['is_cancelled'] ) ),
+		'nonProjects'       => count( array_filter( $facts, fn( $f ) => ! empty( $f['is_non_project'] ) ) ), // 1.6.0
 		'confirmed'         => $confirmed,
 		'rejected'          => $count( 'is_rejected' ),
 		'ongoing'           => $count( 'is_ongoing' ),

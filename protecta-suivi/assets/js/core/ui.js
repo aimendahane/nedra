@@ -254,5 +254,96 @@ PS.ui = (function () {
 		return o.link === false ? html`<span class="ps-ptitle">${inner}</span>` : html`<a class="ps-ptitle" href="#/projet?id=${p.id}${o.hash || ''}">${inner}</a>`;
 	}
 
-	return { esc, html, raw, toast, projectTitle, empty, badge, modal, confirm, autocomplete, showErrors, getPath, setPath, debounce };
+	/* ---------- Dates jj/mm/aaaa (1.6.0) ---------- */
+
+	/*
+	 * Les champs <input type="date"> affichent la date au format du navigateur (souvent mm/dd/yyyy).
+	 * Demande du client : saisie et affichage TOUJOURS en jj/mm/aaaa. Chaque champ date de l'application est donc
+	 * transformé automatiquement (MutationObserver) en champ texte jj/mm/aaaa + bouton 📅 (calendrier du navigateur).
+	 * Le code des pages ne change pas : la propriété « value » du champ renvoie toujours AAAA-MM-JJ (format de l'API)
+	 * et accepte AAAA-MM-JJ quand on la remplit ; seul l'affichage est en jj/mm/aaaa.
+	 */
+	const NATIVE_VALUE = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+
+	/** « 5/3/2026 », « 05-03-2026 », « 2026-03-05 » → « 2026-03-05 » ; '' si vide ; null si invalide. */
+	function parseDate(text) {
+		const t = String(text || '').trim();
+		if (!t) return '';
+		let y, m, d, r;
+		if ((r = /^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/.exec(t))) { d = +r[1]; m = +r[2]; y = +r[3]; }
+		else if ((r = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(t))) { y = +r[1]; m = +r[2]; d = +r[3]; }
+		else if ((r = /^(\d{2})(\d{2})(\d{4})$/.exec(t))) { d = +r[1]; m = +r[2]; y = +r[3]; }
+		else return null;
+		const dt = new Date(Date.UTC(y, m - 1, d));
+		if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return null;
+		return y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+	}
+
+	function enhanceDate(el) {
+		if (el.dataset.psDate) return;
+		el.dataset.psDate = '1';
+		const iso = NATIVE_VALUE.get.call(el);
+		el.type = 'text';
+		el.setAttribute('dir', 'ltr');
+		el.setAttribute('inputmode', 'numeric');
+		el.setAttribute('maxlength', '10');
+		el.setAttribute('autocomplete', 'off');
+		el.setAttribute('placeholder', PS.t('يي/شش/سسسس'));
+		el.classList.add('ps-date');
+		Object.defineProperty(el, 'value', {
+			configurable: true,
+			get: function () { const raw = NATIVE_VALUE.get.call(this); const v = parseDate(raw); return v === null ? raw : v; },
+			set: function (v) { const x = parseDate(v); NATIVE_VALUE.set.call(this, x ? PS.format.date(x) : (v || '')); },
+		});
+		el.value = iso;
+		el.addEventListener('blur', function () {
+			const v = parseDate(NATIVE_VALUE.get.call(el));
+			el.classList.toggle('is-invalid', v === null);
+			if (v) NATIVE_VALUE.set.call(el, PS.format.date(v));
+		});
+		// Calendrier : champ date natif invisible, ouvert par le bouton 📅.
+		const pick = document.createElement('input');
+		pick.type = 'date';
+		pick.className = 'ps-date__native';
+		pick.tabIndex = -1;
+		pick.setAttribute('aria-hidden', 'true');
+		const btn = document.createElement('button');
+		btn.type = 'button';
+		btn.className = 'ps-date__btn';
+		btn.textContent = '📅';
+		btn.setAttribute('aria-label', PS.t('اختيار من التقويم'));
+		btn.hidden = el.disabled || el.readOnly;
+		btn.addEventListener('click', function () {
+			pick.value = el.value && parseDate(el.value) ? el.value : '';
+			if (pick.showPicker) { try { pick.showPicker(); return; } catch (e) { /* navigateur ancien */ } }
+			pick.focus();
+			pick.click();
+		});
+		pick.addEventListener('change', function () {
+			el.value = pick.value;
+			el.dispatchEvent(new Event('input', { bubbles: true }));
+			el.dispatchEvent(new Event('change', { bubbles: true }));
+		});
+		const wrap = document.createElement('span');
+		wrap.className = 'ps-date__wrap';
+		el.parentNode.insertBefore(wrap, el);
+		wrap.appendChild(el);
+		wrap.appendChild(btn);
+		wrap.appendChild(pick);
+	}
+
+	function enhanceDates(root) {
+		(root || document).querySelectorAll('input[type="date"]:not(.ps-date__native)').forEach(enhanceDate);
+	}
+	new MutationObserver(function (list) {
+		list.forEach(function (m) {
+			m.addedNodes.forEach(function (n) {
+				if (n.nodeType !== 1) return;
+				if (n.matches && n.matches('input[type="date"]:not(.ps-date__native)')) enhanceDate(n);
+				else if (n.querySelectorAll) enhanceDates(n);
+			});
+		});
+	}).observe(document.documentElement, { childList: true, subtree: true });
+
+	return { esc, html, raw, toast, projectTitle, empty, badge, modal, confirm, autocomplete, showErrors, getPath, setPath, debounce, parseDate, enhanceDates };
 })();

@@ -1,6 +1,6 @@
 ######## Tests PHP ########
 Site de test installé (thème : protecta-suivi)
-Thème v1.5.3 — WordPress 6.7-alpha-58716 — PHP 8.3.6
+Thème v1.6.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 
 == Activation : base de données ==
   ✔ ps_db_version = dernière migration
@@ -16,6 +16,8 @@ Thème v1.5.3 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ table wptest_ps_changelog créée
   ✔ table wptest_ps_tasks créée
   ✔ table wptest_ps_notifications créée
+  ✔ table wptest_ps_invoices créée
+  ✔ table wptest_ps_alerts créée
   ✔ colonne projects.project_no
   ✔ colonne projects.offer_no
   ✔ colonne projects.received_date
@@ -86,7 +88,7 @@ Thème v1.5.3 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ données de test en place
 
 == Mise à jour : version actuelle (migration 2) + migration simulée ==
-  ✔ ps_db_version passe à 7
+  ✔ ps_db_version passe à 8
   ✔ deuxième passage : aucune migration rejouée
   ✔ verrou de migration libéré
   ✔ une sauvegarde automatique créée AVANT la migration
@@ -106,6 +108,8 @@ Thème v1.5.3 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ « changelog » identique après la mise à jour
   ✔ « tasks » identique après la mise à jour
   ✔ « notifications » identique après la mise à jour
+  ✔ « invoices » identique après la mise à jour
+  ✔ « alerts » identique après la mise à jour
   ✔ « ps_settings » identique après la mise à jour
   ✔ « ps_seeded_lists » identique après la mise à jour
   ✔ la nouvelle colonne est ajoutée
@@ -125,6 +129,15 @@ Thème v1.5.3 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ colonnes voice_* ajoutées à ps_tasks
   ✔ migration 5 : colonne « هامش الربح » (margin) ajoutée, « الرتبة » gardée
   ✔ migration 6 : colonnes Drive / nom d'affichage ajoutées aux fichiers et projets (anciennes colonnes gardées)
+
+== Migration 7 (1.6.0) : مشروع؟, factures, alertes ==
+  ✔ colonnes « مشروع؟ », سبب, ملاحظة المشروع ajoutées (NOTE gardée)
+  ✔ projets existants : « مشروع = نعم » (rien ne disparaît des offres ni du Recap)
+  ✔ أصناف : المسؤول / المتابع de l'offre ajoutés, vides = ceux du projet
+  ✔ fichiers : liens vers une offre / une facture ajoutés
+  ✔ journal : colonne « justification » ajoutée
+  ✔ tables ps_invoices et ps_alerts créées vides
+  ✔ liste « سبب عدم اعتباره مشروعا » remplie une fois
 
 == Mise à jour : listes et réglages de la الإدارة conservés ==
   ✔ valeur renommée : nom conservé
@@ -177,7 +190,7 @@ Thème v1.5.3 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ visiteur non connecté : /me refusé (401)
   ✔ liste des utilisateurs WordPress non publique
   ✔ موظف connecté : /lists autorisé
-  ✔ /lists renvoie les 14 listes
+  ✔ /lists renvoie les 15 listes (1.6.0 : سبب عدم اعتباره مشروعا)
   ✔ /me : rôle et capacités du موظف
   ✔ préférences (mode nuit, e-mail du matin) enregistrées
   ✔ valeur invalide refusée (400)
@@ -729,7 +742,7 @@ Thème v1.5.3 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ identifiant de discussion enregistré
   ✔ message de bienvenue avec le nom du compte
   ✔ code à usage unique : réutilisé par quelqu'un d'autre → refusé
-  ✔ code expiré (2 h) → refusé
+  ✔ code expiré (10 min) → refusé
   ✔ le Cron termine aussi les liaisons en attente
 
 == Telegram : envois (notifications, tâches, résumé) ==
@@ -777,9 +790,9 @@ Thème v1.5.3 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ inc/i18n/en.json : JSON valide
   ✔ inc/i18n/fr.json : JSON valide
   ✔ en.json et fr.json ont exactement les mêmes clés
-  ✔ en : chaque texte de l'interface a sa traduction (1057 textes)
+  ✔ en : chaque texte de l'interface a sa traduction (1159 textes)
   ✔ en : traductions non vides, sans arabe, mêmes %s / %d que l'original
-  ✔ fr : chaque texte de l'interface a sa traduction (1057 textes)
+  ✔ fr : chaque texte de l'interface a sa traduction (1159 textes)
   ✔ fr : traductions non vides, sans arabe, mêmes %s / %d que l'original
 
 == Langues : traduction côté serveur ==
@@ -830,7 +843,7 @@ Thème v1.5.3 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ import refusé au موظف
   ✔ aperçu : 4 projets annoncés, RIEN écrit
   ✔ aperçu : nouvelles valeurs annoncées (lieu KL, صنف inconnu)
-  ✔ الأهمية « 3X / M / L » : ajoutées à la liste (jamais perdues, à renommer par la الإدارة)
+  ✔ الأهمية : « 3X » → « غير محدد » (1.6.0) ; « M / L » ajoutées à la liste (à renommer par la الإدارة)
   ✔ import : 4 projets, sauvegarde automatique avant
   ✔ numéros du fichier conservés tels quels : P901, P902… (problème 09)
   ✔ P901 : nom, dates, المكان, الاستعجال
@@ -981,8 +994,127 @@ Thème v1.5.3 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ rien à effacer → 0, sans erreur
   ✔ choix inconnu → 422
 
+== 1.6.0 : migration 7 (ajouts seulement) ==
+  ✔ ps_projects.is_project ajoutée
+  ✔ ps_projects.non_project_reason_id ajoutée
+  ✔ ps_projects.non_project_note ajoutée
+  ✔ ps_projects.project_note ajoutée
+  ✔ ps_items.responsible_emp_id ajoutée (المسؤول / المتابع de l'offre)
+  ✔ ps_items.follower_emp_id ajoutée (المسؤول / المتابع de l'offre)
+  ✔ tables ps_invoices et ps_alerts créées
+  ✔ ps_db_version = 7
+  ✔ liste « سبب عدم اعتباره مشروعا » : valeurs par défaut
+  ✔ réglages : délai de réponse 15 j, « تفعيل التنبيهات » activé
+
+== 1.6.0 : « مشروع؟ » obligatoire, « لا » → سبب obligatoire ==
+  ✔ « مشروع؟ » vide → refusé (422)
+  ✔ « لا » sans سبب → refusé (422)
+  ✔ سبب hors de la bonne liste → refusé
+  ✔ « لا » + سبب → enregistré
+  ✔ API : isProject, سبب, ملاحظة المشروع (distincte de NOTE, facultative)
+  ✔ projet نعم → مؤكد
+  ✔ projet لا → مؤكد aussi (ne doit pas compter)
+  ✔ KPI : 2 projets, 1 « غير مشروع » compté à part, 1 مؤكد (pas celui du « لا »)
+  ✔ نسبة النجاح : le « غير مشروع » n'y est pas (1 ÷ 1)
+  ✔ offre en retard du « غير مشروع » ignorée
+  ✔ Recap : compteur « غير مشروع » séparé, exclu des répartitions
+  ✔ Suivi Offres : le « غير مشروع » n'apparaît pas
+  ✔ مهامي : pas de « لازم قرار » pour le « غير مشروع »
+  ✔ Base Projets : filtre « غير مشروع » → ce projet seulement
+  ✔ Base Projets : tous visibles (3), filtre « مشروع » → 2
+  ✔ pas de facture sur un « غير مشروع »
+  ✔ « لا » → « نعم »
+  ✔ سبب effacé quand le projet redevient « نعم »
+  ✔ journal : « مشروع؟ » لا → نعم
+  ✔ champ absent (ancienne interface, import) → « نعم » par défaut
+
+== 1.6.0 : coordonnées des sociétés venant de l'annuaire ==
+  ✔ الشخص المسؤول / الهاتف : ceux de la fiche société (pas ressaisis par projet)
+  ✔ API : champs venant de l'annuaire signalés (fromDirectory)
+  ✔ annuaire : champ vide complété, rien n'est écrasé
+
+== 1.6.0 : المسؤول / المتابع de l'offre (justification, droits) ==
+  ✔ offre : المسؤول / المتابع pré-remplis depuis le projet
+  ✔ موظف : changer le المتابع → refusé (403)
+  ✔ مسؤول d'un autre projet → refusé
+  ✔ sans justification → refusé (422)
+  ✔ مسؤول المشروع + justification → enregistré au niveau de l'offre
+  ✔ journal : qui, quand, ancienne → nouvelle valeur, justification
+  ✔ سجل التعديلات (API) : justification renvoyée
+  ✔ المتابع du PROJET inchangé
+  ✔ الإدارة : changer المسؤول de l'offre
+  ✔ رقم فاتورة العرض + ملاحظة العرض
+  ✔ رقم فاتورة العرض déjà pris → refusé (unique)
+  ✔ passage à مرسل : تاريخ تقديم العرض = تاريخ إرسال العرض du projet (n°01)
+
+== 1.6.0 : factures (échéance calculée, plusieurs par offre) ==
+  ✔ calcul : 01/10 + 15 j = 16/10
+  ✔ calcul : passage de mois (15/02 + 15 = 02/03)
+  ✔ retard : jour J non ; J+1 oui ; réponse reçue jamais
+  ✔ type d'alerte : J-3, jour J, retard ; rien si répondu
+  ✔ facture : refusée à un employé sans lien avec l'offre
+  ✔ le الموظف المتابع de l'offre ajoute une facture
+  ✔ défauts : جواب = في الانتظار, آخر أجل = +15 j, devise LYD
+  ✔ رقم الفاتورة unique dans tout le système
+  ✔ تاريخ إرسال الفاتورة obligatoire
+  ✔ جواب الحريف : liste fermée
+  ✔ deux factures sur la même offre
+  ✔ facture 1 : جواب = نعم
+  ✔ chaque facture a son propre suivi (1 répondue, 2 en retard de 5 j au 30/10)
+  ✔ date de la réponse retenue
+  ✔ N = 20 : échéance recalculée (30/10), date d'envoi inchangée (10/10)
+  ✔ Recap factures : 1 en attente, 1 en retard, taux نعم 100 %
+  ✔ montants séparés par devise (jamais additionnés)
+  ✔ fichier joint à la facture (lié aussi à l'offre)
+  ✔ fiche facture : son fichier
+  ✔ retirer une facture : refusé au موظف (même المتابع)
+
+== 1.6.0 : liaison Telegram (code court 10 min, déliaison) ==
+  ✔ token lu dans wp-config.php (PS_TELEGRAM_TOKEN), nom du bot demandé à Telegram
+  ✔ code de liaison : 8 caractères, valable 10 minutes
+  ✔ code valable → compte lié
+  ✔ code expiré → refusé (message « صالح 10 دقائق »)
+  ✔ nouveau code → lié
+  ✔ page des utilisateurs : « مربوط بتيليغرام / غير مربوط »
+  ✔ statut dans les réglages de l'utilisateur : غير مربوط
+  ✔ déliaison à tout moment
+
+== 1.6.0 : alertes des factures (J-3, jour J, retard, sans doublon) ==
+  ✔ 21/10 (J-4) : rien
+  ✔ 22/10 (J-3) : rappel envoyé au المتابع sur Telegram
+  ✔ message : n° facture, n° projet, date limite, lien #/factures/ID
+  ✔ message : ni client, ni montant, ni nom du projet
+  ✔ Cron relancé le même jour : aucun doublon
+  ✔ 23/10 (J-2) : le rappel n'est pas répété
+  ✔ 25/10 : alerte « jour de l'échéance »
+  ✔ retard : une alerte par jour au maximum (26/10 et 27/10)
+  ✔ envois enregistrés dans ps_alerts (un par type et par jour)
+  ✔ réponse « لا » enregistrée → plus d'alerte
+  ✔ « تفعيل التنبيهات » désactivé → rien n'est envoyé
+  ✔ المتابع sans compte → المسؤول (de l'offre) prévenu, par e-mail faute de Telegram
+
+== 1.6.0 : Telegram indisponible (échec journalisé, e-mail de secours, nouvel essai) ==
+  ✔ Telegram indisponible : échec journalisé (status failed + erreur)
+  ✔ e-mail de secours envoyé à l'utilisateur
+  ✔ Cron suivant : nouvel essai réussi, rien de perdu (et pas de doublon)
+  ✔ aucune donnée perdue (facture intacte)
+  ✔ Cron : les alertes font partie de la tâche du matin
+
+== 1.6.0 : le token n'apparaît nulle part ==
+  ✔ absent de l'export JSON (sauvegarde)
+  ✔ absent de l'API des réglages (seule la source « config » est indiquée)
+  ✔ absent du HTML de la page (configuration JS comprise)
+  ✔ jamais dans les paramètres envoyés
+  ✔ avec wp-config.php, impossible d'enregistrer un autre token depuis l'interface
+
+== 1.6.0 : fichier joint dès la création du projet ==
+  ✔ le créateur (موظف) joint un fichier juste après la création
+
+== 1.6.0 : sauvegarde / restauration avec factures ==
+  ✔ la sauvegarde JSON contient les factures et les alertes
+
 ----------------------------------------
-Résultat : 813 réussis, 0 échoués
+Résultat : 921 réussis, 0 échoués
 
 ######## Navigateur : fondations (étape 1) ########
 Page de connexion
@@ -993,14 +1125,14 @@ Page de connexion
   ✔ mauvais mot de passe → message d'erreur
 Employé (موظف)
   ✔ application affichée après connexion
-  ✔ menu sans Recap ni الإعدادات  [مهامي | إدخال مشروع | المشاريع | متابعة العروض | متابعة التسليم | الشركات والمنافسون]
+  ✔ menu sans Recap ni الإعدادات  [مهامي | إدخال مشروع | المشاريع | متابعة العروض | متابعة التسليم | الفواتير | الشركات والمنافسون]
   ✔ page d'accueil = مهامي
   ✔ #/parametres interdit → renvoi vers مهامي
   ✔ wp-admin interdit → renvoi vers l'application  [http://localhost:8081/]
   ✔ pas de barre admin WordPress
 الإدارة
-  ✔ menu complet (8 pages)  [مهامي | إدخال مشروع | المشاريع | متابعة العروض | متابعة التسليم | Recap | الشركات والمنافسون | الإعدادات]
-  ✔ الإعدادات : 14 listes  [14]
+  ✔ menu complet (9 pages, dont الفواتير en 1.6.0)  [مهامي | إدخال مشروع | المشاريع | متابعة العروض | متابعة التسليم | الفواتير | Recap | الشركات والمنافسون | الإعدادات]
+  ✔ الإعدادات : 15 listes (1.6.0 : سبب عدم اعتباره مشروعا)  [15]
   ✔ مصدر « غير محدد » présent et réservé à l'import
   ✔ mode nuit activé
   ✔ fond sombre en mode nuit  [rgb(10, 15, 26)]
@@ -1063,7 +1195,7 @@ Tous les contrôles navigateur sont passés.
   ✔ filtre « لازم قرار فقط » : 7 lignes
   ✔ « لم يُرسل » : motif obligatoire (fenêtre reste ouverte)
   ✔ après « لم يُرسل » : 6 lignes « لازم قرار »
-  ✔ مرسل sans تاريخ الإرسال : date du jour proposée
+  ✔ مرسل sans تاريخ الإرسال : date du jour proposée (jj/mm/aaaa)
   ✔ après « مرسل » : 5 lignes « لازم قرار »
   ✔ compteur du menu mis à jour : 1
 Étape 3 — Suivi Livraison
@@ -1240,6 +1372,29 @@ Tous les contrôles navigateur sont passés.
 
 Tous les contrôles navigateur sont passés.
 
+######## Navigateur : step14 (jeu de démonstration) ########
+1.6.0 — مشروع؟، التواريخ، الفواتير، المتابع، Recap
+  ✔ date : champ texte jj/mm/aaaa (19/10/2026), valeur API AAAA-MM-JJ
+  ✔ date : bouton calendrier 📅
+  ✔ « مشروع؟ » non choisi → erreur sous le champ
+  ✔ « لا » → liste « سبب عدم اعتباره مشروعا »
+  ✔ enregistré « غير مشروع » + سبب + ملاحظة المشروع, date saisie 05/10/2026
+  ✔ fichier choisi à la création → joint au projet
+  ✔ Base Projets : filtre « غير مشروع » + badge
+  ✔ Suivi Offres : « غير مشروع » absent ; colonnes المسؤول / المتابع / ملاحظة العرض / الفواتير
+  ✔ المتابع : justification vide → refusée
+  ✔ المتابع de l'offre changé + journal avec justification
+  ✔ facture enregistrée : آخر أجل للرد calculé (16/10/2026) et en retard
+  ✔ page « الفواتير » : facture en retard listée
+  ✔ lien des alertes #/factures/ID → fiche de la facture
+  ✔ جواب الحريف = نعم → plus en retard
+  ✔ Recap : « غير مشروع » compté à part + bloc factures (taux نعم)
+  ✔ الإعدادات : « آخر أجل للرد » (15) + « تفعيل التنبيهات » + explication wp-config.php
+  ✔ المستخدمون : colonne Telegram (مربوط / غير مربوط)
+  ✔ téléphone : page « الفواتير » sans défilement horizontal
+
+Tous les contrôles navigateur sont passés.
+
 ######## Navigateur : step10 = 1.4.0 (import Excel, comptes, Telegram) ########
 1.4.0 — import Excel, numéros P…, هامش الربح, ورقة الحسابات, Telegram à la connexion
   ✔ connexion : fenêtre « اربط حسابك بـ Telegram » (compte non lié)
@@ -1254,3 +1409,37 @@ Tous les contrôles navigateur sont passés.
 Tous les contrôles navigateur sont passés.
 
 === TOUS LES TESTS SONT PASSÉS ===
+
+######## release-check 1.5.3 -> 1.6.0 ########
+######## 1. Installation vierge : /home/user/nedra/dist/protecta-suivi-1.6.0.zip ########
+Téléverser le thème : OK
+Thème actif : protecta-suivi 1.6.0
+######## 2. Mise à jour depuis protecta-suivi-1.5.3.zip avec données ########
+Téléverser le thème : OK
+Thème actif : protecta-suivi 1.5.3
+Données de test insérées (projet PRJ-2026-001, comptes wafa et idara, fichier, listes personnalisées)
+Photographie : 1 projet(s), 106 valeurs de listes
+Mise à jour (remplacer le thème) : OK
+Listes : 4 valeur(s) ajoutée(s) (non_project_reason)
+Réglages ajoutés : invoice_reply_days, alerts_enabled
+Thème après mise à jour : 1.6.0 · base v7
+AUCUNE PERTE : projets, أصناف, intervenants, sociétés, suivis, fichiers, journal, listes, réglages et comptes identiques
+######## Navigateur ########
+Installation vierge (zip final) — http://localhost:8082
+  ✔ page de connexion personnalisée (pas WordPress)
+  ✔ connexion (administrateur du site) → application
+  ✔ saisie d'un projet : PRJ-2026-001 enregistré
+  ✔ Recap : 1 projet
+  ✔ Recap : graphique mensuel dessiné
+  ✔ dossier des sauvegardes inaccessible par URL
+Mise à jour (ancienne version → zip final) avec données — http://localhost:8083
+  ✔ compte créé en 0.1.0 : connexion OK après mise à jour
+  ✔ projet d'avant la mise à jour présent dans Base Projets
+  ✔ سجل المتابعة conservé
+  ✔ fichier joint conservé et téléchargeable
+  ✔ Suivi Livraison : le صنف مقبول d'avant est suivi
+  ✔ Recap après mise à jour : 1 projet, 1 مؤكدة, 12 500 LYD
+  ✔ listes personnalisées conservées (« كهرباء عامة »)
+
+Contrôles de livraison : tout est passé.
+=== LIVRAISON VÉRIFIÉE ===

@@ -3,7 +3,7 @@
  * API Telegram (1.2.0) — règles dans inc/services/telegram.php.
  *
  *   GET  /me/telegram          → { enabled, bot, linked }
- *   POST /me/telegram/link     → { url } (lien t.me/<bot>?start=<code>, valable 2 h)
+ *   POST /me/telegram/link     → { url, code, bot, minutes } (code de 8 caractères, valable 10 min ; « /start CODE »)
  *   POST /me/telegram/check    → lit les messages du bot puis { linked }
  *   POST /me/telegram/unlink   → délie le compte
  *   POST /settings/telegram-test (الإدارة) → message d'essai au compte connecté
@@ -29,7 +29,8 @@ function ps_register_telegram_routes(): void {
 				if ( ! ps_tg_enabled() ) {
 					return new WP_Error( 'ps_tg_off', ps__( 'إشعارات Telegram غير مفعّلة. اطلب من الإدارة إعدادها (الإعدادات ← عام).' ), array( 'status' => 409 ) );
 				}
-				return rest_ensure_response( array( 'url' => ps_tg_link_url( get_current_user_id() ), 'bot' => ps_tg_bot() ) );
+				$code = ps_tg_new_code( get_current_user_id() );
+				return rest_ensure_response( array( 'url' => ps_tg_link_url( get_current_user_id(), $code ), 'code' => $code, 'bot' => ps_tg_bot(), 'minutes' => (int) ( PS_TG_CODE_TTL / MINUTE_IN_SECONDS ) ) );
 			},
 		)
 	);

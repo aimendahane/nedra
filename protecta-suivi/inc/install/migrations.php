@@ -32,6 +32,7 @@ function ps_migrations(): array {
 		4 => 'ps_migration_004_task_voice',
 		5 => 'ps_migration_005_broker_margin',
 		6 => 'ps_migration_006_files_drive',
+		7 => 'ps_migration_007_invoices',
 	);
 	return apply_filters( 'ps_migrations', $migrations );
 }
@@ -102,6 +103,19 @@ function ps_migration_005_broker_margin(): void {
  */
 function ps_migration_006_files_drive(): void {
 	ps_apply_schema();
+}
+
+/**
+ * Migration 7 (1.6.0) : « مشروع؟ » + سبب + ملاحظة المشروع (ps_projects), المسؤول / المتابع au niveau de l'offre
+ * (ps_items, vides = ceux du projet), fichiers liés à une offre ou une facture (ps_files), tables ps_invoices et
+ * ps_alerts, liste « سبب عدم اعتباره مشروعا ». ADD COLUMN / CREATE TABLE seulement : les projets existants
+ * restent « مشروع = نعم » (valeur par défaut 1), rien n'est modifié.
+ */
+function ps_migration_007_invoices(): void {
+	ps_apply_schema();
+	ps_seed_lists();   // nouvelle liste non_project_reason (remplie une seule fois)
+	ps_init_settings(); // nouveaux réglages : délai de réponse, interrupteur des alertes (clés manquantes seulement)
+	ps_register_roles();
 }
 
 /**

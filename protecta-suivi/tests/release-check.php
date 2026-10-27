@@ -116,6 +116,23 @@ switch ( $phase ) {
 					}
 				}
 			}
+			// Ajouts autorisés par la règle n°1 : nouvelles valeurs de listes (ex. « سبب عدم اعتباره مشروعا » en 1.6.0)
+			// et nouveaux réglages (clés absentes avant). Les valeurs EXISTANTES doivent rester identiques.
+			if ( 'lists' === $k && is_array( $now ) ) {
+				$ids   = array_column( $v, 'id' );
+				$added = array_filter( $now, fn( $r ) => ! in_array( $r['id'], $ids, true ) );
+				$now   = array_values( array_filter( $now, fn( $r ) => in_array( $r['id'], $ids, true ) ) );
+				if ( $added ) {
+					echo 'Listes : ' . count( $added ) . ' valeur(s) ajoutée(s) (' . implode( ', ', array_unique( array_column( $added, 'list_key' ) ) ) . ")\n";
+				}
+			}
+			if ( 'ps_settings' === $k && is_array( $now ) && is_array( $v ) ) {
+				$new = array_diff_key( $now, $v );
+				$now = array_intersect_key( $now, $v );
+				if ( $new ) {
+					echo 'Réglages ajoutés : ' . implode( ', ', array_keys( $new ) ) . "\n";
+				}
+			}
 			if ( $v != $now ) {
 				$bad[] = $k;
 			}

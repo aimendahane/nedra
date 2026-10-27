@@ -75,13 +75,13 @@ async function navTitles(page) {
 		const page = await ctx.newPage();
 		await login(page, 'idara', PASS);
 		const titles = await navTitles(page);
-		check('menu complet (8 pages)', titles.length === 8, titles.join(' | '));
+		check('menu complet (9 pages, dont الفواتير en 1.6.0)', titles.length === 9, titles.join(' | '));
 		await page.screenshot({ path: SHOTS + '/02-accueil-pc.png', fullPage: true });
 
 		await page.click('a[href="#/parametres"]');
 		await page.waitForSelector('[data-list]');
 		const cards = await page.$$eval('[data-list]', (els) => els.length);
-		check('الإعدادات : 14 listes', cards === 14, String(cards));
+		check('الإعدادات : 15 listes (1.6.0 : سبب عدم اعتباره مشروعا)', cards === 15, String(cards));
 		await page.click('[data-list="source"]');
 		await page.waitForTimeout(500);
 		const sources = await page.$$eval('[data-f=label]', (e) => e.map((x) => x.value));

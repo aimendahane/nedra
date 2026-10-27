@@ -69,6 +69,7 @@ function ps_validation_fields(): array {
 		'purchase_currency_id' => ps__( 'عملة الشراء' ),
 		'files_link'           => ps__( 'رابط ملف المشاريع' ),
 		'note'                 => ps__( 'NOTE / نص الطلب' ),
+		'project_note'         => ps__( 'ملاحظة المشروع' ),
 		'owner.company'        => ps__( 'المالك: اسم الشركة' ),
 		'owner.person'         => ps__( 'المالك: الشخص المسؤول' ),
 		'owner.phone'          => ps__( 'المالك: الهاتف' ),
@@ -85,6 +86,21 @@ function ps_validation_fields(): array {
 		'item.employee_id'     => ps__( 'الموظف المسؤول عن الصنف' ),
 		'item.due_date'        => ps__( 'الأجل المطلوب' ),
 	);
+}
+
+/**
+ * Libellé de n'importe quel champ du projet (journal, notifications) — y compris ceux qui ne sont pas
+ * réglables comme « obligatoire » dans الإعدادات (1.6.0 : مشروع؟ et son سبب, toujours gérés à part).
+ */
+function ps_field_label( string $field ): string {
+	$extra = array(
+		'is_project'            => ps__( 'مشروع؟' ),
+		'non_project_reason_id' => ps__( 'سبب عدم اعتباره مشروعا' ),
+		'non_project_note'      => ps__( 'ملاحظة (غير مشروع)' ),
+		'responsible_emp_id'    => ps__( 'المسؤول عن المشروع' ),
+		'follower_emp_id'       => ps__( 'الموظف المتابع' ),
+	);
+	return ps_validation_fields()[ $field ] ?? $extra[ $field ] ?? $field;
 }
 
 /**
@@ -156,6 +172,22 @@ function ps_validate_project( array $in, ?array $existing = null ): array {
 			$errors[ $key ] = ps__( 'هذه القيمة لم تعد متاحة: ' ) . $labels[ $key ];
 		}
 	}
+
+	// 2 bis (1.6.0). « مشروع؟ » obligatoire ; « لا » → سبب obligatoire (liste « سبب عدم اعتباره مشروعا »).
+	if ( '' === ( $f['is_project'] ?? null ) ) {
+		$errors['is_project'] = ps__( 'خانة إجبارية: ' ) . ps__( 'مشروع؟' );
+	} elseif ( 0 === ( $f['is_project'] ?? null ) ) {
+		$rid = $f['non_project_reason_id'] ?? null;
+		$row = $rid ? $wpdb->get_row( $wpdb->prepare( "SELECT list_key, is_hidden FROM $lists_t WHERE id = %d", (int) $rid ), ARRAY_A ) : null;
+		if ( ! $rid ) {
+			$errors['non_project_reason_id'] = ps__( 'خانة إجبارية: ' ) . ps__( 'سبب عدم اعتباره مشروعا' );
+		} elseif ( ! $row || 'non_project_reason' !== $row['list_key'] ) {
+			$errors['non_project_reason_id'] = ps__( 'قيمة غير موجودة في القائمة: ' ) . ps__( 'سبب عدم اعتباره مشروعا' );
+		} elseif ( $row['is_hidden'] && (int) ( $old['non_project_reason_id'] ?? 0 ) !== (int) $rid ) {
+			$errors['non_project_reason_id'] = ps__( 'هذه القيمة لم تعد متاحة: ' ) . ps__( 'سبب عدم اعتباره مشروعا' );
+		}
+	}
+	$non_project = 0 === ( $f['is_project'] ?? null ) || ( null === ( $f['is_project'] ?? null ) && isset( $old['is_project'] ) && 0 === (int) $old['is_project'] );
 
 	// 3. Dates.
 	foreach ( array( 'received_date', 'sent_date' ) as $key ) {
@@ -231,7 +263,7 @@ function ps_validate_project( array $in, ?array $existing = null ): array {
 
 	// 8. أصناف.
 	$items = (array) ( $in['items'] ?? array() );
-	if ( $need( 'items.min_one' ) && ! $items ) {
+	if ( $need( 'items.min_one' ) && ! $items && ! $non_project ) { // un « غير مشروع » peut n'avoir aucun صنف
 		$errors['items'] = ps__( 'لازم صنف واحد على الأقل' );
 	}
 	$old_items = array();

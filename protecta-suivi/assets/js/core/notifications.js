@@ -70,25 +70,38 @@ PS.notifications = (function () {
 		PS.api.get('me/telegram', { passive: true }).then(function (r) { tg = r; draw(); }).catch(function () {});
 	}
 
-	/** Ouvre le lien du bot puis vérifie toutes les 3 s (2 min) que l'utilisateur a appuyé sur « Start ». */
+	/**
+	 * Liaison Telegram (1.6.0) : un code court (8 caractères, valable 10 minutes) est affiché ; l'utilisateur envoie
+	 * « /start CODE » au bot (ou ouvre le lien qui le fait pour lui). Vérification toutes les 3 s pendant 10 minutes.
+	 */
 	function linkTelegram() {
-		const win = window.open('about:blank', '_blank');
 		PS.api.post('me/telegram/link').then(function (r) {
-			if (win) win.location.href = r.url; else window.location.href = r.url;
-			ui.toast(PS.t('اضغط «Start» في Telegram ثم ارجع هنا'), 'info');
 			let n = 0;
+			let box = null;
 			clearInterval(tgTimer);
 			tgTimer = setInterval(function () {
-				if (++n > 40) return clearInterval(tgTimer);
+				if (++n > 200) return clearInterval(tgTimer);
 				PS.api.post('me/telegram/check', {}, { passive: true }).then(function (s) {
 					if (!s.linked) return;
 					clearInterval(tgTimer);
 					tg = s;
 					renderTelegram();
+					if (box && box.isConnected) box.querySelector('[data-close]').click();
 					ui.toast(PS.t('✔ تم ربط حسابك بـ Telegram'), 'success');
 				}).catch(function () {});
 			}, 3000);
-		}).catch(function (e) { if (win) win.close(); ui.toast(e.message, 'error'); });
+			ui.modal({
+				title: PS.t('ربط Telegram'),
+				body: html`<ol class="ps-steps">
+						<li>${PS.t('افتح البوت')} <a href="https://t.me/${r.bot}" target="_blank" rel="noopener" dir="ltr">@${r.bot}</a></li>
+						<li>${PS.t('أرسل له هذه الرسالة:')}<div class="ps-tg-code" dir="ltr" data-tg-code>/start ${r.code}</div></li>
+					</ol>
+					<p class="ps-small ps-muted">${PS.t('الرمز صالح')} ${r.minutes} ${PS.t('دقائق ولمرة واحدة. يتم الربط تلقائيًا بعد الإرسال.')}</p>
+					<a class="ps-btn ps-btn--primary" href="${r.url}" target="_blank" rel="noopener">✈ ${PS.t('فتح البوت وإرسال الرمز تلقائيًا')}</a>`,
+				buttons: [{ id: 'close', label: PS.t('إغلاق') }],
+				onOpen: function (wrap) { box = wrap; },
+			});
+		}).catch(function (e) { ui.toast(e.message, 'error'); });
 	}
 
 	/*

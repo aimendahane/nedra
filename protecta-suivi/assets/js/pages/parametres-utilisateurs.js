@@ -176,12 +176,12 @@ PS.settingsTabs = PS.settingsTabs || {};
 				<div class="ps-page-head"><h2 class="ps-card__title">${PS.t('حسابات الفريق (')}${d.users.length})</h2><div class="ps-page-head__actions"><button type="button" class="ps-btn" data-sheet-new>📄 ${PS.t('ورقة حسابات الفريق')}</button><button type="button" class="ps-btn ps-btn--primary" data-new>+ ${PS.t('حساب جديد')}</button></div></div>
 				<p class="ps-muted ps-small">${PS.t('لا يُحذف أي حساب: الحساب المعطّل لا يستطيع الدخول ويبقى تاريخه في المشاريع.')}</p>
 				<div class="ps-table-wrap"><table class="ps-table ps-table--compact">
-					<thead><tr><th>${PS.t('الاسم')}</th><th>${PS.t('اسم الدخول')}</th><th>${PS.t('البريد')}</th><th>${PS.t('الدور')}</th><th>${PS.t('الموظف المرتبط')}</th><th>${PS.t('البريد الصباحي')}</th><th>${PS.t('آخر نشاط')}</th><th>${PS.t('الحالة')}</th><th></th></tr></thead>
+					<thead><tr><th>${PS.t('الاسم')}</th><th>${PS.t('اسم الدخول')}</th><th>${PS.t('البريد')}</th><th>${PS.t('الدور')}</th><th>${PS.t('الموظف المرتبط')}</th><th>${PS.t('البريد الصباحي')}</th><th>Telegram</th><th>${PS.t('آخر نشاط')}</th><th>${PS.t('الحالة')}</th><th></th></tr></thead>
 					<tbody>${d.users.map(function (u) {
 						return html`<tr class="${u.disabled ? 'ps-row-muted' : ''}" data-id="${u.id}">
 							<td><strong>${u.name}</strong></td><td dir="ltr">${u.login}</td><td dir="ltr">${u.email}</td><td>${u.roleLabel}</td>
 							<td>${u.employeeId ? L.label(u.employeeId) : html`<span class="ps-text-danger ps-small">${PS.t('غير مرتبط')}</span>`}</td>
-							<td>${u.dailyEmail ? '✔' : '—'}</td><td class="ps-nowrap">${u.lastLogin || '—'}</td>
+							<td>${u.dailyEmail ? '✔' : '—'}</td><td class="ps-nowrap" data-tg="${u.telegram ? 1 : 0}">${u.telegram ? html`<span class="ps-text-success">✔ ${PS.t('مربوط بتيليغرام')}</span>` : html`<span class="ps-muted">${PS.t('غير مربوط')}</span>`}</td><td class="ps-nowrap">${u.lastLogin || '—'}</td>
 							<td>${u.disabled ? ui.badge(PS.t('معطّل'), '#e03131') : ui.badge(PS.t('نشط'), '#2b8a3e')}</td>
 							<td class="ps-nowrap"><button type="button" class="ps-btn ps-btn--small" data-edit>${PS.t('تعديل')}</button>
 								${u.isWpAdmin || u.id === PS.config.user.id ? '' : html`<button type="button" class="ps-btn ps-btn--small ${u.disabled ? '' : 'ps-btn--danger'}" data-toggle>${u.disabled ? PS.t('تفعيل') : PS.t('تعطيل')}</button>`}</td>

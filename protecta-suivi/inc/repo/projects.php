@@ -24,7 +24,12 @@ const PS_PROJECT_FIELDS = array(
 	'intermediary_emp_id', 'place_id', 'category_id', 'urgency_id', 'importance_kind_id',
 	'importance_size_id', 'followup_status_id', 'source_id', 'loss_reason_id', 'offer_amount',
 	'offer_currency_id', 'purchase_amount', 'purchase_currency_id', 'files_link', 'note',
+	// 1.6.0 : « مشروع؟ » (1 = نعم, 0 = لا) + سبب + ملاحظة ; « ملاحظة المشروع » distincte de NOTE / نص الطلب.
+	'is_project', 'non_project_reason_id', 'non_project_note', 'project_note',
 );
+
+/** Champs texte sur plusieurs lignes. */
+const PS_PROJECT_MULTILINE = array( 'note', 'non_project_note', 'project_note' );
 
 /** Coordonnées d'un intervenant (الطرف). */
 const PS_PARTY_FIELDS = array( 'person', 'email', 'phone', 'address', 'position', 'rank_title', 'margin', 'location' );
@@ -51,6 +56,17 @@ function ps_clean_text( $v, bool $multiline = false ): ?string {
 	}
 	$v = $multiline ? sanitize_textarea_field( (string) $v ) : sanitize_text_field( (string) $v );
 	return '' === trim( $v ) ? null : trim( $v );
+}
+
+/** Oui / non : 1, 0, ou '' si rien n'est choisi. */
+function ps_clean_bool( $v ) {
+	if ( true === $v || 1 === $v || in_array( (string) $v, array( '1', 'true', 'yes', 'نعم' ), true ) ) {
+		return 1;
+	}
+	if ( false === $v || 0 === $v || in_array( (string) $v, array( '0', 'false', 'no', 'لا' ), true ) ) {
+		return 0;
+	}
+	return '';
 }
 
 /** Nettoie un identifiant (null si vide ou 0). */
@@ -134,8 +150,11 @@ function ps_project_input( array $body ): array {
 			$fields[ $f ] = ps_clean_number( $v );
 		} elseif ( 'files_link' === $f ) {
 			$fields[ $f ] = null === ps_clean_text( $v ) ? null : esc_url_raw( trim( (string) $v ) );
+		} elseif ( 'is_project' === $f ) {
+			// Absent (ancienne interface, import) → null = inchangé (nouveau projet : نعم). Présent mais vide → '' (erreur).
+			$fields[ $f ] = array_key_exists( 'isProject', $body ) ? ps_clean_bool( $v ) : null;
 		} else {
-			$fields[ $f ] = ps_clean_text( $v, 'note' === $f );
+			$fields[ $f ] = ps_clean_text( $v, in_array( $f, PS_PROJECT_MULTILINE, true ) );
 		}
 	}
 
@@ -187,7 +206,32 @@ function ps_project_input( array $body ): array {
 		);
 	}
 
-	return array( 'fields' => $fields, 'parties' => $parties, 'items' => $items, 'competitors' => $competitors );
+	return array( 'fields' => $fields, 'parties' => ps_parties_from_directory( $parties ), 'items' => $items, 'competitors' => $competitors );
+}
+
+/**
+ * 1.6.0 (« الشخص المباشر / الشخص المسؤول / الهاتف viennent de l'annuaire ») : pour une société choisie dans l'annuaire,
+ * les coordonnées de la FICHE priment ; une coordonnée vide dans la fiche est prise du projet (et complète la fiche
+ * à l'enregistrement). Rien n'est perdu : la fiche n'est jamais écrasée (modification réservée à l'annuaire).
+ */
+function ps_parties_from_directory( array $parties ): array {
+	$map = array( 'person' => 'person', 'email' => 'email', 'phone' => 'phone', 'address' => 'address', 'position' => 'position', 'rank_title' => 'rank_title', 'location' => 'website' );
+	foreach ( $parties as $role => &$p ) {
+		$c = ! empty( $p['company_id'] ) ? ps_dir_get( 'companies', (int) $p['company_id'] ) : null;
+		if ( ! $c ) {
+			continue;
+		}
+		if ( ! empty( $c['merged_into_id'] ) ) {
+			$c = ps_dir_get( 'companies', ps_dir_resolve( 'companies', (int) $c['id'] ) ) ?: $c;
+		}
+		foreach ( $map as $col => $ccol ) {
+			if ( null !== $c[ $ccol ] && '' !== trim( (string) $c[ $ccol ] ) ) {
+				$p[ $col ] = trim( (string) $c[ $ccol ] );
+			}
+		}
+	}
+	unset( $p );
+	return $parties;
 }
 
 /* =========================================================================
@@ -250,6 +294,18 @@ function ps_project_save( array $in, ?array $existing, int $user_id ) {
 	// Valeurs par défaut.
 	if ( ! $f['followup_status_id'] ) {
 		$f['followup_status_id'] = $existing['fields']['followup_status_id'] ?? ps_list_default_id( 'followup_status' );
+	}
+	// « مشروع؟ » : absent → inchangé (nouveau projet : نعم) ; « نعم » efface le سبب (gardé au journal).
+	if ( null === $f['is_project'] || '' === $f['is_project'] ) {
+		$f['is_project'] = (int) ( $existing['fields']['is_project'] ?? 1 );
+		if ( $existing ) {
+			$f['non_project_reason_id'] = $f['non_project_reason_id'] ?? $existing['fields']['non_project_reason_id'];
+			$f['non_project_note']      = $f['non_project_note'] ?? $existing['fields']['non_project_note'];
+		}
+	}
+	if ( 1 === (int) $f['is_project'] ) {
+		$f['non_project_reason_id'] = null;
+		$f['non_project_note']      = null;
 	}
 	$f['offer_no']  = null === $f['offer_no'] ? null : trim( $f['offer_no'] );
 	$f['name_norm'] = ps_normalize_text( $f['name'] );
@@ -330,6 +386,9 @@ function ps_project_insert( array $f, int $user_id, string $now ) {
 function ps_field_display( string $field, $value ): ?string {
 	if ( null === $value || '' === $value ) {
 		return null;
+	}
+	if ( 'is_project' === $field ) {
+		return (int) $value ? 'نعم' : 'لا';
 	}
 	if ( str_ends_with( $field, '_id' ) ) {
 		return ps_list_label( $value );
@@ -634,6 +693,8 @@ function ps_project_to_api( array $p, int $user_id ): array {
 			$v = $v ? (int) $v : null;
 		} elseif ( in_array( $col, array( 'offer_amount', 'purchase_amount' ), true ) ) {
 			$v = null === $v ? null : (float) $v;
+		} elseif ( 'is_project' === $col ) {
+			$v = (bool) (int) ( $v ?? 1 );
 		}
 		$out[ ps_camel( $col ) ] = $v;
 	}
@@ -653,6 +714,17 @@ function ps_project_to_api( array $p, int $user_id ): array {
 		);
 		foreach ( PS_PARTY_FIELDS as $col ) {
 			$o[ ps_camel( $col ) ] = $r[ $col ] ?? null;
+		}
+		// 1.6.0 : coordonnées venant de l'annuaire (société liée) — affichées telles que dans la fiche société.
+		$o['fromDirectory'] = array();
+		$c                  = $o['companyId'] ? ps_dir_get( 'companies', ps_dir_resolve( 'companies', $o['companyId'] ) ) : null;
+		if ( $c ) {
+			foreach ( array( 'person' => 'person', 'email' => 'email', 'phone' => 'phone', 'address' => 'address', 'position' => 'position', 'rank_title' => 'rank_title', 'location' => 'website' ) as $col => $ccol ) {
+				if ( null !== $c[ $ccol ] && '' !== trim( (string) $c[ $ccol ] ) ) {
+					$o[ ps_camel( $col ) ] = trim( (string) $c[ $ccol ] );
+					$o['fromDirectory'][]  = ps_camel( $col );
+				}
+			}
 		}
 		$out['parties'][ $role ] = $o;
 	}
@@ -753,7 +825,7 @@ function ps_project_list_filters(): array {
  * au plus) : cela permet de filtrer aussi sur les valeurs calculées (حالة العرض، الأولوية)
  * et de chercher en arabe normalisé.
  *
- * @param array $args q, year, month, offerStatus, followupType, priority, itemTypeId, companyId, trash,
+ * @param array $args q, year, month, offerStatus, followupType, priority, itemTypeId, companyId, trash, isProject,
  *                    sort, dir (asc|desc), page, perPage + ps_project_list_filters().
  */
 function ps_projects_list( array $args ): array {
@@ -761,7 +833,7 @@ function ps_projects_list( array $args ): array {
 	$pt    = ps_table( 'projects' );
 	$trash = ! empty( $args['trash'] );
 	$rows  = $wpdb->get_results(
-		"SELECT id, project_no, seq, offer_no, name, received_date, sent_date, month, responsible_emp_id, follower_emp_id, intermediary_emp_id, place_id, category_id, urgency_id, importance_kind_id, importance_size_id, followup_status_id, source_id, offer_amount, offer_currency_id, files_link, note, created_by, created_at, deleted_at, legacy_id, legacy_raw FROM $pt WHERE deleted_at IS " . ( $trash ? 'NOT NULL' : 'NULL' ), // phpcs:ignore
+		"SELECT id, project_no, seq, offer_no, name, received_date, sent_date, month, responsible_emp_id, follower_emp_id, intermediary_emp_id, place_id, category_id, urgency_id, importance_kind_id, importance_size_id, followup_status_id, source_id, offer_amount, offer_currency_id, files_link, note, created_by, created_at, deleted_at, legacy_id, legacy_raw, is_project, non_project_reason_id FROM $pt WHERE deleted_at IS " . ( $trash ? 'NOT NULL' : 'NULL' ), // phpcs:ignore
 		ARRAY_A
 	);
 	if ( ! $rows ) {
@@ -836,6 +908,10 @@ function ps_projects_list( array $args ): array {
 		if ( ! empty( $args['companyId'] ) && (int) ( $owner['company_id'] ?? 0 ) !== (int) $args['companyId'] ) {
 			continue;
 		}
+		// 1.6.0 : « مشروع؟ » — isProject=1 (مشاريع) ou 0 (غير مشروع).
+		if ( isset( $args['isProject'] ) && '' !== (string) $args['isProject'] && (int) $args['isProject'] !== (int) $r['is_project'] ) {
+			continue;
+		}
 		$item_labels = array_map( fn( $i ) => $lists[ (int) $i['item_type_id'] ]['label'] ?? '', $its );
 
 		// Recherche générale (texte normalisé).
@@ -886,6 +962,8 @@ function ps_projects_list( array $args ): array {
 			'offerAmount'       => null === $r['offer_amount'] ? null : (float) $r['offer_amount'],
 			'offerCurrencyId'   => $r['offer_currency_id'] ? (int) $r['offer_currency_id'] : null,
 			'note'              => $r['note'],
+			'isProject'         => 1 === (int) $r['is_project'],
+			'nonProjectReasonId'=> $r['non_project_reason_id'] ? (int) $r['non_project_reason_id'] : null,
 			'filesLink'         => $r['files_link'],
 			'deletedAt'         => $r['deleted_at'],
 		);

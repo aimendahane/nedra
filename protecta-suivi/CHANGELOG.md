@@ -3,6 +3,37 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.6.0 — 2026-10-27 · base v7 — Fiche Projet, Offres, Factures, alertes Telegram
+
+Migration 7 (ajouts seulement : ADD COLUMN / CREATE TABLE ; projets existants = « مشروع = نعم ») :
+`ps_projects` is_project, non_project_reason_id, non_project_note, project_note · `ps_items` responsible_emp_id,
+follower_emp_id (offre) · `ps_files` item_id, invoice_id · `ps_changelog` reason · tables `ps_invoices`, `ps_alerts` ·
+liste « سبب عدم اعتباره مشروعا » · réglages invoice_reply_days (15), alerts_enabled.
+
+- **Fiche Projet** : « مشروع؟ » نعم / لا obligatoire ; « لا » → سبب obligatoire (liste : غير مؤكد، خارج الاختصاص،
+  معلومات غير كافية، أخرى) + note. Un « غير مشروع » sort de Suivi Offres / Livraison, des KPI d'offres, de نسبة
+  النجاح, des retards et alertes ; il reste dans Base Projets (filtre « مشروع؟ ») et compte à part dans le Recap.
+  « ملاحظة المشروع » (distincte de NOTE / نص الطلب, facultative). Fichiers joints dès la création. Coordonnées des
+  sociétés liées (الشخص، الهاتف…) reprises de l'annuaire (lecture seule 🔗 ; les vides complètent la fiche).
+- **Dates jj/mm/aaaa** partout (saisie et affichage), bouton 📅 calendrier ; l'API reste en AAAA-MM-JJ.
+- **Offres** : colonnes « المسؤول عن المشروع » et « الموظف المتابع » (reprises du projet, modifiables par مسؤول
+  المشروع / الإدارة) ; tout changement exige une justification, journalisée (qui, quand, ancien → nouveau, raison).
+  « رقم فاتورة العرض » unique ; fichiers de l'offre (📎) ; « ملاحظة العرض ». Passage à مرسل : تاريخ تقديم العرض =
+  date d'envoi du projet (problème n°01 du fichier Excel).
+- **Factures** (nouvelle page « الفواتير », #/factures et #/factures/ID) : plusieurs par offre ; رقم الفاتورة unique,
+  تاريخ الإرسال obligatoire, آخر أجل للرد CALCULÉ (= envoi + N jours, N réglable, 15 par défaut), جواب الحريف
+  في الانتظار / نعم / لا, montant + devise, ملاحظة الفاتورة, fichiers. Retard + jours affichés. Recap : factures en
+  attente, en retard, taux نعم / لا, montants par devise.
+- **Alertes Telegram** (Cron du matin) : J-3, jour J, retard (1/jour max) pour le المتابع de l'offre (sinon le
+  مسؤول) ; jamais deux fois le même jour (table ps_alerts) ; Telegram indisponible → échec journalisé, e-mail de
+  secours, nouvel essai au Cron suivant. Message : n° facture, n° projet, date limite, type, lien — rien d'autre.
+  Interrupteur « تفعيل التنبيهات ».
+- **Telegram** : token dans wp-config.php (`PS_TELEGRAM_TOKEN`), jamais dans le code, le JSON ni le HTML (l'ancien
+  réglage reste accepté s'il existe) ; code de liaison court (8 caractères, 10 min, « /start CODE ») ; statut
+  « مربوط / غير مربوط » dans la page des utilisateurs ; bouton « إرسال رسالة تجريبية ».
+- Import Excel : الأهمية « 3X » → « غير محدد ».
+- Tests : 921 tests PHP (dont tests/test-160.php) + étape navigateur step14.
+
 ## 1.5.3 — 2026-10-23 · base v6 — La الإدارة efface les tâches, page مهامي plus courte
 
 - **🗑 sur chaque tâche** (الإدارة seulement) : suppression DÉFINITIVE après confirmation. Le titre reste dans le journal.

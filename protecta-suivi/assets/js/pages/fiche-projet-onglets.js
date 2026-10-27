@@ -188,7 +188,7 @@ PS.projectTabs = (function () {
 	/* ------------------------------------------------------------------ */
 
 	const ACTIONS = { create: PS.t('إضافة'), update: PS.t('تعديل'), delete: PS.t('حذف'), restore: 'استرجاع', merge: PS.t('دمج'), import: PS.t('استيراد') };
-	const ENTITIES = { project: PS.t('المشروع'), party: PS.t('طرف'), item: PS.t('صنف'), competitor: PS.t('منافس'), followup: PS.t('متابعة'), file: PS.t('ملف') };
+	const ENTITIES = { project: PS.t('المشروع'), party: PS.t('طرف'), item: PS.t('صنف'), competitor: PS.t('منافس'), followup: PS.t('متابعة'), file: PS.t('ملف'), invoice: PS.t('فاتورة'), task: PS.t('مهمة') };
 	const FIELDS = {
 		offer_no: PS.t('رقم العرض'), name: PS.t('اسم المشروع'), received_date: PS.t('تاريخ الاستلام'), sent_date: PS.t('تاريخ الإرسال'),
 		responsible_emp_id: PS.t('المسؤول'), follower_emp_id: PS.t('المتابع'), intermediary_emp_id: PS.t('الوسيط'), place_id: PS.t('المكان'),
@@ -200,6 +200,9 @@ PS.projectTabs = (function () {
 		offer_invoice_no: PS.t('فاتورة العرض'), offer_notes: PS.t('ملاحظات'), supplier_invoice_no: PS.t('فاتورة المورد'), availability_id: PS.t('المتوفر'),
 		delivery_due_date: PS.t('أجل التسليم'), delivery_actual_date: PS.t('التسليم الفعلي'), delivery_status_id: PS.t('حالة التسليم'), delivery_notes: PS.t('ملاحظات التسليم'),
 		date: PS.t('التاريخ'), entry_date: PS.t('التاريخ'), text: PS.t('النص'), next_date: PS.t('المتابعة القادمة'),
+		// 1.6.0
+		is_project: PS.t('مشروع؟'), non_project_reason_id: PS.t('سبب عدم اعتباره مشروعا'), non_project_note: PS.t('ملاحظة (غير مشروع)'), project_note: PS.t('ملاحظة المشروع'),
+		invoice_no: PS.t('رقم الفاتورة'), answer: PS.t('جواب الحريف'), amount: PS.t('المبلغ'), currency_id: PS.t('العملة'), sent_date_invoice: PS.t('تاريخ إرسال الفاتورة'),
 	};
 	const ROLES = { owner: PS.t('المالك'), executor: PS.t('الشركة المنفذة'), direct: PS.t('الشخص المباشر'), broker: PS.t('الوسيط') };
 	const PARTY_COLS = { company_id: PS.t('الشركة'), person: PS.t('الشخص'), email: PS.t('الإيميل'), phone: PS.t('الهاتف'), address: PS.t('العنوان'), position: PS.t('المنصب'), rank_title: PS.t('الرتبة'), margin: PS.t('هامش الربح'), location: PS.t('الموقع') };
@@ -221,7 +224,7 @@ PS.projectTabs = (function () {
 					<thead><tr><th>${PS.t('التاريخ')}</th><th>${PS.t('المستخدم')}</th><th>${PS.t('العملية')}</th><th>${PS.t('الخانة')}</th><th>${PS.t('القيمة القديمة')}</th><th>${PS.t('القيمة الجديدة')}</th></tr></thead>
 					<tbody>${rows.map(function (r) {
 						return html`<tr><td class="ps-nowrap">${F.dateTime(r.at)}</td><td>${r.user}</td><td>${ACTIONS[r.action] || r.action} ${ENTITIES[r.entity] || r.entity}</td>
-							<td>${fieldLabel(r.entity, r.field)}</td><td class="ps-old">${r.old === null ? '—' : PS.t(r.old)}</td><td>${r.new === null ? '—' : PS.t(r.new)}</td></tr>`;
+							<td>${fieldLabel(r.entity, r.field)}</td><td class="ps-old">${r.old === null ? '—' : PS.t(r.old)}</td><td>${r.new === null ? '—' : PS.t(r.new)}${r.reason ? html`<div class="ps-small ps-muted">📝 ${PS.t('التبرير:')} ${r.reason}</div>` : ''}</td></tr>`;
 					})}</tbody></table></div>` : ui.empty('📜', PS.t('لا توجد تعديلات.'))}
 			</section>`.html;
 		}).catch(function (e) { box.innerHTML = html`<div class="ps-alert ps-alert--error">${e.message}</div>`.html; });

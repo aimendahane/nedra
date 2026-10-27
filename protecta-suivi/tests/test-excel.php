@@ -44,7 +44,7 @@ wp_set_current_user( $adm );
 $prev = $xl( 'excel-equipe.xlsx', 1 )->get_data();
 ps_assert( 4 === $prev['imported'] && true === $prev['dryRun'] && 0 === (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'projects' ) ), 'aperçu : 4 projets annoncés, RIEN écrit', wp_json_encode( $prev, JSON_UNESCAPED_UNICODE ) );
 ps_assert( in_array( 'KL', array_map( fn( $s ) => explode( ' ', $s )[0], $prev['created']['place'] ), true ) && in_array( 'جهاز جديد غير موجود', $prev['created']['item_type'], true ), 'aperçu : nouvelles valeurs annoncées (lieu KL, صنف inconnu)' );
-ps_assert( array_intersect( array( '3X', 'M', 'L' ), $prev['created']['importance'] ) === array( '3X', 'M', 'L' ), 'الأهمية « 3X / M / L » : ajoutées à la liste (jamais perdues, à renommer par la الإدارة)' );
+ps_assert( array_values( array_intersect( array( 'غير محدد', 'M', 'L' ), $prev['created']['importance'] ) ) === array( 'غير محدد', 'M', 'L' ) && ! in_array( '3X', $prev['created']['importance'], true ), 'الأهمية : « 3X » → « غير محدد » (1.6.0) ; « M / L » ajoutées à la liste (à renommer par la الإدارة)', wp_json_encode( $prev['created']['importance'], JSON_UNESCAPED_UNICODE ) );
 
 $rep = $xl( 'excel-equipe.xlsx', 0 )->get_data();
 ps_assert( 4 === $rep['imported'] && ! empty( $rep['backup'] ), 'import : 4 projets, sauvegarde automatique avant' );

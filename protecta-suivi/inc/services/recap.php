@@ -49,7 +49,7 @@ function ps_recap( array $filters, ?string $today = null ): array {
 
 	// Comparaison N-1 de chaque indicateur.
 	$compare = array();
-	foreach ( array( 'projects', 'cancelled', 'confirmed', 'rejected', 'ongoing', 'sent', 'notSent', 'lateOffers', 'lateDeliveries' ) as $key ) {
+	foreach ( array( 'projects', 'cancelled', 'nonProjects', 'confirmed', 'rejected', 'ongoing', 'sent', 'notSent', 'lateOffers', 'lateDeliveries' ) as $key ) {
 		$compare[ $key ] = ps_recap_delta( $k[ $key ], $p[ $key ] );
 	}
 	$compare['successRate'] = ps_recap_delta( $k['successRate'], $p['successRate'], true );
@@ -61,7 +61,7 @@ function ps_recap( array $filters, ?string $today = null ): array {
 		}
 	}
 
-	$active = array_values( array_filter( $facts, fn( $f ) => ! $f['is_cancelled'] ) );
+	$active = array_values( array_filter( $facts, fn( $f ) => ! $f['is_cancelled'] && empty( $f['is_non_project'] ) ) );
 	$total  = count( $active );
 	$pct    = fn( $n ) => $total ? round( $n / $total * 100, 1 ) : 0.0;
 
@@ -261,6 +261,8 @@ function ps_recap( array $filters, ?string $today = null ): array {
 		'notSentItems'     => $ns_total,
 		'years'            => ps_recap_years(),
 		'typeColors'       => ps_recap_type_colors(),
+		// 1.6.0 : factures des projets de la période (en attente, en retard, taux نعم / لا, montants par devise).
+		'invoices'         => ps_invoice_stats( array_column( array_filter( $facts, fn( $f ) => empty( $f['is_non_project'] ) ), 'id' ), $today ),
 	);
 }
 

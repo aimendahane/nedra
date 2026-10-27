@@ -103,6 +103,15 @@ function ps_import_prototype( array $projects, array $options, bool $dry_run, in
 	return $ctx['report'];
 }
 
+/**
+ * Valeur « الأهمية » du fichier (1.6.0, point ouvert n°7 du brief) : « 3X » (sens inconnu) → « غير محدد »,
+ * ajoutée à la liste si besoin (modifiable ensuite dans الإعدادات). Les autres valeurs restent telles quelles.
+ */
+function ps_import_importance( $v ): string {
+	$v = trim( (string) $v );
+	return 0 === strcasecmp( preg_replace( '/\s+/', '', $v ), '3X' ) ? 'غير محدد' : $v;
+}
+
 /** Numéro du fichier Excel de l'équipe : « P029 », « P176 »… (1.4.0, conservé tel quel). */
 function ps_import_excel_no( $no ): bool {
 	return is_string( $no ) && (bool) preg_match( '/^P\d{1,6}$/i', trim( $no ) );
@@ -281,8 +290,8 @@ function ps_import_one( array $p, int $index, array &$ctx ): void {
 			'place_id'            => ps_import_list( 'place', $p['place'] ?? '', $ctx ),
 			'category_id'         => ps_import_list( 'category', $p['cls'] ?? '', $ctx ),
 			'urgency_id'          => $urgency,
-			'importance_kind_id'  => ps_import_list( 'importance', $p['imc'] ?? '', $ctx, $ctx['excel'] ),
-			'importance_size_id'  => ps_import_list( 'importance', $p['imv'] ?? '', $ctx, $ctx['excel'] ),
+			'importance_kind_id'  => ps_import_list( 'importance', ps_import_importance( $p['imc'] ?? '' ), $ctx, $ctx['excel'] ),
+			'importance_size_id'  => ps_import_list( 'importance', ps_import_importance( $p['imv'] ?? '' ), $ctx, $ctx['excel'] ),
 			'followup_status_id'  => $fu,
 			'source_id'           => $source,
 			'offer_amount'        => $amount,

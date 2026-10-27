@@ -33,13 +33,14 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 1.5.0 | Demande client : nom du projet d'abord + recherche par numéro, fichiers joints (règles), stockage Google Drive | ✅ terminée, tests verts | 1.5.0 · base v6 |
 | 1.5.1 | Demande client : « tout effacer et mettre ces projets » (option d'import) + nom du projet toujours présent | ✅ terminée, tests verts | 1.5.1 · base v6 |
 | 1.5.2 | Retour client « not work » : l'option efface aussi toutes les tâches (+ notifications), erreurs serveur lisibles | ✅ terminée, tests verts | 1.5.2 · base v6 |
-| 1.5.3 | Demande client : la الإدارة efface les tâches (🗑, « 🧹 تنظيف المهام ») + مهامي plus courte | ✅ terminée, tests verts | **1.5.3** · base v6 |
+| 1.5.3 | Demande client : la الإدارة efface les tâches (🗑, « 🧹 تنظيف المهام ») + مهامي plus courte | ✅ terminée, tests verts | 1.5.3 · base v6 |
+| 1.6.0 | Brief « Fiche Projet, Offres, Factures, alertes Telegram » (docs/BRIEF.md, mise à jour du 27/10) | ✅ terminée, tests verts | **1.6.0** · base v7 |
 
-### Tests (dernier passage complet, version 1.5.3) — détail : `docs/TEST-RESULTS.txt`
-- `sh protecta-suivi/tests/run-all.sh` → **813 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
-  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0 + step12 = 1.5.2 + step13 = 1.5.3) passés.
-- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.5.3.zip $PWD/dist/protecta-suivi-1.5.2.zip` (chemins absolus) →
-  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.5.2 → 1.5.3 avec données : **aucune perte**.
+### Tests (dernier passage complet, version 1.6.0) — détail : `docs/TEST-RESULTS.txt`
+- `sh protecta-suivi/tests/run-all.sh` → **921 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
+  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0 + step12 = 1.5.2 + step13 = 1.5.3 + step14 = 1.6.0) passés.
+- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.6.0.zip $PWD/dist/protecta-suivi-1.5.3.zip` (chemins absolus) →
+  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.5.3 → 1.6.0 avec données : **aucune perte**.
 
 ### Prochaines actions
 1. Dès que l'accès GitHub est rétabli : `git push -u origin claude/sweet-hopper-le9393` puis
@@ -273,6 +274,39 @@ chaque décision prise seul.
   s'il n'a pas de préférence) → réglage `default_lang` (ar). E-mails/Telegram : langue du destinataire (`ps_with_lang`).
 - Données saisies jamais traduites ; valeurs de listes traduites seulement si le libellé est encore celui par défaut.
 - « Item » / « Article » pour صنف ; « Decision needed » / « Décision requise » pour لازم قرار.
+
+### Version 1.6.0 — décisions prises seul (brief du 27/10, docs/BRIEF.md en fin de fichier)
+- **Offre = un صنف** (ligne de Suivi Offres). Ses المسؤول / المتابع sont stockés sur `ps_items` ; VIDE = ceux du projet
+  (`ps_item_effective`) : ils suivent donc le projet tant qu'ils n'ont pas été changés au niveau de l'offre.
+  Changement : مسؤول du PROJET ou الإدارة, justification obligatoire → colonne `ps_changelog.reason` (ajoutée).
+- **Factures** : `ps_invoices` (item_id), plusieurs par offre, retrait = corbeille (deleted_at) par مسؤول / الإدارة.
+  Ajouter / modifier : ceux qui modifient l'offre + المتابع et المسؤول (effectifs) de l'offre. Montant + devise
+  facultatifs (montant sans devise → LYD). « آخر أجل » jamais stocké (`ps_calc_invoice_deadline`). Pas de facture
+  sur un « غير مشروع ». Recap : factures des projets de la période (filtres du Recap), sans comparaison N-1.
+- **« مشروع؟ »** : colonne `is_project` (défaut 1 → projets existants = نعم). Champ ABSENT de la requête (ancienne
+  interface, import) = inchangé / نعم ; présent mais vide = erreur. « نعم » efface le سبب (journalisé). Un « غير
+  مشروع » est exclu de Suivi Offres ET Suivi Livraison, des KPI, retards, لازم قرار, alertes de suivi et factures ;
+  « صنف واحد على الأقل » n'est pas exigé pour lui. Il garde ses أصناف (rien n'est effacé).
+- **Annuaire** : pour une société liée, les coordonnées NON vides de la fiche priment (`ps_parties_from_directory`,
+  lecture seule 🔗 dans la fiche) ; les vides se saisissent dans le projet et complètent la fiche. Modifier une
+  coordonnée existante = page الشركات (الإدارة). « هامش الربح » du الوسيط reste propre au projet.
+- **Dates** : tous les `<input type=date>` deviennent des champs texte jj/mm/aaaa (`PS.ui` enhanceDate,
+  MutationObserver) + bouton 📅 (calendrier natif caché) ; `.value` renvoie/accepte AAAA-MM-JJ → aucune page modifiée.
+  Saisie acceptée : 5/3/2026, 05-03-2026, 05032026, 2026-03-05.
+- **Telegram** : `PS_TELEGRAM_TOKEN` (wp-config.php) prioritaire ; l'ancienne option `ps_telegram_token` reste acceptée
+  (sites déjà configurés, recommandation de migrer affichée) ; avec la constante, aucun token n'est accepté depuis
+  l'interface. Nom du bot demandé par getMe (une fois par token, empreinte sha256 tronquée stockée, 10 min d'attente
+  après un échec). Code : 8 caractères (sans 0/O/1/I/L), 10 min, usage unique, casse indifférente ; « profil » = la
+  cloche 🔔 (fenêtre avec le code + lien t.me qui envoie « /start CODE »).
+- **Alertes** : `inc/services/alerts.php`, lancées par le Cron. « avant » = une seule fois dans les 3 jours qui
+  précèdent (rattrape un Cron manqué) ; « jour J » et « retard » = au plus 1 par jour (clé unique personne + facture +
+  type + jour, INSERT IGNORE). Destinataires = comptes actifs liés au المتابع effectif de l'offre, sinon au المسؤول
+  effectif. Canal : Telegram si lié, sinon e-mail (si adresse). Échec Telegram → status failed + e-mail de secours
+  immédiat + 5 nouveaux essais Telegram au plus (un par Cron) ; facture répondue entre-temps → essai annulé.
+  Interrupteur `alerts_enabled` (activé par défaut ; sans Cron, rien ne part).
+- **Problème n°01** corrigé : passage à مرسل → تاريخ تقديم العرض = date d'envoi du projet si elle existe.
+- Import Excel : « 3X » → « غير محدد » (valeur de liste créée si besoin). « mon projet » / « ZZ » : non implémentés.
+- Brief : « fichiers joints de BRIEF.md » = règles 1.5.0 ; « section 7 » pour تاريخ إرسال العرض = §5 de BRIEF.md.
 
 ### Version 1.5.1 — exception VOULUE par le client à la règle n°1
 - « فسخ الكل و حط les projets hadhom » : option `replaceAll` de POST /import/excel → `ps_projects_wipe()` (DELETE des

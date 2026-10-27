@@ -38,6 +38,7 @@ async function go(page, url) { await page.goto(url); await page.waitForLoadState
 		await go(page, F + '/#/projet');
 		await page.waitForSelector('[data-form]');
 		await page.fill('[data-bind="name"]', 'مشروع تجريبي بعد التثبيت');
+		if (await page.$('input[name="isProject"][value="1"]')) await page.check('input[name="isProject"][value="1"]'); // 1.6.0 : « مشروع؟ »
 		await page.click('[data-action="suggest-offer"]');
 		await page.waitForTimeout(500);
 		for (const [sel, label] of [['responsibleEmpId', 'وفاء حامدي'], ['followerEmpId', 'وفاء حامدي'], ['placeId', 'T – Tripoli'], ['categoryId', 'إنارة'], ['urgencyId', 'U – Urgent'], ['sourceId', 'مباشر'], ['items.0.itemTypeId', 'إنارة'], ['items.0.employeeId', 'وفاء حامدي']]) {

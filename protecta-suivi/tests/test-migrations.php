@@ -142,6 +142,16 @@ ps_assert( in_array( 'margin', $wpdb->get_col( 'SHOW COLUMNS FROM ' . ps_table( 
 $fcols = $wpdb->get_col( 'SHOW COLUMNS FROM ' . ps_table( 'files' ) );
 ps_assert( ! array_diff( array( 'display_name', 'md5', 'storage', 'drive_id', 'drive_error', 'drive_tries', 'original_name', 'stored_name' ), $fcols ) && in_array( 'drive_folder_id', $wpdb->get_col( 'SHOW COLUMNS FROM ' . ps_table( 'projects' ) ), true ), 'migration 6 : colonnes Drive / nom d\'affichage ajoutées aux fichiers et projets (anciennes colonnes gardées)' );
 
+ps_test_section( 'Migration 7 (1.6.0) : مشروع؟, factures, alertes' );
+$pcols = $wpdb->get_col( 'SHOW COLUMNS FROM ' . ps_table( 'projects' ) );
+ps_assert( ! array_diff( array( 'is_project', 'non_project_reason_id', 'non_project_note', 'project_note', 'note' ), $pcols ), 'colonnes « مشروع؟ », سبب, ملاحظة المشروع ajoutées (NOTE gardée)' );
+ps_assert( 1 === (int) $wpdb->get_var( 'SELECT MIN(is_project) FROM ' . ps_table( 'projects' ) ), 'projets existants : « مشروع = نعم » (rien ne disparaît des offres ni du Recap)' );
+ps_assert( ! array_diff( array( 'responsible_emp_id', 'follower_emp_id', 'offer_invoice_no' ), $wpdb->get_col( 'SHOW COLUMNS FROM ' . ps_table( 'items' ) ) ) && null === $wpdb->get_var( 'SELECT follower_emp_id FROM ' . ps_table( 'items' ) . ' LIMIT 1' ), 'أصناف : المسؤول / المتابع de l\'offre ajoutés, vides = ceux du projet' );
+ps_assert( ! array_diff( array( 'item_id', 'invoice_id' ), $fcols ) || ! array_diff( array( 'item_id', 'invoice_id' ), $wpdb->get_col( 'SHOW COLUMNS FROM ' . ps_table( 'files' ) ) ), 'fichiers : liens vers une offre / une facture ajoutés' );
+ps_assert( in_array( 'reason', $wpdb->get_col( 'SHOW COLUMNS FROM ' . ps_table( 'changelog' ) ), true ), 'journal : colonne « justification » ajoutée' );
+ps_assert( 0 === (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'invoices' ) ) && 0 === (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'alerts' ) ), 'tables ps_invoices et ps_alerts créées vides' );
+ps_assert( 4 <= count( ps_lists_all()['non_project_reason'] ?? array() ), 'liste « سبب عدم اعتباره مشروعا » remplie une fois' );
+
 ps_test_section( 'Mise à jour : listes et réglages de la الإدارة conservés' );
 
 ps_assert_same( 'صفاء بن علي', $wpdb->get_var( "SELECT label FROM $lt WHERE id=$safa" ), 'valeur renommée : nom conservé' );

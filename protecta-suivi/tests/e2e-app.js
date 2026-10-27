@@ -54,8 +54,14 @@ async function pickCompany(page, role, text, choose) {
 	await page.waitForTimeout(250);
 }
 
+/** Remplit un champ s'il est modifiable (1.6.0 : coordonnées venant de l'annuaire = lecture seule). */
+async function fillIfEditable(page, sel, v) {
+	if (await page.isEditable(sel)) await page.fill(sel, v);
+}
+
 async function fillProject(page, o) {
 	await page.fill('[data-bind="name"]', o.name);
+	await page.check('input[name="isProject"][value="1"]'); // 1.6.0 : « مشروع؟ » obligatoire
 	await page.click('[data-action="suggest-offer"]');
 	await page.waitForTimeout(400);
 	await page.selectOption('[data-bind="placeId"]', { label: o.place || 'T – Tripoli' });
@@ -64,8 +70,8 @@ async function fillProject(page, o) {
 	await page.selectOption('[data-bind="sourceId"]', { label: 'مباشر' });
 	if (o.companyNew) await pickCompany(page, 'owner', o.company, 'new');
 	else await pickCompany(page, 'owner', o.company, 'first');
-	await page.fill('[data-bind="parties.owner.person"]', o.person || 'سالم');
-	await page.fill('[data-bind="parties.owner.phone"]', '0912345678');
+	await fillIfEditable(page, '[data-bind="parties.owner.person"]', o.person || 'سالم');
+	await fillIfEditable(page, '[data-bind="parties.owner.phone"]', '0912345678');
 	await page.fill('[data-bind="parties.executor.companyName"]', 'شركة التنفيذ');
 	await page.fill('[data-bind="parties.direct.person"]', 'خالد');
 	await page.fill('[data-bind="parties.direct.phone"]', '0921112233');
@@ -260,7 +266,7 @@ async function step3(browser) {
 	// Suivant → مرسل : تاريخ إرسال العرض demandé (aujourd'hui proposé).
 	await page.selectOption(mineSel, { label: 'مرسل' });
 	await page.waitForSelector('.ps-modal [data-q="date"]');
-	check('مرسل sans تاريخ الإرسال : date du jour proposée', (await page.inputValue('.ps-modal [data-q="date"]')) === '2026-10-19');
+	check('مرسل sans تاريخ الإرسال : date du jour proposée (jj/mm/aaaa)', (await page.inputValue('.ps-modal [data-q="date"]')) === '19/10/2026');
 	await page.screenshot({ path: SHOTS + '/s3-03-date-envoi.png' });
 	await page.click('.ps-modal [data-btn="ok"]');
 	await page.waitForTimeout(1200);
@@ -1037,7 +1043,121 @@ async function step13(browser) {
 	await e.ctx.close();
 }
 
-const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13 };
+/* Version 1.6.0 : مشروع؟, dates jj/mm/aaaa, fichier à la création, المتابع de l'offre (justification), factures, Recap. */
+async function step14(browser) {
+	console.log('1.6.0 — مشروع؟، التواريخ، الفواتير، المتابع، Recap');
+	const fs = require('fs');
+	const dir = require('os').tmpdir();
+	const { ctx, page } = await newPage(browser, 'idara');
+	// Fiche Projet (nouveau) : dates jj/mm/aaaa, « مشروع؟ » obligatoire.
+	await go(page, '#/projet');
+	await page.waitForSelector('[data-bind="receivedDate"]');
+	const rd = await page.$eval('[data-bind="receivedDate"]', (e) => ({ type: e.type, shown: e.getAttribute('value') === null ? '' : HTMLInputElement.prototype.__lookupGetter__('value').call(e), api: e.value }));
+	check('date : champ texte jj/mm/aaaa (19/10/2026), valeur API AAAA-MM-JJ', rd.type === 'text' && rd.shown === '19/10/2026' && rd.api === '2026-10-19', JSON.stringify(rd));
+	check('date : bouton calendrier 📅', !!(await page.$('[data-bind="receivedDate"] ~ .ps-date__btn')));
+	await page.fill('[data-bind="name"]', 'طلب أسعار — غير مشروع');
+	await page.click('[data-action="save"]');
+	await page.waitForTimeout(400);
+	check('« مشروع؟ » non choisi → erreur sous le champ', /إجبارية/.test(await page.textContent('[data-key="is_project"]')));
+	await page.check('input[name="isProject"][value="0"]');
+	await page.waitForSelector('[data-bind="nonProjectReasonId"]');
+	check('« لا » → liste « سبب عدم اعتباره مشروعا »', (await page.$$eval('[data-bind="nonProjectReasonId"] option', (o) => o.map((x) => x.textContent))).includes('خارج الاختصاص'));
+	await page.selectOption('[data-bind="nonProjectReasonId"]', { label: 'خارج الاختصاص' });
+	await page.fill('[data-bind="projectNote"]', 'ملاحظة داخلية 1.6.0');
+	await fillProject(page, { name: 'طلب أسعار — غير مشروع', company: 'شركة غير مشروع', companyNew: true });
+	await page.check('input[name="isProject"][value="0"]');
+	await page.waitForSelector('[data-bind="nonProjectReasonId"]');
+	await page.selectOption('[data-bind="nonProjectReasonId"]', { label: 'خارج الاختصاص' });
+	await page.fill('[data-bind="receivedDate"]', '05/10/2026');
+	await page.selectOption('[data-bind="responsibleEmpId"]', { label: 'وليد جدير' });
+	await page.selectOption('[data-bind="followerEmpId"]', { label: 'محمد حسين' });
+	await page.selectOption('[data-bind="items.0.employeeId"]', { label: 'محمد حسين' });
+	fs.writeFileSync(dir + '/cahier-160.pdf', '%PDF-1.4\n%%EOF');
+	await page.setInputFiles('[data-new-files]', dir + '/cahier-160.pdf');
+	await page.waitForSelector('[data-action="remove-new-file"]');
+	await page.screenshot({ path: SHOTS + '/s14-01-fiche.png', fullPage: true });
+	await page.click('[data-action="save"]');
+	await page.waitForTimeout(600);
+	if (await page.$('.ps-modal [data-btn=save]')) await page.click('.ps-modal [data-btn=save]');
+	await page.waitForSelector('.ps-alert--success a[href*="projet?id="]', { timeout: 8000 });
+	const pid = (await page.getAttribute('.ps-alert--success a[href*="projet?id="]', 'href')).match(/id=(\d+)/)[1];
+	await page.waitForTimeout(1500);
+	const saved = await page.evaluate(async (id) => ({ p: await PS.api.get('projects/' + id), files: await PS.api.get('projects/' + id + '/files') }), pid);
+	check('enregistré « غير مشروع » + سبب + ملاحظة المشروع, date saisie 05/10/2026', saved.p.isProject === false && saved.p.nonProjectReasonId && saved.p.projectNote === 'ملاحظة داخلية 1.6.0' && saved.p.receivedDate === '2026-10-05', JSON.stringify({ i: saved.p.isProject, n: saved.p.projectNote, d: saved.p.receivedDate }));
+	check('fichier choisi à la création → joint au projet', saved.files.length === 1 && saved.files[0].name === 'cahier-160.pdf');
+	await go(page, '#/projets?isProject=0');
+	await page.waitForSelector('.ps-table tbody tr');
+	const rows = await page.$$eval('.ps-table tbody tr', (t) => t.map((r) => r.textContent));
+	check('Base Projets : filtre « غير مشروع » + badge', rows.length === 1 && /غير مشروع/.test(rows[0]), rows.join(' | ').slice(0, 200));
+	await go(page, '#/offres');
+	await page.waitForSelector('.ps-table tbody tr');
+	const offerText = await page.textContent('.ps-table');
+	check('Suivi Offres : « غير مشروع » absent ; colonnes المسؤول / المتابع / ملاحظة العرض / الفواتير', !/طلب أسعار — غير مشروع/.test(offerText) && /الموظف المتابع/.test(await page.textContent('.ps-table thead')) && /ملاحظة العرض/.test(await page.textContent('.ps-table thead')));
+	// Changer le المتابع d'une offre : justification obligatoire.
+	const tr = await page.$('.ps-table tbody tr[data-row]:has-text("PRJ-2026")'); // projet de l'année du Recap
+	const rowId = await tr.getAttribute('data-row');
+	const sel = await tr.$('select[data-field="followerEmpId"]');
+	const cur = await sel.inputValue();
+	const other = await sel.$$eval('option', (o, c) => o.map((x) => x.value).find((v) => v && v !== c), cur);
+	await sel.selectOption(other);
+	await page.waitForSelector('.ps-modal [data-q="reason"]');
+	await page.click('.ps-modal [data-btn=ok]');
+	check('المتابع : justification vide → refusée', !!(await page.$('.ps-modal [data-q="reason"]')));
+	await page.fill('.ps-modal [data-q="reason"]', 'إعادة توزيع العمل');
+	await page.click('.ps-modal [data-btn=ok]');
+	await page.waitForTimeout(1200);
+	const log = await page.evaluate(async (id) => { const r = (await PS.api.get('items?view=offers&perPage=500')).rows.find((x) => String(x.id) === id); const l = await PS.api.get('projects/' + r.projectId + '/changelog'); return { r: r, l: l.find((x) => x.field === 'follower_emp_id') }; }, rowId);
+	check('المتابع de l\'offre changé + journal avec justification', String(log.r.followerEmpId) === other && log.l && log.l.reason === 'إعادة توزيع العمل', JSON.stringify(log.l));
+	// Factures de l'offre.
+	await page.click(`tr[data-row="${rowId}"] [data-invoices]`);
+	await page.waitForSelector('.ps-modal [data-btn=new]');
+	await page.click('.ps-modal [data-btn=new]');
+	await page.waitForSelector('.ps-modal [name=invoiceNo]');
+	await page.fill('.ps-modal [name=invoiceNo]', 'FAC-E2E-001');
+	await page.fill('.ps-modal [name=sentDate]', '01/10/2026');
+	await page.fill('.ps-modal [name=amount]', '1500');
+	await page.screenshot({ path: SHOTS + '/s14-02-facture.png' });
+	await page.click('.ps-modal [data-btn=save]');
+	await page.waitForSelector('.ps-modal [data-btn="new"]', { timeout: 8000 });
+	const invTable = await page.textContent('.ps-modal');
+	check('facture enregistrée : آخر أجل للرد calculé (16/10/2026) et en retard', /FAC-E2E-001/.test(invTable) && /16\/10\/2026/.test(invTable) && /متأخرة/.test(invTable), invTable.slice(0, 300));
+	await page.screenshot({ path: SHOTS + '/s14-03-factures-offre.png' });
+	await page.click('.ps-modal [data-btn=close]');
+	await go(page, '#/factures?status=late');
+	await page.waitForSelector('[data-results] tr[data-inv]');
+	check('page « الفواتير » : facture en retard listée', /FAC-E2E-001/.test(await page.textContent('[data-results]')));
+	await page.screenshot({ path: SHOTS + '/s14-04-page-factures.png', fullPage: true });
+	const invId = await page.getAttribute('[data-results] tr[data-inv]', 'data-inv');
+	await go(page, '#/factures/' + invId);
+	await page.waitForSelector('.ps-modal [name=answer]');
+	check('lien des alertes #/factures/ID → fiche de la facture', (await page.inputValue('.ps-modal [name=invoiceNo]')) === 'FAC-E2E-001');
+	await page.selectOption('.ps-modal [name=answer]', 'yes');
+	await page.click('.ps-modal [data-btn=save]');
+	await page.waitForTimeout(1000);
+	check('جواب الحريف = نعم → plus en retard', (await page.evaluate(async (id) => (await PS.api.get('invoices/' + id)).computed.late, invId)) === false);
+	// Recap : compteur « غير مشروع » + bloc factures.
+	await go(page, '#/recap');
+	await page.waitForSelector('[data-recap-invoices]');
+	const rec = await page.textContent('.ps-main');
+	check('Recap : « غير مشروع » compté à part + bloc factures (taux نعم)', /غير مشروع/.test(rec) && /جواب «نعم»/.test(rec) && /100\.0 %/.test(await page.textContent('[data-recap-invoices]')));
+	await page.screenshot({ path: SHOTS + '/s14-05-recap.png', fullPage: true });
+	// Réglages : délai de réponse, interrupteur des alertes, token via wp-config ; utilisateurs : colonne Telegram.
+	await go(page, '#/parametres?tab=general');
+	await page.waitForSelector('[name=invoice_reply_days]');
+	check('الإعدادات : « آخر أجل للرد » (15) + « تفعيل التنبيهات » + explication wp-config.php', (await page.inputValue('[name=invoice_reply_days]')) === '15' && !!(await page.$('[name=alerts_enabled]')) && /PS_TELEGRAM_TOKEN/.test(await page.textContent('.ps-main')));
+	await go(page, '#/parametres?tab=users');
+	await page.waitForSelector('[data-tg]');
+	check('المستخدمون : colonne Telegram (مربوط / غير مربوط)', /غير مربوط/.test(await page.textContent('.ps-table')));
+	await ctx.close();
+	// Téléphone : la page des factures ne déborde pas.
+	const m = await newPage(browser, 'idara', true);
+	await go(m.page, '#/factures?status=all');
+	await m.page.waitForSelector('[data-results]');
+	check('téléphone : page « الفواتير » sans défilement horizontal', await m.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
+	await m.ctx.close();
+}
+
+const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14 };
 
 (async () => {
 	const browser = await chromium.launch();

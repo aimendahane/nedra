@@ -26,7 +26,7 @@ $emp = get_user_by( 'login', 'test_emp' );
 wp_set_current_user( $emp->ID );
 $r = ps_test_rest( 'GET', '/lists' );
 ps_assert_same( 200, $r->get_status(), 'موظف connecté : /lists autorisé' );
-ps_assert_same( 14, count( $r->get_data()['lists'] ), '/lists renvoie les 14 listes' );
+ps_assert_same( 15, count( $r->get_data()['lists'] ), '/lists renvoie les 15 listes (1.6.0 : سبب عدم اعتباره مشروعا)' );
 
 $me = ps_test_rest( 'GET', '/me' )->get_data();
 ps_assert( 'موظف' === $me['role'] && false === $me['caps']['ps_view_recap'] && true === $me['caps']['ps_create_project'], '/me : rôle et capacités du موظف' );
