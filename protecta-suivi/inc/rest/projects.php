@@ -202,11 +202,11 @@ function ps_rest_project_is_project( WP_REST_Request $r ) {
 		return new WP_Error( 'ps_forbidden', ps__( 'لا يمكنك تعديل هذا المشروع (فقط المسؤول عنه، الإدارة، أو من أنشأه خلال 24 ساعة).' ), array( 'status' => 403 ) );
 	}
 	$b   = (array) $r->get_json_params();
-	$yes = ps_clean_bool( $b['isProject'] ?? null );
-	if ( '' === $yes ) {
+	$state = ps_clean_project_state( $b['isProject'] ?? null );
+	if ( '' === $state ) {
 		return new WP_Error( 'ps_validation', ps__( 'خانة إجبارية: ' ) . ps__( 'مشروع؟' ), array( 'status' => 422 ) );
 	}
-	$res = ps_project_set_is_project( (int) $row['id'], (bool) $yes, $b['nonProjectReasonId'] ?? null, isset( $b['nonProjectNote'] ) ? (string) $b['nonProjectNote'] : null, $uid );
+	$res = ps_project_set_is_project( (int) $row['id'], (int) $state, $b['nonProjectReasonId'] ?? null, isset( $b['nonProjectNote'] ) ? (string) $b['nonProjectNote'] : null, $uid );
 	return is_wp_error( $res ) ? $res : rest_ensure_response( $res );
 }
 

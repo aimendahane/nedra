@@ -54,28 +54,36 @@
 	];
 
 	/*
-	 * 1.8.0 — « مشروع؟ » : interrupteur نعم / لا directement dans la liste (tableau, carte, panneau) pour ceux qui
-	 * peuvent modifier le projet. « نعم » = le projet devient une offre (Suivi Offres) ; « لا » demande le سبب.
-	 * Sans droit : simple badge.
+	 * 1.8.0 — « مشروع؟ » : interrupteur directement dans la liste (tableau, carte, panneau) pour ceux qui peuvent
+	 * modifier le projet. « نعم » = le projet devient une offre (Suivi Offres) ; « لا » demande le سبب.
+	 * 1.9.0 — troisième état « ⏳ لم يُحدد بعد » (valeur 2) : demande enregistrée, décision plus tard. Sans droit : badge.
 	 */
+	function stateOf(r) { return r.projectState || (r.isProject === false ? 'no' : 'yes'); }
+	const STATE_VALUE = { yes: '1', no: '0', pending: '2' };
 	function ynBadge(r) {
-		return r.isProject === false ? html`<span class="ps-badge ps-badge--muted" data-non-project>🚫 ${PS.t('لا')}</span>` : html`<span class="ps-badge ps-badge--success">✔ ${PS.t('نعم')}</span>`;
+		const s = stateOf(r);
+		if (s === 'no') return html`<span class="ps-badge ps-badge--muted" data-non-project>🚫 ${PS.t('لا')}</span>`;
+		if (s === 'pending') return html`<span class="ps-badge ps-badge--warning" data-pending>⏳ ${PS.t('لم يُحدد بعد')}</span>`;
+		return html`<span class="ps-badge ps-badge--success">✔ ${PS.t('نعم')}</span>`;
 	}
 	function ynCell(r) {
 		if (!r.canEdit || (st && st.params.trash)) return ynBadge(r);
-		const no = r.isProject === false;
-		return html`<span class="ps-yn" role="group" aria-label="${PS.t('مشروع؟')}" ${no ? ui.raw('data-non-project') : ''}>
-			<button type="button" class="ps-yn__b ${no ? '' : 'is-on is-yes'}" data-yn="1" data-pid="${r.id}" aria-pressed="${no ? 'false' : 'true'}">${PS.t('نعم')}</button>
-			<button type="button" class="ps-yn__b ${no ? 'is-on is-no' : ''}" data-yn="0" data-pid="${r.id}" aria-pressed="${no ? 'true' : 'false'}">${PS.t('لا')}</button>
+		const s = stateOf(r);
+		const b = function (val, cls, label, title) {
+			const on = STATE_VALUE[s] === val;
+			return html`<button type="button" class="ps-yn__b ${on ? 'is-on ' + cls : ''}" data-yn="${val}" data-pid="${r.id}" aria-pressed="${on ? 'true' : 'false'}" title="${title}">${label}</button>`;
+		};
+		return html`<span class="ps-yn" role="group" aria-label="${PS.t('مشروع؟')}" ${s === 'no' ? ui.raw('data-non-project') : (s === 'pending' ? ui.raw('data-pending') : '')}>
+			${b('1', 'is-yes', PS.t('نعم'), PS.t('نعم'))}${b('0', 'is-no', PS.t('لا'), PS.t('لا'))}${b('2', 'is-pending', '⏳', PS.t('لم يُحدد بعد'))}
 		</span>`;
 	}
 
-	/** Change « مشروع؟ » d'un projet de la liste. → Promise<bool> */
-	function setYesNo(id, yes) {
+	/** Change « مشروع؟ » d'un projet de la liste (val = '1' نعم, '0' لا, '2' لم يُحدد بعد). → Promise<bool> */
+	function setYesNo(id, val) {
 		const r = st.data.rows.find(function (x) { return x.id === Number(id); });
-		if (!r || (r.isProject !== false) === yes) return Promise.resolve(false);
-		let ask = Promise.resolve({ isProject: 1 });
-		if (!yes) {
+		if (!r || STATE_VALUE[stateOf(r)] === val) return Promise.resolve(false);
+		let ask = Promise.resolve({ isProject: Number(val) });
+		if (val === '0') {
 			let picked = null;
 			ask = ui.modal({
 				title: PS.t('ليس مشروعًا') + ' — ' + r.projectNo,
@@ -95,8 +103,8 @@
 		return ask.then(function (body) {
 			if (!body) return false;
 			return PS.api.post('projects/' + r.id + '/is-project', body).then(function (res) {
-				if (yes && !res.itemsCount) ui.toast(PS.t('أصبح مشروعًا، لكن بدون أصناف: أضف صنفًا من بطاقة المشروع ليظهر في متابعة العروض.'), 'error');
-				else ui.toast(yes ? PS.t('✔ أصبح مشروعًا — يظهر الآن في متابعة العروض') : PS.t('تم: ليس مشروعًا'), 'success');
+				if (val === '1' && !res.itemsCount) ui.toast(PS.t('أصبح مشروعًا، لكن بدون أصناف: أضف صنفًا من بطاقة المشروع ليظهر في متابعة العروض.'), 'error');
+				else ui.toast(val === '1' ? PS.t('✔ أصبح مشروعًا — يظهر الآن في متابعة العروض') : (val === '0' ? PS.t('تم: ليس مشروعًا') : PS.t('⏳ بانتظار القرار')), 'success');
 				PS.router.refreshCounts();
 				return load().then(function () { return true; });
 			}).catch(function (e) { ui.toast(e.message, 'error'); return false; });
@@ -200,7 +208,7 @@
 				${st.params.trash ? html`<th></th>` : ''}
 			</tr></thead>
 			<tbody>${rows.map(function (r) {
-				return html`<tr ${st.params.trash ? '' : ui.raw('data-open-row="' + r.id + '" tabindex="0"')} class="${r.isProject === false ? 'is-non-project' : ''}">
+				return html`<tr ${st.params.trash ? '' : ui.raw('data-open-row="' + r.id + '" tabindex="0"')} class="${r.isProject === false ? 'is-non-project' : ''} ${stateOf(r) === 'pending' ? 'is-pending' : ''}">
 					${admin ? html`<td><input type="checkbox" data-check="${r.id}" aria-label="${PS.t('تحديد')} ${r.projectNo}" ${st.selected.has(r.id) ? ui.raw('checked') : ''}></td>` : ''}
 					${cols.map(function (c) { return html`<td>${c[2](r)}</td>`; })}
 					${st.params.trash ? html`<td><button type="button" class="ps-btn ps-btn--small" data-restore="${r.id}">↩ ${PS.t('استرجاع')}</button></td>` : ''}
@@ -217,7 +225,7 @@
 	function cards(rows) {
 		const line = ui.kv;
 		return html`<div class="ps-cards ps-mobile-only">${rows.map(function (r) {
-			return html`<div class="ps-pcard ${r.isProject === false ? 'is-non-project' : ''}" ${st.params.trash ? '' : ui.raw('data-open-row="' + r.id + '" role="button" tabindex="0"')}>
+			return html`<div class="ps-pcard ${r.isProject === false ? 'is-non-project' : ''} ${stateOf(r) === 'pending' ? 'is-pending' : ''}" ${st.params.trash ? '' : ui.raw('data-open-row="' + r.id + '" role="button" tabindex="0"')}>
 				<div class="ps-pcard__top">${ui.projectTitle({ name: r.name, no: r.projectNo, oldNo: r.oldNo }, { link: false, numberFirst: true })} ${L.badge(r.urgencyId)}</div>
 				<div class="ps-kvs">
 					${line(PS.t('مشروع؟'), ynCell(r))}
@@ -244,7 +252,7 @@
 		const body = html`<div class="ps-drawer">
 			<div class="ps-drawer__head">
 				${ui.projectTitle({ id: r.id, name: r.name, no: r.projectNo, oldNo: r.oldNo }, { numberFirst: true })}
-				<div class="ps-drawer__badges">${r.isProject === false ? html`<span class="ps-badge ps-badge--muted" data-non-project>🚫 ${PS.t('غير مشروع')}</span>` : ''} ${L.badge(r.followupStatusId, L.label(r.followupStatusId))} ${L.offerBadge(r.offerStatus)} ${L.badge(r.urgencyId)}</div>
+				<div class="ps-drawer__badges">${stateOf(r) !== 'yes' ? ynBadge(r) : ''} ${L.badge(r.followupStatusId, L.label(r.followupStatusId))} ${L.offerBadge(r.offerStatus)} ${L.badge(r.urgencyId)}</div>
 			</div>
 			<div class="ps-drawer__yn">${PS.t('مشروع؟')} ${ynCell(r)} ${r.isProject === false && r.nonProjectReasonId ? html`<span class="ps-small ps-muted">${L.label(r.nonProjectReasonId)}</span>` : ''}</div>
 			<div class="ps-drawer__actions">
@@ -276,7 +284,7 @@
 				wrap.addEventListener('click', function (e) {
 					if (e.target.closest('[data-drawer-go]')) wrap.remove();
 					const yn = e.target.closest('[data-yn]');
-					if (yn) { wrap.remove(); setYesNo(yn.dataset.pid, yn.dataset.yn === '1').then(function () { openDrawer(r.id); }); }
+					if (yn) { wrap.remove(); setYesNo(yn.dataset.pid, yn.dataset.yn).then(function () { openDrawer(r.id); }); }
 				});
 			},
 		});
@@ -284,11 +292,12 @@
 
 	/** En-tête des résultats : nombre, filtres rapides « مشروع؟ » avec compteurs, bouton « الأعمدة ». */
 	function resultsHead(d) {
-		const f = (d.facets && d.facets.isProject) || { yes: 0, no: 0 };
+		const f = Object.assign({ yes: 0, no: 0, pending: 0 }, d.facets && d.facets.isProject);
 		return html`<div class="ps-list-head">
 			${st.params.trash ? html`<p class="ps-muted ps-small" role="status">${d.total} ${PS.t('مشروع')}${PS.t(' في سلة المحذوفات')}</p>` : ui.chips('isProject', [
-				{ value: '', label: PS.t('الكل'), count: f.yes + f.no },
+				{ value: '', label: PS.t('الكل'), count: f.yes + f.no + f.pending },
 				{ value: '1', label: PS.t('مشروع'), count: f.yes },
+				{ value: '2', label: PS.t('⏳ بانتظار القرار'), count: f.pending, tone: f.pending ? 'warning' : '' },
 				{ value: '0', label: PS.t('🚫 غير مشروع'), count: f.no, tone: 'muted' },
 			], st.params.isProject)}
 			<button type="button" class="ps-btn ps-btn--ghost ps-btn--small ps-desktop-only" data-action="columns">▦ ${PS.t('الأعمدة')}</button>
@@ -347,6 +356,9 @@
 		const m = st.main;
 		const onSearch = ui.debounce(function (v) { setParam('q', v.trim()); }, 300);
 		m.querySelector('[data-search]').addEventListener('input', function (e) { onSearch(e.target.value); });
+		// Écouteurs délégués posés UNE fois par page (un nouvel affichage de la page ne doit pas les doubler).
+		if (st.bound) return;
+		st.bound = true;
 		m.addEventListener('change', function (e) {
 			const t = e.target;
 			if (t.dataset.filter) setParam(t.dataset.filter, t.type === 'checkbox' ? (t.checked ? 1 : '') : t.value);
@@ -361,7 +373,7 @@
 			const chip = e.target.closest('[data-chip]');
 			if (chip) { setParam(chip.dataset.chip, chip.dataset.value); return; }
 			const yn = e.target.closest('[data-yn]');
-			if (yn) { setYesNo(yn.dataset.pid, yn.dataset.yn === '1'); return; }
+			if (yn) { setYesNo(yn.dataset.pid, yn.dataset.yn); return; }
 			const s = e.target.closest('[data-sort]');
 			if (s) {
 				const same = (st.params.sort || 'receivedDate') === s.dataset.sort;

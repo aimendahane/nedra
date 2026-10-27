@@ -95,7 +95,9 @@ function ps_stats_facts( array $filters = array(), ?string $today = null ): arra
 				'delivery_display' => ps_calc_effective_delivery_status( $dc, $d_late ),
 			);
 		}
-		$non = isset( $p['is_project'] ) && 0 === (int) $p['is_project'];
+		// « غير مشروع » (0) et « لم يُحدد بعد » (2, 1.9.0) : exclus de tous les indicateurs d'offres.
+		$state = isset( $p['is_project'] ) ? (int) $p['is_project'] : PS_PROJECT_YES;
+		$non   = PS_PROJECT_YES !== $state;
 		if ( $non ) {
 			foreach ( $its as &$i_ ) {
 				$i_['late']          = false;
@@ -128,6 +130,7 @@ function ps_stats_facts( array $filters = array(), ?string $today = null ): arra
 			'offer_status'     => $offer,
 			'is_cancelled'     => $cancel,
 			'is_non_project'   => $non,
+			'is_pending'       => PS_PROJECT_PENDING === $state, // 1.9.0 : لم يُحدد بعد
 			'is_sent'          => $sent && ! $non,
 			'is_not_sent'      => ! $cancel && ! $non && ps_calc_is_offer_not_sent( $offer, $fu_type ),
 			'is_confirmed'     => ! $cancel && ! $non && ps_calc_is_confirmed( $fu_type ),
@@ -165,7 +168,8 @@ function ps_stats_kpis( array $facts ): array {
 	return array(
 		'projects'          => count( $active ),
 		'cancelled'         => count( array_filter( $facts, fn( $f ) => $f['is_cancelled'] ) ),
-		'nonProjects'       => count( array_filter( $facts, fn( $f ) => ! empty( $f['is_non_project'] ) ) ), // 1.6.0
+		'nonProjects'       => count( array_filter( $facts, fn( $f ) => ! empty( $f['is_non_project'] ) && empty( $f['is_pending'] ) ) ), // 1.6.0
+		'pendingProjects'   => count( array_filter( $facts, fn( $f ) => ! empty( $f['is_pending'] ) ) ), // 1.9.0 : لم يُحدد بعد
 		'confirmed'         => $confirmed,
 		'rejected'          => $count( 'is_rejected' ),
 		'ongoing'           => $count( 'is_ongoing' ),

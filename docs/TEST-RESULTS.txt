@@ -1,6 +1,6 @@
 ######## Tests PHP ########
 Site de test installé (thème : protecta-suivi)
-Thème v1.8.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
+Thème v1.9.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 
 == Activation : base de données ==
   ✔ ps_db_version = dernière migration
@@ -790,9 +790,9 @@ Thème v1.8.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ inc/i18n/en.json : JSON valide
   ✔ inc/i18n/fr.json : JSON valide
   ✔ en.json et fr.json ont exactement les mêmes clés
-  ✔ en : chaque texte de l'interface a sa traduction (1180 textes)
+  ✔ en : chaque texte de l'interface a sa traduction (1190 textes)
   ✔ en : traductions non vides, sans arabe, mêmes %s / %d que l'original
-  ✔ fr : chaque texte de l'interface a sa traduction (1180 textes)
+  ✔ fr : chaque texte de l'interface a sa traduction (1190 textes)
   ✔ fr : traductions non vides, sans arabe, mêmes %s / %d que l'original
 
 == Langues : traduction côté serveur ==
@@ -1147,8 +1147,33 @@ Thème v1.8.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ « نعم » → le projet devient une offre (Suivi Offres)
   ✔ les أصناف sont intactes
 
+== 1.9.0 : « لم يُحدد بعد » à la création ==
+  ✔ « لم يُحدد بعد » sans صنف → enregistré (صنف non exigé)
+  ✔ API : projectState = pending, isProject = null
+  ✔ valeur 2 acceptée aussi ; ses أصناف gardées
+
+== 1.9.0 : exclu des offres et des indicateurs, compté à part ==
+  ✔ Suivi Offres : « لم يُحدد بعد » absent, « نعم » présent
+  ✔ KPI : 1 projet, 2 « بانتظار القرار », 0 « غير مشروع »
+  ✔ Recap : compteur « بانتظار القرار »
+  ✔ Base Projets : filtre « بانتظار القرار » + compteurs
+  ✔ liste : projectState = pending
+  ✔ pas de facture sur une demande non décidée
+  ✔ export : « لم يُحدد بعد » dans la colonne مشروع؟
+
+== 1.9.0 : مهامي — demandes à décider ==
+  ✔ مهامي du المسؤول : 2 demandes « بانتظار القرار » (depuis 19 jours)
+  ✔ un autre employé ne les voit pas
+
+== 1.9.0 : décider plus tard (liste et fiche) ==
+  ✔ liste : « نعم » → devient une offre
+  ✔ Suivi Offres : maintenant présent
+  ✔ retour à « لم يُحدد بعد » : سبب effacé
+  ✔ journal : « لم يُحدد بعد » lisible
+  ✔ fiche : passer à « نعم » sans صنف → صنف exigé
+
 ----------------------------------------
-Résultat : 947 réussis, 0 échoués
+Résultat : 964 réussis, 0 échoués
 
 ######## Navigateur : fondations (étape 1) ########
 Page de connexion
@@ -1461,7 +1486,7 @@ Tous les contrôles navigateur sont passés.
 ######## Navigateur : step16 (jeu de démonstration) ########
 1.7.0 — تجربة الاستخدام : جداول قصيرة، لوحة التفاصيل، بطاقة أخف
   ✔ Base Projets : 8 colonnes importantes par défaut
-  ✔ Base Projets : filtres rapides الكل / مشروع / غير مشروع avec compteurs
+  ✔ Base Projets : filtres rapides الكل / مشروع / بانتظار القرار / غير مشروع avec compteurs
   ✔ clic sur une ligne → panneau : tous les détails + actions (البطاقة، الملفات، سجل المتابعة)
   ✔ Échap ferme le panneau
   ✔ le lien du numéro ouvre toujours la fiche (pas le panneau)
@@ -1502,6 +1527,22 @@ Tous les contrôles navigateur sont passés.
   ✔ موظف : badge (pas d'interrupteur) sur les projets qu'il ne peut pas modifier
   ✔ téléphone : interrupteur « مشروع؟ » sur la carte
   ✔ téléphone : filtres rapides sur une seule ligne
+
+Tous les contrôles navigateur sont passés.
+
+######## Navigateur : step18 (jeu de démonstration) ########
+1.9.0 — «مشروع؟»: لم يُحدد بعد ثم القرار لاحقًا
+  ✔ fiche : 3 choix نعم / لا / ⏳ لم يُحدد بعد
+  ✔ « ⏳ » : explication affichée
+  ✔ enregistré « لم يُحدد بعد »
+  ✔ pas encore dans Suivi Offres
+  ✔ filtre rapide « ⏳ بانتظار القرار » : 1
+  ✔ ligne « بانتظار القرار » : ⏳ actif
+  ✔ مهامي : bloc « طلبات بانتظار القرار »
+  ✔ « نعم » depuis la liste → devient une offre
+  ✔ plus aucune demande en attente
+  ✔ un clic = une seule fenêtre (pas d'écouteurs en double)
+  ✔ Recap : après 2 changements de filtre, « طباعة » ne s'exécute qu'une fois
 
 Tous les contrôles navigateur sont passés.
 

@@ -187,7 +187,9 @@ function ps_validate_project( array $in, ?array $existing = null ): array {
 			$errors['non_project_reason_id'] = ps__( 'هذه القيمة لم تعد متاحة: ' ) . ps__( 'سبب عدم اعتباره مشروعا' );
 		}
 	}
-	$non_project = 0 === ( $f['is_project'] ?? null ) || ( null === ( $f['is_project'] ?? null ) && isset( $old['is_project'] ) && 0 === (int) $old['is_project'] );
+	// « صنف واحد على الأقل » n'est exigé que d'un projet « نعم » (« لا » / « لم يُحدد بعد » : pas encore une offre).
+	$state       = $f['is_project'] ?? null;
+	$non_project = ( null !== $state && '' !== $state && 1 !== $state ) || ( null === $state && isset( $old['is_project'] ) && 1 !== (int) $old['is_project'] );
 
 	// 3. Dates.
 	foreach ( array( 'received_date', 'sent_date' ) as $key ) {

@@ -78,6 +78,7 @@
 		const d = JSON.parse(JSON.stringify(p));
 		['offerAmount', 'purchaseAmount'].forEach(function (k) { if (d[k] === null) d[k] = ''; });
 		d.items.forEach(function (it) { if (it.quantity === null) it.quantity = ''; });
+		if (d.projectState === 'pending') d.isProject = 'pending'; // 1.9.0 : « لم يُحدد بعد »
 		return d;
 	}
 
@@ -187,11 +188,14 @@
 	function yesNo() {
 		const v = state.draft.isProject;
 		const radio = function (val, label) {
-			return html`<label class="ps-check"><input type="radio" name="isProject" value="${val}" data-yesno${(val === '1' && v === true) || (val === '0' && v === false) ? ui.raw(' checked') : ''}${dis()}> ${label}</label>`;
+			const on = (val === '1' && v === true) || (val === '0' && v === false) || (val === '2' && v === 'pending');
+			return html`<label class="ps-check"><input type="radio" name="isProject" value="${val}" data-yesno${on ? ui.raw(' checked') : ''}${dis()}> ${label}</label>`;
 		};
+		// 1.9.0 : troisième choix « لم يُحدد بعد » — on enregistre la demande, la décision se prend plus tard dans « المشاريع ».
 		return html`<div class="ps-field ps-field--required" data-key="is_project"><span class="ps-field__label">${PS.t('مشروع؟')} <span class="ps-req">*</span></span>
-			<div class="ps-row ps-row--tight" role="radiogroup" aria-label="${PS.t('مشروع؟')}">${radio('1', PS.t('نعم'))}${radio('0', PS.t('لا'))}</div>
-			${v === false ? html`<span class="ps-small ps-muted">${PS.t('لا يظهر في العروض ولا في مؤشرات العروض ونسبة النجاح.')}</span>` : ''}</div>`;
+			<div class="ps-row ps-row--tight" role="radiogroup" aria-label="${PS.t('مشروع؟')}">${radio('1', PS.t('نعم'))}${radio('0', PS.t('لا'))}${radio('2', PS.t('⏳ لم يُحدد بعد (أقرّر لاحقًا)'))}</div>
+			${v === false ? html`<span class="ps-small ps-muted">${PS.t('لا يظهر في العروض ولا في مؤشرات العروض ونسبة النجاح.')}</span>` : ''}
+			${v === 'pending' ? html`<span class="ps-small ps-muted">${PS.t('يُسجَّل الطلب الآن، ولا يظهر في العروض حتى تختار «نعم» من «المشاريع» أو من هذه البطاقة.')}</span>` : ''}</div>`;
 	}
 
 	/**
@@ -378,7 +382,7 @@
 		else if (perm.editReason === 'creator') banner = html`<div class="ps-alert ps-alert--warning">${PS.t('يمكنك تعديل هذا المشروع حتى')} ${PS.format.dateTime(perm.editUntil)}.</div>`;
 		return html`<div class="ps-page-head">
 			<h1 class="ps-ptitle-h1">${p.name}<span class="ps-ptitle__no" dir="ltr">${[p.projectNo, p.oldNo].filter(Boolean).join(' · ')}</span></h1>
-			<div class="ps-page-head__badges">${p.isProject === false ? html`<span class="ps-badge ps-badge--muted" data-non-project>🚫 ${PS.t('غير مشروع')}${p.nonProjectReasonId ? ' — ' + L.label(p.nonProjectReasonId) : ''}</span>` : ''} ${L.offerBadge(p.computed.offerStatus)} ${L.badge(p.followupStatusId, L.label(p.followupStatusId))} ${p.computed.priority ? html`<span class="ps-badge ps-prio ps-prio--${p.computed.priority}">${p.computed.priority}</span>` : ''}</div>
+			<div class="ps-page-head__badges">${p.isProject === false ? html`<span class="ps-badge ps-badge--muted" data-non-project>🚫 ${PS.t('غير مشروع')}${p.nonProjectReasonId ? ' — ' + L.label(p.nonProjectReasonId) : ''}</span>` : ''}${p.projectState === 'pending' ? html`<span class="ps-badge ps-badge--warning" data-pending>⏳ ${PS.t('لم يُحدد بعد')}</span>` : ''} ${L.offerBadge(p.computed.offerStatus)} ${L.badge(p.followupStatusId, L.label(p.followupStatusId))} ${p.computed.priority ? html`<span class="ps-badge ps-prio ps-prio--${p.computed.priority}">${p.computed.priority}</span>` : ''}</div>
 			<div class="ps-page-head__actions">
 				${PS.router.can('ps_assign_tasks') && !p.deletedAt ? html`<button type="button" class="ps-btn" data-action="new-task">📌 ${PS.t('مهمة')}</button>` : ''}
 				${perm.canDelete && !p.deletedAt ? html`<button type="button" class="ps-btn ps-btn--danger" data-action="delete">🗑 ${PS.t('حذف')}</button>` : ''}
@@ -463,7 +467,7 @@
 			return;
 		}
 		if (el.hasAttribute('data-yesno')) {
-			state.draft.isProject = el.value === '1';
+			state.draft.isProject = el.value === '1' ? true : (el.value === '0' ? false : 'pending');
 			state.dirty = true;
 			saveDraftLocal();
 			rerenderKeepScroll();
@@ -635,9 +639,9 @@
 				if (req.indexOf(role + '.' + f[0]) !== -1 && empty(p[f[1]]) && !(f[0] === 'company' && p.companyId)) errs['parties.' + role + '.' + f[0]] = PS.t('خانة إجبارية');
 			});
 		});
-		if (d.isProject !== true && d.isProject !== false) errs.is_project = PS.t('خانة إجبارية');
+		if (d.isProject !== true && d.isProject !== false && d.isProject !== 'pending') errs.is_project = PS.t('خانة إجبارية');
 		if (d.isProject === false && !d.nonProjectReasonId) errs.non_project_reason_id = PS.t('خانة إجبارية');
-		if (req.indexOf('items.min_one') !== -1 && !d.items.length && d.isProject !== false) errs.items = PS.t('لازم صنف واحد على الأقل');
+		if (req.indexOf('items.min_one') !== -1 && !d.items.length && d.isProject === true) errs.items = PS.t('لازم صنف واحد على الأقل');
 		d.items.forEach(function (it, i) {
 			[['item_type_id', 'itemTypeId'], ['employee_id', 'employeeId'], ['due_date', 'dueDate'], ['quantity', 'quantity']].forEach(function (f) {
 				if (req.indexOf('item.' + f[0]) !== -1 && empty(it[f[1]])) errs['items.' + i + '.' + f[0]] = PS.t('خانة إجبارية');

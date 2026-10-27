@@ -31,7 +31,7 @@ function ps_export_projects_table( array $args ): array {
 			$lab( $r['intermediaryEmpId'] ), $r['projectNo'], $lab( $r['followupStatusId'] ), $offer( $r['offerStatus'] ), $r['note'], $r['filesLink'],
 			$r['offerNo'], $lab( $r['sourceId'] ), $r['priority'], $r['offerAmount'], $code( $r['offerCurrencyId'] ),
 			// 1.6.x : colonnes ajoutées à la FIN (l'ordre d'origine reste celui du fichier Excel de l'équipe, réimportable).
-			$r['isProject'] ? ps__( 'نعم' ) : ps__( 'لا' ), $r['isProject'] ? '' : $lab( $r['nonProjectReasonId'] ), $lab( $r['responsibleEmpId'] ),
+			array( 'yes' => ps__( 'نعم' ), 'no' => ps__( 'لا' ), 'pending' => ps__( 'لم يُحدد بعد' ) )[ $r['projectState'] ], 'no' === $r['projectState'] ? $lab( $r['nonProjectReasonId'] ) : '', $lab( $r['responsibleEmpId'] ),
 		);
 	}
 	return array( $headers, $out );

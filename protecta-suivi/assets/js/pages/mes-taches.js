@@ -345,11 +345,15 @@
 					const scope = wrap.querySelector('[name=scope]:checked').value;
 					const word = wrap.querySelector('[name=confirm]').value.trim();
 					if (scope === 'all' && word !== 'مسح الكل' && word.toLowerCase() !== PS.t('مسح الكل').toLowerCase()) { ui.toast(PS.t('اكتب «مسح الكل» للتأكيد'), 'error'); return false; }
+					// La sauvegarde complète avant suppression peut prendre quelques secondes : bouton désactivé + message.
+					const btn = wrap.querySelector('[data-btn="ok"]');
+					btn.disabled = true;
+					btn.textContent = PS.t('جاري الحذف…');
 					PS.api.post('free-tasks/purge', { scope: scope, confirm: scope === 'all' ? 'مسح الكل' : '' }).then(function (r) {
 						close('ok');
 						ui.toast(PS.t('حُذفت المهام: ') + r.deleted, 'success');
 						PS.router.refresh();
-					}).catch(function (er) { ui.toast(errMsg(er), 'error'); });
+					}).catch(function (er) { btn.disabled = false; btn.textContent = PS.t('🗑 حذف'); ui.toast(errMsg(er), 'error'); });
 					return false;
 				},
 			});
@@ -411,6 +415,10 @@
 				return html`<li class="ps-task__item is-danger">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo })} <span class="ps-small">${L.label(r.itemTypeId)}</span>
 					<span class="ps-small">${PS.t('الأجل')} ${F.date(r.dueDate)} · <strong>${PS.t('متأخر')} ${r.daysLate} ${PS.t('يوم')}</strong>${who(r, showEmp)}</span></li>`;
 			}, data.lateOffers.length ? html` <a class="ps-btn ps-btn--small ps-btn--ghost" href="#/offres?late=1${data.employeeId ? '&employeeId=' + data.employeeId : ''}">${PS.t('فتح في العروض ←')}</a>` : '')}
+			${(data.pendingDecision || []).length ? block('⏳', PS.t('طلبات بانتظار القرار: مشروع أم لا؟'), data.pendingDecision, '', function (r) {
+				return html`<li class="ps-task__item is-warning">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo })}
+					<span class="ps-small">${PS.t('استُلم')} ${F.date(r.receivedDate)} · ${PS.t('منذ')} ${r.daysWaiting} ${PS.t('يوم')}${who(r, showEmp)}</span></li>`;
+			}, html` <a class="ps-btn ps-btn--small ps-btn--ghost" href="#/projets?isProject=2">${PS.t('قرّر في المشاريع ←')}</a>`) : ''}
 			${block('📞', PS.t('متابعات مبرمجة اليوم أو فائتة'), data.followupsDue, PS.t('لا توجد متابعات مبرمجة اليوم'), function (r) {
 				const overdue = r.nextDate < data.today;
 				return html`<li class="ps-task__item ${overdue ? 'is-danger' : 'is-warning'}">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo }, { hash: '&tab=followups' })}

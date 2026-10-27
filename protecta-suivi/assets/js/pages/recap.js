@@ -215,6 +215,7 @@
 			${amountsKpi(PS.t('مبالغ العروض'), k.amounts, c.amounts)}
 			${amountsKpi(PS.t('مبالغ المشاريع المؤكدة'), k.confirmedAmounts, c.confirmedAmounts)}
 			${kpi(PS.t('غير مشروع'), k.nonProjects || 0, c.nonProjects, { sub: PS.t('محسوبة على حدة (خارج العروض ونسبة النجاح)'), link: 'projets|isProject=0', cls: 'ps-kpi--muted' })}
+			${k.pendingProjects ? kpi(PS.t('⏳ بانتظار القرار'), k.pendingProjects, c.pendingProjects, { sub: PS.t('«مشروع؟» لم يُحدد بعد (خارج العروض)'), link: 'projets|isProject=2', cls: 'ps-kpi--muted' }) : ''}
 		</div>`;
 	}
 
@@ -464,6 +465,9 @@
 
 	function bind() {
 		const m = st.main;
+		// Délégués posés UNE fois : render() est rappelé à chaque changement de filtre (sinon les clics se doublent).
+		if (st.bound) return;
+		st.bound = true;
 		m.addEventListener('change', function (e) {
 			const k = e.target.dataset.f;
 			if (!k) return;

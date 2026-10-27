@@ -3,6 +3,28 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.9.0 — 2026-10-27 · base v7 — « مشروع؟ » : troisième choix « ⏳ لم يُحدد بعد »
+
+Accord du client (« yes ») : pouvoir enregistrer une demande tout de suite et décider PLUS TARD si c'est un مشروع.
+Aucune migration (même colonne `is_project`, nouvelle valeur 2), aucune donnée touchée.
+- **Fiche projet** : « مشروع؟ » = نعم / لا / **⏳ لم يُحدد بعد (أقرّر لاحقًا)** (toujours un choix obligatoire). Une
+  demande « لم يُحدد بعد » n'exige pas de صنف et n'a pas de سبب.
+- **المشاريع** : interrupteur à 3 positions (نعم · لا · ⏳), filtre rapide « ⏳ بانتظار القرار » avec compteur,
+  ligne marquée en orange. « نعم » → devient une offre immédiatement.
+- Une demande « لم يُحدد بعد » n'est **pas** une offre : absente de متابعة العروض / التسليم / الفواتير, des KPI et des
+  retards ; Recap : compteur à part « ⏳ بانتظار القرار ».
+- **مهامي** : bloc « ⏳ طلبات بانتظار القرار » pour le المسؤول et le المتابع (depuis combien de jours), avec un lien
+  « قرّر في المشاريع ».
+- API : `projectState` (yes / no / pending) ajouté ; `isProject` vaut null pour « لم يُحدد بعد » ; le journal écrit
+  « لم يُحدد بعد » ; export : colonne مشروع؟ = نعم / لا / لم يُحدد بعد.
+- **Corrections trouvées en testant** :
+  - المشاريع (après « مسح الفلاتر »), متابعة العروض (après avoir retiré un filtre) et Recap (à chaque changement
+    de filtre) ajoutaient leurs écouteurs une 2e fois → un clic agissait deux fois (deux fenêtres, deux envois,
+    impression doublée). Écouteurs posés une seule fois.
+  - « 🧹 تنظيف المهام » : la sauvegarde avant suppression peut prendre quelques secondes → bouton désactivé
+    « جاري الحذف… » (plus de double clic, l'utilisateur voit que ça travaille).
+- Tests : tests/test-190.php ; navigateur step18 (dont contrôles « un clic = une action »).
+
 ## 1.8.0 — 2026-10-27 · base v7 — « مشروع؟ » depuis le tableau, Suivi Livraison allégé, tableaux sans défilement
 
 Retour du client : « trop de problèmes, teste toi-même ; quand on ajoute un مشروع il faut pouvoir dire plus tard,

@@ -69,6 +69,35 @@ function ps_clean_bool( $v ) {
 	return '';
 }
 
+/*
+ * 1.9.0 — « مشروع؟ » a trois états (colonne is_project, aucune migration : tinyint) :
+ *   1 = نعم (c'est une offre), 0 = لا (غير مشروع, سبب obligatoire), 2 = لم يُحدد بعد (demande enregistrée, décision
+ *   à prendre plus tard). Seul l'état 1 compte dans Suivi Offres / Livraison, les KPI, les retards et les factures.
+ */
+const PS_PROJECT_NO      = 0;
+const PS_PROJECT_YES     = 1;
+const PS_PROJECT_PENDING = 2;
+
+/** Nettoie « مشروع؟ » : 1, 0, 2 (« لم يُحدد بعد ») ou '' (invalide / vide). */
+function ps_clean_project_state( $v ) {
+	if ( in_array( (string) $v, array( '2', 'pending', 'later' ), true ) ) {
+		return PS_PROJECT_PENDING;
+	}
+	return ps_clean_bool( $v );
+}
+
+/** Code lisible de l'état « مشروع؟ » : yes | no | pending. */
+function ps_project_state_code( $v ): string {
+	$v = (int) ( $v ?? 1 );
+	return PS_PROJECT_PENDING === $v ? 'pending' : ( PS_PROJECT_NO === $v ? 'no' : 'yes' );
+}
+
+/** Valeur API historique « isProject » : true (نعم), false (لا), null (لم يُحدد بعد). */
+function ps_project_state_api( $v ): ?bool {
+	$c = ps_project_state_code( $v );
+	return 'pending' === $c ? null : 'yes' === $c;
+}
+
 /** Nettoie un identifiant (null si vide ou 0). */
 function ps_clean_id( $v ): ?int {
 	return is_numeric( $v ) && (int) $v > 0 ? (int) $v : null;
@@ -152,7 +181,7 @@ function ps_project_input( array $body ): array {
 			$fields[ $f ] = null === ps_clean_text( $v ) ? null : esc_url_raw( trim( (string) $v ) );
 		} elseif ( 'is_project' === $f ) {
 			// Absent (ancienne interface, import) → null = inchangé (nouveau projet : نعم). Présent mais vide → '' (erreur).
-			$fields[ $f ] = array_key_exists( 'isProject', $body ) ? ps_clean_bool( $v ) : null;
+			$fields[ $f ] = array_key_exists( 'isProject', $body ) ? ps_clean_project_state( $v ) : null;
 		} else {
 			$fields[ $f ] = ps_clean_text( $v, in_array( $f, PS_PROJECT_MULTILINE, true ) );
 		}
@@ -303,7 +332,7 @@ function ps_project_save( array $in, ?array $existing, int $user_id ) {
 			$f['non_project_note']      = $f['non_project_note'] ?? $existing['fields']['non_project_note'];
 		}
 	}
-	if ( 1 === (int) $f['is_project'] ) {
+	if ( PS_PROJECT_NO !== (int) $f['is_project'] ) { // نعم ou لم يُحدد : pas de سبب
 		$f['non_project_reason_id'] = null;
 		$f['non_project_note']      = null;
 	}
@@ -388,7 +417,7 @@ function ps_field_display( string $field, $value ): ?string {
 		return null;
 	}
 	if ( 'is_project' === $field ) {
-		return (int) $value ? 'نعم' : 'لا';
+		return array( 'yes' => 'نعم', 'no' => 'لا', 'pending' => 'لم يُحدد بعد' )[ ps_project_state_code( $value ) ];
 	}
 	if ( str_ends_with( $field, '_id' ) ) {
 		return ps_list_label( $value );
@@ -694,7 +723,8 @@ function ps_project_to_api( array $p, int $user_id ): array {
 		} elseif ( in_array( $col, array( 'offer_amount', 'purchase_amount' ), true ) ) {
 			$v = null === $v ? null : (float) $v;
 		} elseif ( 'is_project' === $col ) {
-			$v = (bool) (int) ( $v ?? 1 );
+			$out['projectState'] = ps_project_state_code( $v ); // 1.9.0 : yes | no | pending
+			$v                   = ps_project_state_api( $v );
 		}
 		$out[ ps_camel( $col ) ] = $v;
 	}
@@ -856,7 +886,7 @@ function ps_projects_list( array $args ): array {
 	$q       = ps_normalize_text( (string) ( $args['q'] ?? '' ) );
 	$filters = ps_project_list_filters();
 	$out     = array();
-	$facets  = array( 'yes' => 0, 'no' => 0 );
+	$facets  = array( 'yes' => 0, 'no' => 0, 'pending' => 0 );
 
 	foreach ( $rows as $r ) {
 		$pid   = $r['id'];
@@ -931,7 +961,7 @@ function ps_projects_list( array $args ): array {
 		}
 
 		// 1.6.0 : « مشروع؟ » — isProject=1 (مشاريع) ou 0 (غير مشروع). Compteurs (1.7.0) avant ce filtre.
-		$facets[ 1 === (int) $r['is_project'] ? 'yes' : 'no' ]++;
+		$facets[ ps_project_state_code( $r['is_project'] ) ]++;
 		if ( isset( $args['isProject'] ) && '' !== (string) $args['isProject'] && (int) $args['isProject'] !== (int) $r['is_project'] ) {
 			continue;
 		}
@@ -967,7 +997,8 @@ function ps_projects_list( array $args ): array {
 			'offerAmount'       => null === $r['offer_amount'] ? null : (float) $r['offer_amount'],
 			'offerCurrencyId'   => $r['offer_currency_id'] ? (int) $r['offer_currency_id'] : null,
 			'note'              => $r['note'],
-			'isProject'         => 1 === (int) $r['is_project'],
+			'isProject'         => ps_project_state_api( $r['is_project'] ),
+			'projectState'      => ps_project_state_code( $r['is_project'] ), // 1.9.0
 			'nonProjectReasonId'=> $r['non_project_reason_id'] ? (int) $r['non_project_reason_id'] : null,
 			'canEdit'           => null !== ps_project_edit_reason( $r, $uid ), // 1.8.0 : « مشروع؟ » modifiable dans la liste
 			'filesLink'         => $r['files_link'],
@@ -1007,23 +1038,25 @@ function ps_projects_list( array $args ): array {
 
 /**
  * 1.8.0 — « مشروع؟ » changé directement depuis la liste des projets (le projet devient — ou cesse d'être — une offre).
- * Mêmes règles que la fiche : « لا » → سبب obligatoire (liste non_project_reason) ; « نعم » efface le سبب et la note.
+ * Mêmes règles que la fiche : « لا » → سبب obligatoire (liste non_project_reason) ; « نعم » et « لم يُحدد بعد » (1.9.0)
+ * effacent le سبب et la note.
  * Chaque champ modifié est journalisé (سجل التعديلات). Les droits sont vérifiés par l'appelant.
  *
  * @return array|WP_Error { isProject, nonProjectReasonId, itemsCount }
  */
-function ps_project_set_is_project( int $id, bool $yes, $reason_id, ?string $note, int $user_id ) {
+function ps_project_set_is_project( int $id, int $state, $reason_id, ?string $note, int $user_id ) {
 	global $wpdb;
 	$row = ps_project_row( $id );
 	if ( ! $row || $row['deleted_at'] ) {
 		return new WP_Error( 'ps_not_found', ps__( 'المشروع غير موجود' ), array( 'status' => 404 ) );
 	}
+	$no  = PS_PROJECT_NO === $state; // seul « لا » garde un سبب et une note
 	$new = array(
-		'is_project'            => $yes ? 1 : 0,
-		'non_project_reason_id' => $yes ? null : ( $reason_id ? (int) $reason_id : null ),
-		'non_project_note'      => $yes ? null : ( '' === trim( (string) $note ) ? null : trim( (string) $note ) ),
+		'is_project'            => $state,
+		'non_project_reason_id' => $no && $reason_id ? (int) $reason_id : null,
+		'non_project_note'      => $no && '' !== trim( (string) $note ) ? trim( (string) $note ) : null,
 	);
-	if ( ! $yes ) {
+	if ( $no ) {
 		$lists_t = ps_table( 'lists' );
 		$lr      = $new['non_project_reason_id'] ? $wpdb->get_row( $wpdb->prepare( "SELECT list_key, is_hidden FROM $lists_t WHERE id = %d", $new['non_project_reason_id'] ), ARRAY_A ) : null; // phpcs:ignore
 		$err     = null;
@@ -1052,7 +1085,8 @@ function ps_project_set_is_project( int $id, bool $yes, $reason_id, ?string $not
 		$wpdb->update( ps_table( 'projects' ), $set, array( 'id' => $id ) );
 	}
 	return array(
-		'isProject'          => $yes,
+		'isProject'          => ps_project_state_api( $state ),
+		'projectState'       => ps_project_state_code( $state ),
 		'nonProjectReasonId' => $new['non_project_reason_id'],
 		'itemsCount'         => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . ps_table( 'items' ) . ' WHERE project_id = %d', $id ) ), // phpcs:ignore
 	);

@@ -49,7 +49,7 @@ function ps_recap( array $filters, ?string $today = null ): array {
 
 	// Comparaison N-1 de chaque indicateur.
 	$compare = array();
-	foreach ( array( 'projects', 'cancelled', 'nonProjects', 'confirmed', 'rejected', 'ongoing', 'sent', 'notSent', 'lateOffers', 'lateDeliveries' ) as $key ) {
+	foreach ( array( 'projects', 'cancelled', 'nonProjects', 'pendingProjects', 'confirmed', 'rejected', 'ongoing', 'sent', 'notSent', 'lateOffers', 'lateDeliveries' ) as $key ) {
 		$compare[ $key ] = ps_recap_delta( $k[ $key ], $p[ $key ] );
 	}
 	$compare['successRate'] = ps_recap_delta( $k['successRate'], $p['successRate'], true );

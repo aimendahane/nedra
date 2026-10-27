@@ -1042,7 +1042,9 @@ async function step13(browser) {
 	await page.waitForSelector('.ps-modal [name=scope]');
 	await page.screenshot({ path: SHOTS + '/s13-02-nettoyer.png' });
 	await page.click('.ps-modal [data-btn=ok]');
-	await page.waitForFunction(() => !/مهمة منجزة/.test(document.querySelector('.ps-main').textContent), null, { timeout: 8000 }).catch(() => {});
+	// La sauvegarde avant suppression peut être lente : attendre la confirmation, puis la page rechargée.
+	await page.waitForSelector('.ps-toast--success:has-text("حُذفت المهام")', { timeout: 30000 }).catch(() => {});
+	await page.waitForFunction(() => !/مهمة منجزة/.test(document.querySelector('.ps-main').textContent) && /مهمة باقية/.test(document.querySelector('.ps-main').textContent), null, { timeout: 15000 }).catch(() => {});
 	const txt = await page.textContent('.ps-main');
 	check('« حذف المهام المنجزة والملغاة » : la tâche تمت disparaît, la tâche ouverte reste', !/مهمة منجزة/.test(txt) && /مهمة باقية/.test(txt));
 	await page.click('[data-task-purge]');
@@ -1301,7 +1303,7 @@ async function step16(browser) {
 	await page.waitForSelector('.ps-table--clickable tbody tr[data-open-row]');
 	check('Base Projets : 8 colonnes importantes par défaut', (await cols()) === 8, String(await cols()));
 	const chips = await page.$$eval('[data-chips="isProject"] .ps-qchip', (c) => c.map((x) => x.textContent.replace(/\s+/g, ' ').trim()));
-	check('Base Projets : filtres rapides الكل / مشروع / غير مشروع avec compteurs', chips.length === 3 && chips.every((c) => /\d/.test(c)), chips.join(' | '));
+	check('Base Projets : filtres rapides الكل / مشروع / بانتظار القرار / غير مشروع avec compteurs', chips.length === 4 && chips.every((c) => /\d/.test(c)), chips.join(' | '));
 	await page.click('.ps-table--list tbody tr[data-open-row] >> nth=0 >> td:nth-child(5)');
 	await page.waitForSelector('.ps-modal--drawer');
 	const dr = await page.$eval('.ps-modal--drawer', (d) => ({ kv: d.querySelectorAll('.ps-kv').length, txt: d.textContent, fiche: !!d.querySelector('a[href*="#/projet?id="]'), files: !!d.querySelector('a[href*="tab=files"]') }));
@@ -1466,7 +1468,74 @@ async function step17(browser) {
 	await m.ctx.close();
 }
 
-const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15, step16, step17 };
+/* Version 1.9.0 : « مشروع؟ » à trois états — « ⏳ لم يُحدد بعد » à la création, décision plus tard depuis la liste. */
+async function step18(browser) {
+	console.log('1.9.0 — «مشروع؟»: لم يُحدد بعد ثم القرار لاحقًا');
+	const { ctx, page } = await newPage(browser, 'idara');
+	await go(page, '#/projet');
+	await page.waitForSelector('input[name="isProject"][value="2"]');
+	check('fiche : 3 choix نعم / لا / ⏳ لم يُحدد بعد', (await page.$$('input[name="isProject"]')).length === 3);
+	await fillProject(page, { name: 'طلب جديد — القرار لاحقًا', company: 'شركة القرار', companyNew: true });
+	await page.check('input[name="isProject"][value="2"]');
+	await page.waitForTimeout(200);
+	check('« ⏳ » : explication affichée', /لا يظهر في العروض حتى تختار/.test(await page.textContent('[data-section="is-project"]')));
+	await page.selectOption('[data-bind="responsibleEmpId"]', { label: 'وليد جدير' });
+	await page.selectOption('[data-bind="followerEmpId"]', { label: 'محمد حسين' });
+	await page.selectOption('[data-bind="items.0.employeeId"]', { label: 'محمد حسين' });
+	await page.screenshot({ path: SHOTS + '/s18-01-fiche-pending.png' });
+	await page.click('[data-action="save"]');
+	await page.waitForTimeout(600);
+	if (await page.$('.ps-modal [data-btn=save]')) await page.click('.ps-modal [data-btn=save]');
+	await page.waitForSelector('.ps-alert--success a[href*="projet?id="]', { timeout: 8000 });
+	const pid = (await page.getAttribute('.ps-alert--success a[href*="projet?id="]', 'href')).match(/id=(\d+)/)[1];
+	const saved = await page.evaluate(async (id) => (await PS.api.get('projects/' + id)).projectState, pid);
+	check('enregistré « لم يُحدد بعد »', saved === 'pending', saved);
+	const inOffers = async () => page.evaluate(async (id) => (await PS.api.get('items?view=offers&perPage=500')).rows.some((r) => String(r.projectId) === id), pid);
+	check('pas encore dans Suivi Offres', !(await inOffers()));
+	// Base Projets : filtre « بانتظار القرار », ligne marquée, décision d'un clic.
+	await go(page, '#/projets');
+	await page.waitForSelector('[data-chip="isProject"][data-value="2"]');
+	check('filtre rapide « ⏳ بانتظار القرار » : 1', /1/.test(await page.textContent('[data-chip="isProject"][data-value="2"]')));
+	await page.click('[data-chip="isProject"][data-value="2"]');
+	await page.waitForTimeout(800);
+	const rows = await page.$$eval('.ps-table--list tbody tr', (t) => t.map((r) => ({ p: r.classList.contains('is-pending'), on: (r.querySelector('[data-yn="2"]') || {}).ariaPressed || r.querySelector('[data-yn="2"]')?.getAttribute('aria-pressed') })));
+	check('ligne « بانتظار القرار » : ⏳ actif', rows.length === 1 && rows[0].p && rows[0].on === 'true', JSON.stringify(rows));
+	await page.screenshot({ path: SHOTS + '/s18-02-projets-pending.png' });
+	// مهامي : bloc « طلبات بانتظار القرار ».
+	await go(page, '#/taches');
+	await page.waitForSelector('.ps-tasks');
+	check('مهامي : bloc « طلبات بانتظار القرار »', /طلبات بانتظار القرار/.test(await page.textContent('.ps-tasks')) && /طلب جديد — القرار لاحقًا/.test(await page.textContent('.ps-tasks')));
+	await page.screenshot({ path: SHOTS + '/s18-03-taches.png' });
+	await page.click('a[href="#/projets?isProject=2"]');
+	await page.waitForSelector('.ps-table--list tbody tr [data-yn="1"]');
+	await page.click('.ps-table--list tbody tr [data-yn="1"]');
+	await page.waitForTimeout(1200);
+	check('« نعم » depuis la liste → devient une offre', await inOffers());
+	check('plus aucune demande en attente', /0/.test(await page.textContent('[data-chip="isProject"][data-value="2"]')));
+	// Régression : après « مسح الفلاتر » (nouvel affichage de la page), un clic n'ouvre qu'UNE fenêtre.
+	await page.click('[data-action="toggle-filters"]');
+	await page.click('[data-action="reset-filters"]');
+	await page.waitForSelector('.ps-table--list tbody tr [data-yn="0"]');
+	await page.click('.ps-table--list tbody tr >> nth=0 >> [data-yn="0"]');
+	await page.waitForSelector('.ps-modal');
+	await page.waitForTimeout(400);
+	check('un clic = une seule fenêtre (pas d\'écouteurs en double)', (await page.$$('.ps-modal')).length === 1, String((await page.$$('.ps-modal')).length));
+	await page.click('.ps-modal [data-btn=cancel]');
+	await go(page, '#/recap');
+	await page.waitForSelector('[data-f]');
+	const yr = await page.$eval('select[data-f="year"]', (s) => s.value).catch(() => null);
+	if (yr) {
+		await page.selectOption('select[data-f="year"]', String(Number(yr) - 1));
+		await page.waitForTimeout(1200);
+		await page.selectOption('select[data-f="year"]', yr);
+		await page.waitForTimeout(1200);
+		const calls = await page.evaluate(() => { let n = 0; const o = window.print; window.print = () => { n++; }; document.querySelector('[data-action="print"]').click(); window.print = o; return n; });
+		check('Recap : après 2 changements de filtre, « طباعة » ne s\'exécute qu\'une fois', calls === 1, String(calls));
+	}
+	await ctx.close();
+}
+
+const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15, step16, step17, step18 };
 
 (async () => {
 	const browser = await chromium.launch();

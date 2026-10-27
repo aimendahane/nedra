@@ -1202,5 +1202,15 @@
 	"اختر السبب": "Choose the reason",
 	"أصبح مشروعًا، لكن بدون أصناف: أضف صنفًا من بطاقة المشروع ليظهر في متابعة العروض.": "Now a project, but it has no items: add an item in the project form so it appears in Offers tracking.",
 	"✔ أصبح مشروعًا — يظهر الآن في متابعة العروض": "✔ Now a project — it appears in Offers tracking",
-	"تم: ليس مشروعًا": "Done: not a project"
+	"تم: ليس مشروعًا": "Done: not a project",
+	"«مشروع؟» لم يُحدد بعد (خارج العروض)": "“Project?” not decided yet (outside offers)",
+	"استُلم": "Received",
+	"طلبات بانتظار القرار: مشروع أم لا؟": "Requests awaiting a decision: project or not?",
+	"قرّر في المشاريع ←": "Decide in Projects →",
+	"لم يُحدد بعد": "Not decided yet",
+	"منذ": "for",
+	"يُسجَّل الطلب الآن، ولا يظهر في العروض حتى تختار «نعم» من «المشاريع» أو من هذه البطاقة.": "The request is saved now; it will not appear in offers until you choose “Yes” in Projects or in this form.",
+	"⏳ بانتظار القرار": "⏳ Awaiting decision",
+	"⏳ لم يُحدد بعد (أقرّر لاحقًا)": "⏳ Not decided yet (decide later)",
+	"جاري الحذف…": "Deleting…"
 }

@@ -347,6 +347,9 @@ PS.items = (function () {
 		const m = st.main;
 		const onSearch = ui.debounce(function (v) { setParam('q', v.trim()); }, 300);
 		m.querySelector('[data-search]').addEventListener('input', function (e) { onSearch(e.target.value); });
+		// Écouteurs délégués posés UNE fois par page (un nouvel affichage de la page ne doit pas les doubler).
+		if (st.bound) return;
+		st.bound = true;
 		m.addEventListener('change', function (e) {
 			const t = e.target;
 			if (t.dataset.filter) setParam(t.dataset.filter, t.type === 'checkbox' ? (t.checked ? 1 : '') : t.value);

@@ -38,13 +38,14 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 1.6.1 | Correction validée : ordre des champs (fiche) et des colonnes (Base Projets, Offres, Factures), « مشروع؟ » en colonne | ✅ terminée, tests verts | 1.6.1 · base v7 |
 | 1.6.2 | Retour client « tables المشاريع pas corrigées » : cartes téléphone (المشاريع, العروض) dans le nouvel ordre | ✅ terminée, tests verts | 1.6.2 · base v7 |
 | 1.7.0 | Retour client « UX pas assez bonne » : tableaux courts (colonnes au choix), filtres rapides, panneau latéral, fiche allégée | ✅ terminée, tests verts | 1.7.0 · base v7 |
-| 1.8.0 | Retour client : « مشروع؟ » نعم / لا depuis le tableau, Suivi Livraison en liste courte, tableaux sans défilement | ✅ terminée, tests verts | **1.8.0** · base v7 |
+| 1.8.0 | Retour client : « مشروع؟ » نعم / لا depuis le tableau, Suivi Livraison en liste courte, tableaux sans défilement | ✅ terminée, tests verts | 1.8.0 · base v7 |
+| 1.9.0 | Accord client : « مشروع؟ » 3e état « ⏳ لم يُحدد بعد » (décider plus tard), مهامي + Recap | ✅ terminée, tests verts | **1.9.0** · base v7 |
 
-### Tests (dernier passage complet, version 1.8.0) — détail : `docs/TEST-RESULTS.txt`
-- `sh protecta-suivi/tests/run-all.sh` → **947 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
-  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0 + step12 = 1.5.2 + step13 = 1.5.3 + step14 = 1.6.0 + step15 = 1.6.1/1.6.2 + step16 = 1.7.0 + step17 = 1.8.0) passés.
-- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.8.0.zip $PWD/dist/protecta-suivi-1.7.0.zip` (chemins absolus) →
-  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.7.0 → 1.8.0 avec données : **aucune perte**.
+### Tests (dernier passage complet, version 1.9.0) — détail : `docs/TEST-RESULTS.txt`
+- `sh protecta-suivi/tests/run-all.sh` → **964 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
+  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0 + step12 = 1.5.2 + step13 = 1.5.3 + step14 = 1.6.0 + step15 = 1.6.1/1.6.2 + step16 = 1.7.0 + step17 = 1.8.0 + step18 = 1.9.0) passés.
+- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.9.0.zip $PWD/dist/protecta-suivi-1.8.0.zip` (chemins absolus) →
+  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.8.0 → 1.9.0 avec données : **aucune perte**.
 
 ### Prochaines actions
 1. Dès que l'accès GitHub est rétabli : `git push -u origin claude/sweet-hopper-le9393` puis
@@ -336,10 +337,20 @@ chaque décision prise seul.
 - « مشروع؟ » reste obligatoire à la création (brief 1.6.0) ; le changement ULTÉRIEUR se fait d'un clic dans la liste
   (POST /projects/{id}/is-project, `ps_project_set_is_project`) : droit = `ps_project_edit_reason` (sinon badge,
   `canEdit` renvoyé par la liste) ; « لا » → سبب obligatoire ; « نعم » efface سبب + note ; chaque champ journalisé.
-  Pas d'état « لم يُحدد » (aurait demandé une migration et changé tous les calculs) — à proposer si le client le veut.
+  (1.9.0 : état « لم يُحدد بعد » ajouté avec l'accord du client, voir ci-dessous.)
 - Suivi Livraison : filtres rapides calculés dans le navigateur (liste complète chargée, perPage 300) ; ancien lien
   `deliveryLate=1` (Recap) toujours accepté. Seule la حالة reste modifiable dans le tableau.
 - `.ps-table--list` : titres sur 2 lignes, marges 10 px → les 8 colonnes tiennent à 1366 px (vérifié par step17).
+
+### Version 1.9.0 — « مشروع؟ » à 3 états (accord du client)
+- `is_project` : 1 نعم, 0 لا, **2 لم يُحدد بعد** (constantes `PS_PROJECT_*`, aucune migration : tinyint). Seul 1 est une
+  offre : partout la règle est « PS_PROJECT_YES !== état » → exclu (stats `is_non_project`, factures, items `= 1`).
+  `is_pending` dans les faits ; KPI `nonProjects` = 0 seulement, `pendingProjects` = 2.
+- API : `projectState` (yes/no/pending) + `isProject` (true/false/null) ; entrée `isProject` accepte 2 / 'pending'.
+- Toujours un choix obligatoire à la création (pas de valeur par défaut) ; « لم يُحدد بعد » : ni صنف exigé ni سبب.
+  Passer à « نعم » depuis la FICHE exige un صنف ; depuis la LISTE, un message invite à en ajouter un s'il n'y en a pas.
+- مهامي : `pendingDecision` (المسؤول ou المتابع, plus ancien d'abord), affiché seulement s'il n'est pas vide ; pas
+  ajouté au compteur du menu ni au résumé du matin (à proposer si le client le veut).
 
 ### Version 1.5.1 — exception VOULUE par le client à la règle n°1
 - « فسخ الكل و حط les projets hadhom » : option `replaceAll` de POST /import/excel → `ps_projects_wipe()` (DELETE des

@@ -23,9 +23,9 @@ $c = $mk( array( 'name' => 'طلب جاما', 'isProject' => 0, 'nonProjectReaso
 ps_assert( ! empty( $a['id'] ) && ! empty( $b['id'] ) && ! empty( $c['id'] ), '3 projets créés (2 « نعم », 1 « لا »)' );
 
 $l = ps_projects_list( array( 'isProject' => '0' ) );
-ps_assert( 1 === $l['total'] && array( 'yes' => 2, 'no' => 1 ) === $l['facets']['isProject'], 'filtre « لا » : 1 ligne, compteurs نعم 2 / لا 1 (avant le filtre)', wp_json_encode( $l['facets'] ) );
+ps_assert( 1 === $l['total'] && array( 'yes' => 2, 'no' => 1, 'pending' => 0 ) === $l['facets']['isProject'], 'filtre « لا » : 1 ligne, compteurs نعم 2 / لا 1 (avant le filtre)', wp_json_encode( $l['facets'] ) );
 $l = ps_projects_list( array( 'q' => 'جاما' ) );
-ps_assert( 1 === $l['total'] && array( 'yes' => 0, 'no' => 1 ) === $l['facets']['isProject'], 'les compteurs suivent la recherche', wp_json_encode( $l['facets'] ) );
+ps_assert( 1 === $l['total'] && array( 'yes' => 0, 'no' => 1, 'pending' => 0 ) === $l['facets']['isProject'], 'les compteurs suivent la recherche', wp_json_encode( $l['facets'] ) );
 $r = ps_test_json( 'GET', '/projects?isProject=1' );
 ps_assert( 200 === $r->get_status() && 2 === $r->get_data()['total'] && 3 === array_sum( $r->get_data()['facets']['isProject'] ), 'API GET /projects renvoie facets' );
 

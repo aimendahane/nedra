@@ -1202,5 +1202,15 @@
 	"اختر السبب": "Choisissez le motif",
 	"أصبح مشروعًا، لكن بدون أصناف: أضف صنفًا من بطاقة المشروع ليظهر في متابعة العروض.": "C’est maintenant un projet, mais sans article : ajoutez un article dans la fiche pour qu’il apparaisse dans le suivi des offres.",
 	"✔ أصبح مشروعًا — يظهر الآن في متابعة العروض": "✔ C’est maintenant un projet — il apparaît dans le suivi des offres",
-	"تم: ليس مشروعًا": "Fait : pas un projet"
+	"تم: ليس مشروعًا": "Fait : pas un projet",
+	"«مشروع؟» لم يُحدد بعد (خارج العروض)": "« Projet ? » pas encore décidé (hors offres)",
+	"استُلم": "Reçu le",
+	"طلبات بانتظار القرار: مشروع أم لا؟": "Demandes en attente de décision : projet ou non ?",
+	"قرّر في المشاريع ←": "Décider dans Projets →",
+	"لم يُحدد بعد": "Pas encore décidé",
+	"منذ": "depuis",
+	"يُسجَّل الطلب الآن، ولا يظهر في العروض حتى تختار «نعم» من «المشاريع» أو من هذه البطاقة.": "La demande est enregistrée ; elle n’apparaîtra dans les offres qu’après « Oui » dans Projets ou dans cette fiche.",
+	"⏳ بانتظار القرار": "⏳ En attente de décision",
+	"⏳ لم يُحدد بعد (أقرّر لاحقًا)": "⏳ Pas encore décidé (plus tard)",
+	"جاري الحذف…": "Suppression…"
 }

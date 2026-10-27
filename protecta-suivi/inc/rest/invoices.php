@@ -92,7 +92,7 @@ function ps_rest_invoice_create( WP_REST_Request $r ) {
 	if ( ! ps_invoice_can_edit( $item, $proj, $uid ) ) {
 		return new WP_Error( 'ps_forbidden', ps__( 'إضافة فاتورة: للموظف المسؤول عن الصنف، المتابع، المسؤول عن المشروع أو الإدارة.' ), array( 'status' => 403 ) );
 	}
-	if ( 0 === (int) $proj['is_project'] ) {
+	if ( PS_PROJECT_YES !== (int) $proj['is_project'] ) { // « لا » ou « لم يُحدد بعد » (1.9.0)
 		return new WP_Error( 'ps_validation', ps__( 'هذا الطلب مسجّل «غير مشروع»: لا عروض ولا فواتير.' ), array( 'status' => 422 ) );
 	}
 	$id = ps_invoice_create( $item, (array) $r->get_json_params(), $uid );
