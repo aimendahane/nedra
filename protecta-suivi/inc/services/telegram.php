@@ -297,6 +297,7 @@ function ps_tg_digest_html( WP_User $u, array $tasks, bool $admin ): string {
 	$bl = array(
 		'assigned'     => array( ps__( '📌 مهام مُسندة' ), fn( $r ) => $r['title'] . ( $r['dueDate'] ? ' · ' . $r['dueDate'] : '' ) ),
 		'lateOffers'   => array( ps__( '⚠️ عروض متأخرة — لازم قرار' ), fn( $r ) => $r['projectNo'] . ' — ' . $r['projectName'] . ' (' . (int) $r['daysLate'] . ps__( ' يوم)' ) ),
+		'pendingDecision' => array( ps__( '⏳ بانتظار القرار' ), fn( $r ) => $r['projectNo'] . ' — ' . $r['projectName'] . ' (' . (int) $r['daysWaiting'] . ps__( ' يوم)' ) ), // 1.9.1
 		'followupsDue' => array( ps__( '📞 متابعات اليوم' ), fn( $r ) => $r['projectNo'] . ' — ' . $r['projectName'] ),
 		'deliveries'   => array( ps__( '🚚 تسليمات الأسبوع' ), fn( $r ) => $r['projectNo'] . ' — ' . $r['deliveryDueDate'] ),
 		'noFollowup'   => array( ps__( '🕒 بدون متابعة' ), fn( $r ) => $r['projectNo'] . ' — ' . $r['projectName'] ),

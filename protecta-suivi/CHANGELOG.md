@@ -3,6 +3,16 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.9.1 — 2026-10-27 · base v7 — demandes « بانتظار القرار » dans le compteur et le résumé du matin
+
+Le client a laissé la décision à Claude (« take you the decision ») : une demande « ⏳ لم يُحدد بعد » est une vraie
+tâche (décider نعم / لا), elle est donc rappelée partout où les tâches le sont. Aucune donnée touchée.
+- Compteur **مهامي** du menu : + les demandes à décider (المسؤول / المتابع ; toute l'équipe pour الإدارة).
+- **Résumé du matin** (e-mail) : bloc « طلبات بانتظار القرار: مشروع أم لا؟ » avec le nombre de jours et le lien
+  « المشاريع ← بانتظار القرار » ; un compte qui n'a que des demandes à décider reçoit aussi le résumé.
+- **Telegram** (résumé du matin) : bloc « ⏳ بانتظار القرار ».
+- Tests : tests/test-190.php complété.
+
 ## 1.9.0 — 2026-10-27 · base v7 — « مشروع؟ » : troisième choix « ⏳ لم يُحدد بعد »
 
 Accord du client (« yes ») : pouvoir enregistrer une demande tout de suite et décider PLUS TARD si c'est un مشروع.

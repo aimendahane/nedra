@@ -103,7 +103,7 @@ function ps_counters( int $user_id ): array {
 		'needDecisionMine' => $mine,
 		'offres'           => $team ? $late : $mine,
 		'livraison'        => $dl,
-		'taches'           => $me || user_can( $user_id, 'ps_edit_all_projects' ) ? count( $tasks['lateOffers'] ) + count( $tasks['followupsDue'] ) + count( $tasks['deliveries'] ) + count( $tasks['assigned'] ) : 0,
+		'taches'           => $me || user_can( $user_id, 'ps_edit_all_projects' ) ? count( $tasks['lateOffers'] ) + count( $tasks['followupsDue'] ) + count( $tasks['deliveries'] ) + count( $tasks['assigned'] ) + count( $tasks['pendingDecision'] ) : 0, // 1.9.1 : + demandes à décider
 	);
 }
 

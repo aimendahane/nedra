@@ -60,7 +60,7 @@ function ps_digest_send_to_user( WP_User $u, bool $force = false, ?array $facts 
 		return false;
 	}
 	$tasks = ps_tasks( $facts, $admin ? null : $emp );
-	$total = count( $tasks['lateOffers'] ) + count( $tasks['followupsDue'] ) + count( $tasks['deliveries'] ) + count( $tasks['noFollowup'] ) + count( $tasks['assigned'] );
+	$total = count( $tasks['lateOffers'] ) + count( $tasks['followupsDue'] ) + count( $tasks['deliveries'] ) + count( $tasks['noFollowup'] ) + count( $tasks['assigned'] ) + count( $tasks['pendingDecision'] );
 	if ( ! $total && ! $force ) {
 		return false;
 	}
@@ -105,6 +105,8 @@ function ps_digest_html( WP_User $u, array $tasks, bool $admin, ?array $kpis ): 
 
 	$h .= $block( ps__( 'مهام مُسندة' ), $tasks['assigned'], fn( $r ) => $row( esc_html( $r['title'] ), ( $r['dueDate'] ? ps__( 'الأجل ' ) . esc_html( $r['dueDate'] ) . ( $r['late'] ? ps__( ' · متأخرة' ) : '' ) : ps__( 'بدون أجل' ) ) . ( $r['createdByName'] ? ps__( ' · من ' ) . esc_html( $r['createdByName'] ) : '' ) . $who( $r ), '#/taches' ) );
 	$h .= $block( ps__( 'عروض متأخرة — لازم قرار' ), $tasks['lateOffers'], fn( $r ) => $row( esc_html( $r['projectNo'] . ' — ' . ps_list_label_t( $r['itemTypeId'] ) . ' — ' . $r['projectName'] ), ps__( 'الأجل ' ) . esc_html( $r['dueDate'] ) . ps__( ' · متأخر ' ) . (int) $r['daysLate'] . ps__( ' يوم' ) . $who( $r ), '#/projet?id=' . (int) $r['projectId'] ) );
+	// 1.9.1 : demandes « مشروع؟ = لم يُحدد بعد » — décider نعم / لا.
+	$h .= $block( ps__( 'طلبات بانتظار القرار: مشروع أم لا؟' ), $tasks['pendingDecision'], fn( $r ) => $row( esc_html( $r['projectNo'] . ' — ' . $r['projectName'] ), ps__( 'استُلم' ) . ' ' . esc_html( $r['receivedDate'] ) . ' · ' . ps__( 'منذ' ) . ' ' . (int) $r['daysWaiting'] . ps__( ' يوم' ) . $who( $r ), '#/projets?isProject=2' ) );
 	$h .= $block( ps__( 'متابعات مبرمجة اليوم أو فائتة' ), $tasks['followupsDue'], fn( $r ) => $row( esc_html( $r['projectNo'] . ' — ' . $r['projectName'] ), ps__( 'التاريخ ' ) . esc_html( $r['nextDate'] ) . $who( $r ), '#/projet?id=' . (int) $r['projectId'] . '&tab=followups' ) );
 	$h .= $block( ps__( 'تسليمات هذا الأسبوع' ), $tasks['deliveries'], fn( $r ) => $row( esc_html( $r['projectNo'] . ' — ' . ps_list_label_t( $r['itemTypeId'] ) ), ps__( 'أجل التسليم ' ) . esc_html( $r['deliveryDueDate'] ) . ( $r['late'] ? ps__( ' · متأخر ' ) . (int) $r['delayDays'] . ps__( ' يوم' ) : '' ) . $who( $r ), '#/livraison' ) );
 	$h .= $block( ps__( 'مشاريع بدون متابعة منذ أكثر من ' ) . (int) ps_setting( 'followup_alert_days' ) . ps__( ' أيام' ), $tasks['noFollowup'], fn( $r ) => $row( esc_html( $r['projectNo'] . ' — ' . $r['projectName'] ), $r['lastDate'] ? ps__( 'آخر متابعة ' ) . esc_html( $r['lastDate'] ) : ps__( 'لا توجد متابعة' ) . $who( $r ), '#/projet?id=' . (int) $r['projectId'] . '&tab=followups' ) );

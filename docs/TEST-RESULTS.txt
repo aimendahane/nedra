@@ -1,6 +1,6 @@
 ######## Tests PHP ########
 Site de test installé (thème : protecta-suivi)
-Thème v1.9.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
+Thème v1.9.1 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 
 == Activation : base de données ==
   ✔ ps_db_version = dernière migration
@@ -1165,6 +1165,12 @@ Thème v1.9.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ مهامي du المسؤول : 2 demandes « بانتظار القرار » (depuis 19 jours)
   ✔ un autre employé ne les voit pas
 
+== 1.9.1 : demandes à décider dans le compteur du menu et le résumé du matin ==
+  ✔ compteur مهامي du menu : inclut les 2 demandes à décider
+  ✔ e-mail du matin : bloc « طلبات بانتظار القرار » + lien
+  ✔ Telegram (résumé du matin) : bloc « ⏳ بانتظار القرار »
+  ✔ seulement des demandes à décider : le résumé n'affiche pas « rien à faire »
+
 == 1.9.0 : décider plus tard (liste et fiche) ==
   ✔ liste : « نعم » → devient une offre
   ✔ Suivi Offres : maintenant présent
@@ -1173,7 +1179,7 @@ Thème v1.9.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ fiche : passer à « نعم » sans صنف → صنف exigé
 
 ----------------------------------------
-Résultat : 964 réussis, 0 échoués
+Résultat : 968 réussis, 0 échoués
 
 ######## Navigateur : fondations (étape 1) ########
 Page de connexion

@@ -48,6 +48,19 @@ $other = ps_tasks( ps_stats_facts( array(), '2026-10-20' ), ps_test_lid( 'employ
 ps_assert( 0 === count( $other['pendingDecision'] ), 'un autre employé ne les voit pas' );
 
 /* ------------------------------------------------------------------ */
+ps_test_section( '1.9.1 : demandes à décider dans le compteur du menu et le résumé du matin' );
+
+$t_resp = ps_tasks( ps_stats_facts(), ps_user_employee_id( $resp ) );
+$c      = ps_counters( $resp );
+ps_assert( 2 === count( $t_resp['pendingDecision'] ) && $c['taches'] === count( $t_resp['lateOffers'] ) + count( $t_resp['followupsDue'] ) + count( $t_resp['deliveries'] ) + count( $t_resp['assigned'] ) + 2, 'compteur مهامي du menu : inclut les 2 demandes à décider', wp_json_encode( $c ) );
+$mail = ps_digest_html( get_userdata( $resp ), $t_resp, false, null );
+ps_assert( str_contains( $mail, 'طلبات بانتظار القرار' ) && str_contains( $mail, 'طلب بانتظار القرار' ) && str_contains( $mail, '#/projets?isProject=2' ), 'e-mail du matin : bloc « طلبات بانتظار القرار » + lien' );
+$tgd = ps_tg_digest_html( get_userdata( $resp ), $t_resp, false );
+ps_assert( str_contains( $tgd, 'بانتظار القرار' ) && str_contains( $tgd, $p['projectNo'] ), 'Telegram (résumé du matin) : bloc « ⏳ بانتظار القرار »' );
+$only = array( 'lateOffers' => array(), 'followupsDue' => array(), 'noFollowup' => array(), 'deliveries' => array(), 'assigned' => array(), 'pendingDecision' => $t_resp['pendingDecision'] );
+ps_assert( ! str_contains( ps_digest_html( get_userdata( $resp ), $only, false, null ), 'لا توجد مهام متأخرة' ), 'seulement des demandes à décider : le résumé n\'affiche pas « rien à faire »' );
+
+/* ------------------------------------------------------------------ */
 ps_test_section( '1.9.0 : décider plus tard (liste et fiche)' );
 
 $r = ps_test_json( 'POST', '/projects/' . $p2['id'] . '/is-project', array( 'isProject' => 1 ) );
