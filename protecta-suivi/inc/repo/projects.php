@@ -829,6 +829,7 @@ function ps_project_list_filters(): array {
  *                    sort, dir (asc|desc), page, perPage + ps_project_list_filters().
  */
 function ps_projects_list( array $args ): array {
+	$uid = get_current_user_id();
 	global $wpdb;
 	$pt    = ps_table( 'projects' );
 	$trash = ! empty( $args['trash'] );
@@ -968,6 +969,7 @@ function ps_projects_list( array $args ): array {
 			'note'              => $r['note'],
 			'isProject'         => 1 === (int) $r['is_project'],
 			'nonProjectReasonId'=> $r['non_project_reason_id'] ? (int) $r['non_project_reason_id'] : null,
+			'canEdit'           => null !== ps_project_edit_reason( $r, $uid ), // 1.8.0 : « مشروع؟ » modifiable dans la liste
 			'filesLink'         => $r['files_link'],
 			'deletedAt'         => $r['deleted_at'],
 		);
@@ -1000,5 +1002,58 @@ function ps_projects_list( array $args ): array {
 		'perPage' => $per_page,
 		'facets'  => array( 'isProject' => $facets ), // 1.7.0 : compteurs des filtres rapides
 		'rows'    => array_slice( $out, ( $page - 1 ) * $per_page, $per_page ),
+	);
+}
+
+/**
+ * 1.8.0 — « مشروع؟ » changé directement depuis la liste des projets (le projet devient — ou cesse d'être — une offre).
+ * Mêmes règles que la fiche : « لا » → سبب obligatoire (liste non_project_reason) ; « نعم » efface le سبب et la note.
+ * Chaque champ modifié est journalisé (سجل التعديلات). Les droits sont vérifiés par l'appelant.
+ *
+ * @return array|WP_Error { isProject, nonProjectReasonId, itemsCount }
+ */
+function ps_project_set_is_project( int $id, bool $yes, $reason_id, ?string $note, int $user_id ) {
+	global $wpdb;
+	$row = ps_project_row( $id );
+	if ( ! $row || $row['deleted_at'] ) {
+		return new WP_Error( 'ps_not_found', ps__( 'المشروع غير موجود' ), array( 'status' => 404 ) );
+	}
+	$new = array(
+		'is_project'            => $yes ? 1 : 0,
+		'non_project_reason_id' => $yes ? null : ( $reason_id ? (int) $reason_id : null ),
+		'non_project_note'      => $yes ? null : ( '' === trim( (string) $note ) ? null : trim( (string) $note ) ),
+	);
+	if ( ! $yes ) {
+		$lists_t = ps_table( 'lists' );
+		$lr      = $new['non_project_reason_id'] ? $wpdb->get_row( $wpdb->prepare( "SELECT list_key, is_hidden FROM $lists_t WHERE id = %d", $new['non_project_reason_id'] ), ARRAY_A ) : null; // phpcs:ignore
+		$err     = null;
+		if ( ! $new['non_project_reason_id'] ) {
+			$err = ps__( 'خانة إجبارية: ' ) . ps__( 'سبب عدم اعتباره مشروعا' );
+		} elseif ( ! $lr || 'non_project_reason' !== $lr['list_key'] ) {
+			$err = ps__( 'قيمة غير موجودة في القائمة: ' ) . ps__( 'سبب عدم اعتباره مشروعا' );
+		} elseif ( $lr['is_hidden'] && (int) $row['non_project_reason_id'] !== $new['non_project_reason_id'] ) {
+			$err = ps__( 'هذه القيمة لم تعد متاحة: ' ) . ps__( 'سبب عدم اعتباره مشروعا' );
+		}
+		if ( $err ) {
+			return new WP_Error( 'ps_validation', $err, array( 'status' => 422, 'errors' => array( 'non_project_reason_id' => $err ) ) );
+		}
+	}
+	$set = array();
+	foreach ( $new as $col => $val ) {
+		if ( (string) $row[ $col ] === (string) $val ) {
+			continue;
+		}
+		$set[ $col ] = $val;
+		ps_log( $id, 'update', 'project', $id, $col, ps_field_display( $col, $row[ $col ] ), ps_field_display( $col, $val ), $user_id );
+	}
+	if ( $set ) {
+		$set['updated_by'] = $user_id;
+		$set['updated_at'] = ps_now();
+		$wpdb->update( ps_table( 'projects' ), $set, array( 'id' => $id ) );
+	}
+	return array(
+		'isProject'          => $yes,
+		'nonProjectReasonId' => $new['non_project_reason_id'],
+		'itemsCount'         => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . ps_table( 'items' ) . ' WHERE project_id = %d', $id ) ), // phpcs:ignore
 	);
 }

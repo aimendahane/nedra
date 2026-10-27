@@ -27,7 +27,7 @@
 		// المسؤول، المتابع، تاريخ الاستلام، الحالة — puis toutes les autres.
 		['projectNo', PS.t('رقم المشروع'), function (r) { return html`<a class="ps-pno" href="#/projet?id=${r.id}" dir="ltr">${r.projectNo}</a>${r.oldNo ? html`<div class="ps-small ps-muted" dir="ltr">${r.oldNo}</div>` : ''}`; }, true, 'projectNo'],
 		['name', PS.t('الاسم'), function (r) { return ui.projectTitle({ id: r.id, name: r.name, no: '' }); }, true, 'name'],
-		['isProject', PS.t('مشروع؟'), function (r) { return r.isProject === false ? html`<span class="ps-badge ps-badge--muted" data-non-project>🚫 ${PS.t('لا')}</span>` : html`<span class="ps-badge">${PS.t('نعم')}</span>`; }, true, 'isProject'],
+		['isProject', PS.t('مشروع؟'), function (r) { return ynCell(r); }, true, 'isProject'],
 		['nonProjectReasonId', PS.t('سبب عدم الاعتبار'), function (r) { return r.isProject === false && r.nonProjectReasonId ? L.label(r.nonProjectReasonId) : ''; }, true, 'nonProjectReasonId'],
 		['responsibleEmpId', PS.t('المسؤول عن المشروع'), function (r) { return L.label(r.responsibleEmpId); }, true, 'responsibleEmpId'],
 		['followerEmpId', PS.t('الموظف المتابع'), function (r) { return L.label(r.followerEmpId); }, true, 'followerEmpId'],
@@ -52,6 +52,56 @@
 		[null, 'NOTE', function (r) { return html`<span class="ps-clip" title="${r.note || ''}">${r.note || ''}</span>`; }, false, 'note'],
 		[null, PS.t('رابط ملف المشاريع'), function (r) { return r.filesLink ? html`<a href="${r.filesLink}" target="_blank" rel="noopener noreferrer">🔗 ${PS.t('فتح')}</a>` : ''; }, false, 'link'],
 	];
+
+	/*
+	 * 1.8.0 — « مشروع؟ » : interrupteur نعم / لا directement dans la liste (tableau, carte, panneau) pour ceux qui
+	 * peuvent modifier le projet. « نعم » = le projet devient une offre (Suivi Offres) ; « لا » demande le سبب.
+	 * Sans droit : simple badge.
+	 */
+	function ynBadge(r) {
+		return r.isProject === false ? html`<span class="ps-badge ps-badge--muted" data-non-project>🚫 ${PS.t('لا')}</span>` : html`<span class="ps-badge ps-badge--success">✔ ${PS.t('نعم')}</span>`;
+	}
+	function ynCell(r) {
+		if (!r.canEdit || (st && st.params.trash)) return ynBadge(r);
+		const no = r.isProject === false;
+		return html`<span class="ps-yn" role="group" aria-label="${PS.t('مشروع؟')}" ${no ? ui.raw('data-non-project') : ''}>
+			<button type="button" class="ps-yn__b ${no ? '' : 'is-on is-yes'}" data-yn="1" data-pid="${r.id}" aria-pressed="${no ? 'false' : 'true'}">${PS.t('نعم')}</button>
+			<button type="button" class="ps-yn__b ${no ? 'is-on is-no' : ''}" data-yn="0" data-pid="${r.id}" aria-pressed="${no ? 'true' : 'false'}">${PS.t('لا')}</button>
+		</span>`;
+	}
+
+	/** Change « مشروع؟ » d'un projet de la liste. → Promise<bool> */
+	function setYesNo(id, yes) {
+		const r = st.data.rows.find(function (x) { return x.id === Number(id); });
+		if (!r || (r.isProject !== false) === yes) return Promise.resolve(false);
+		let ask = Promise.resolve({ isProject: 1 });
+		if (!yes) {
+			let picked = null;
+			ask = ui.modal({
+				title: PS.t('ليس مشروعًا') + ' — ' + r.projectNo,
+				body: html`<p class="ps-small ps-muted">${PS.t('لن يظهر في متابعة العروض ولا في المؤشرات. يبقى في «المشاريع».')}</p>
+					<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('سبب عدم اعتباره مشروعا')} *</span><select data-q="reason">${ui.raw(L.options('non_project_reason', r.nonProjectReasonId, { emptyLabel: PS.t('اختر…') }))}</select></label>
+					<label class="ps-field ps-mt"><span class="ps-field__label">${PS.t('ملاحظة (اختياري)')}</span><input data-q="note"></label>`,
+				buttons: [{ id: 'ok', label: PS.t('حفظ'), kind: 'primary' }, { id: 'cancel', label: PS.t('إلغاء') }],
+				onButton: function (b, box) {
+					if (b !== 'ok') return true;
+					const reason = box.querySelector('[data-q="reason"]');
+					if (!reason.value) { ui.toast(PS.t('اختر السبب'), 'error'); reason.focus(); return false; }
+					picked = { isProject: 0, nonProjectReasonId: Number(reason.value), nonProjectNote: box.querySelector('[data-q="note"]').value };
+					return true;
+				},
+			}).then(function () { return picked; });
+		}
+		return ask.then(function (body) {
+			if (!body) return false;
+			return PS.api.post('projects/' + r.id + '/is-project', body).then(function (res) {
+				if (yes && !res.itemsCount) ui.toast(PS.t('أصبح مشروعًا، لكن بدون أصناف: أضف صنفًا من بطاقة المشروع ليظهر في متابعة العروض.'), 'error');
+				else ui.toast(yes ? PS.t('✔ أصبح مشروعًا — يظهر الآن في متابعة العروض') : PS.t('تم: ليس مشروعًا'), 'success');
+				PS.router.refreshCounts();
+				return load().then(function () { return true; });
+			}).catch(function (e) { ui.toast(e.message, 'error'); return false; });
+		});
+	}
 
 	/** Filtres : [paramètre, libellé, liste ou fonction d'options]. */
 	const FILTERS = [
@@ -170,7 +220,7 @@
 			return html`<div class="ps-pcard ${r.isProject === false ? 'is-non-project' : ''}" ${st.params.trash ? '' : ui.raw('data-open-row="' + r.id + '" role="button" tabindex="0"')}>
 				<div class="ps-pcard__top">${ui.projectTitle({ name: r.name, no: r.projectNo, oldNo: r.oldNo }, { link: false, numberFirst: true })} ${L.badge(r.urgencyId)}</div>
 				<div class="ps-kvs">
-					${line(PS.t('مشروع؟'), r.isProject === false ? ui.raw('<span class="ps-badge ps-badge--muted" data-non-project>🚫 ' + ui.esc(PS.t('لا')) + '</span>') : ui.raw('<span class="ps-badge">' + ui.esc(PS.t('نعم')) + '</span>'))}
+					${line(PS.t('مشروع؟'), ynCell(r))}
 					${r.isProject === false ? line(PS.t('سبب عدم الاعتبار'), r.nonProjectReasonId ? L.label(r.nonProjectReasonId) : '—') : ''}
 					${line(PS.t('المسؤول عن المشروع'), L.label(r.responsibleEmpId))}
 					${line(PS.t('الموظف المتابع'), L.label(r.followerEmpId))}
@@ -190,12 +240,13 @@
 	function openDrawer(id) {
 		const r = st.data && st.data.rows.find(function (x) { return x.id === Number(id); });
 		if (!r) return;
-		const skip = { projectNo: 1, name: 1 };
+		const skip = { projectNo: 1, name: 1, isProject: 1 };
 		const body = html`<div class="ps-drawer">
 			<div class="ps-drawer__head">
 				${ui.projectTitle({ id: r.id, name: r.name, no: r.projectNo, oldNo: r.oldNo }, { numberFirst: true })}
 				<div class="ps-drawer__badges">${r.isProject === false ? html`<span class="ps-badge ps-badge--muted" data-non-project>🚫 ${PS.t('غير مشروع')}</span>` : ''} ${L.badge(r.followupStatusId, L.label(r.followupStatusId))} ${L.offerBadge(r.offerStatus)} ${L.badge(r.urgencyId)}</div>
 			</div>
+			<div class="ps-drawer__yn">${PS.t('مشروع؟')} ${ynCell(r)} ${r.isProject === false && r.nonProjectReasonId ? html`<span class="ps-small ps-muted">${L.label(r.nonProjectReasonId)}</span>` : ''}</div>
 			<div class="ps-drawer__actions">
 				<a class="ps-btn ps-btn--primary" href="#/projet?id=${r.id}" data-drawer-go>✏ ${PS.t('فتح بطاقة المشروع')}</a>
 				<a class="ps-btn" href="#/projet?id=${r.id}&tab=files" data-drawer-go>📎 ${PS.t('الملفات')}</a>
@@ -222,7 +273,11 @@
 			},
 			onOpen: function (wrap) {
 				// Un lien vers la fiche ferme le panneau (la page change).
-				wrap.addEventListener('click', function (e) { if (e.target.closest('[data-drawer-go]')) wrap.remove(); });
+				wrap.addEventListener('click', function (e) {
+					if (e.target.closest('[data-drawer-go]')) wrap.remove();
+					const yn = e.target.closest('[data-yn]');
+					if (yn) { wrap.remove(); setYesNo(yn.dataset.pid, yn.dataset.yn === '1').then(function () { openDrawer(r.id); }); }
+				});
 			},
 		});
 	}
@@ -305,6 +360,8 @@
 		m.addEventListener('click', function (e) {
 			const chip = e.target.closest('[data-chip]');
 			if (chip) { setParam(chip.dataset.chip, chip.dataset.value); return; }
+			const yn = e.target.closest('[data-yn]');
+			if (yn) { setYesNo(yn.dataset.pid, yn.dataset.yn === '1'); return; }
 			const s = e.target.closest('[data-sort]');
 			if (s) {
 				const same = (st.params.sort || 'receivedDate') === s.dataset.sort;

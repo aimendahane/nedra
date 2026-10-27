@@ -786,3 +786,28 @@ a.ps-ptitle:hover .ps-ptitle__num { color: var(--ps-primary); text-decoration: u
 .ps-more[open] > summary::before { content: "－ "; }
 .ps-more[open] { padding-bottom: 12px; }
 .ps-party .ps-more { border: 0; padding: 0; }
+
+/* 1.8.0 — « مشروع؟ » : interrupteur نعم / لا dans la liste. */
+.ps-badge--success { background: var(--ps-success-soft, var(--ps-surface-2)); color: var(--ps-success); border-color: var(--ps-success); }
+.ps-yn { display: inline-flex; border: 1px solid var(--ps-border); border-radius: 999px; overflow: hidden; background: var(--ps-surface); }
+.ps-yn__b { border: 0; background: transparent; color: var(--ps-text-muted); font: inherit; font-size: 13px; font-weight: 700; padding: 4px 12px; cursor: pointer; min-width: 44px; min-height: 30px; }
+.ps-yn__b:hover { color: var(--ps-text); background: var(--ps-surface-2); }
+.ps-yn__b.is-on.is-yes { background: var(--ps-success); color: var(--ps-on-status); }
+.ps-yn__b.is-on.is-no { background: var(--ps-text-muted); color: var(--ps-surface); }
+.ps-yn__b:focus-visible { outline: 2px solid var(--ps-primary); outline-offset: -2px; }
+.ps-drawer__yn { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; font-weight: 600; }
+
+/* 1.8.0 — listes courtes : tenir dans l'écran d'un PC portable (1366 px avec le menu) sans défilement. */
+.ps-table--list th, .ps-table--list td { padding: 10px 10px; }
+.ps-table--list th { white-space: normal; line-height: 1.3; min-width: 60px; }
+.ps-table--list td .ps-ptitle { min-width: 150px; max-width: 240px; }
+.ps-table--list select.ps-input--sm { max-width: 140px; }
+.ps-table--list .ps-clip { max-width: 180px; }
+@media (max-width: 760px) {
+	/* Téléphone : les filtres rapides sur une seule ligne qui défile. */
+	.ps-chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+	.ps-qchip { flex: none; }
+}
+.ps-table--list .ps-sort { white-space: normal; text-align: start; line-height: 1.3; }
+.ps-table--list th:has(> input[type=checkbox]), .ps-table--list td:has(> input[type=checkbox]) { min-width: 0; width: 34px; padding-inline: 8px; }
+.ps-table--list .ps-yn__b { padding: 4px 9px; min-width: 38px; }

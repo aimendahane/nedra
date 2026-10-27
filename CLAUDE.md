@@ -37,13 +37,14 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 1.6.0 | Brief « Fiche Projet, Offres, Factures, alertes Telegram » (docs/BRIEF.md, mise à jour du 27/10) | ✅ terminée, tests verts | 1.6.0 · base v7 |
 | 1.6.1 | Correction validée : ordre des champs (fiche) et des colonnes (Base Projets, Offres, Factures), « مشروع؟ » en colonne | ✅ terminée, tests verts | 1.6.1 · base v7 |
 | 1.6.2 | Retour client « tables المشاريع pas corrigées » : cartes téléphone (المشاريع, العروض) dans le nouvel ordre | ✅ terminée, tests verts | 1.6.2 · base v7 |
-| 1.7.0 | Retour client « UX pas assez bonne » : tableaux courts (colonnes au choix), filtres rapides, panneau latéral, fiche allégée | ✅ terminée, tests verts | **1.7.0** · base v7 |
+| 1.7.0 | Retour client « UX pas assez bonne » : tableaux courts (colonnes au choix), filtres rapides, panneau latéral, fiche allégée | ✅ terminée, tests verts | 1.7.0 · base v7 |
+| 1.8.0 | Retour client : « مشروع؟ » نعم / لا depuis le tableau, Suivi Livraison en liste courte, tableaux sans défilement | ✅ terminée, tests verts | **1.8.0** · base v7 |
 
-### Tests (dernier passage complet, version 1.7.0) — détail : `docs/TEST-RESULTS.txt`
-- `sh protecta-suivi/tests/run-all.sh` → **921 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
-  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0 + step12 = 1.5.2 + step13 = 1.5.3 + step14 = 1.6.0 + step15 = 1.6.1/1.6.2 + step16 = 1.7.0) passés.
-- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.7.0.zip $PWD/dist/protecta-suivi-1.6.2.zip` (chemins absolus) →
-  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.6.2 → 1.7.0 avec données : **aucune perte**.
+### Tests (dernier passage complet, version 1.8.0) — détail : `docs/TEST-RESULTS.txt`
+- `sh protecta-suivi/tests/run-all.sh` → **947 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
+  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0 + step12 = 1.5.2 + step13 = 1.5.3 + step14 = 1.6.0 + step15 = 1.6.1/1.6.2 + step16 = 1.7.0 + step17 = 1.8.0) passés.
+- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.8.0.zip $PWD/dist/protecta-suivi-1.7.0.zip` (chemins absolus) →
+  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.7.0 → 1.8.0 avec données : **aucune perte**.
 
 ### Prochaines actions
 1. Dès que l'accès GitHub est rétabli : `git push -u origin claude/sweet-hopper-le9393` puis
@@ -330,6 +331,15 @@ chaque décision prise seul.
 - Fiche projet : raccourcis `.ps-jump` ; « المزيد » (`moreBlock`) pour الوسيط، المكان، التصنيف، الأهمية×2، الرابط،
   ملاحظة المشروع — un champ rendu obligatoire dans les règles reste toujours visible ; état ouvert gardé (state.more) ;
   `PS.ui.showErrors` ouvre le bloc qui contient une erreur. Intervenants : الشركة/الشخص/الهاتف/الإيميل (+ هامش الربح).
+
+### Version 1.8.0 — décisions
+- « مشروع؟ » reste obligatoire à la création (brief 1.6.0) ; le changement ULTÉRIEUR se fait d'un clic dans la liste
+  (POST /projects/{id}/is-project, `ps_project_set_is_project`) : droit = `ps_project_edit_reason` (sinon badge,
+  `canEdit` renvoyé par la liste) ; « لا » → سبب obligatoire ; « نعم » efface سبب + note ; chaque champ journalisé.
+  Pas d'état « لم يُحدد » (aurait demandé une migration et changé tous les calculs) — à proposer si le client le veut.
+- Suivi Livraison : filtres rapides calculés dans le navigateur (liste complète chargée, perPage 300) ; ancien lien
+  `deliveryLate=1` (Recap) toujours accepté. Seule la حالة reste modifiable dans le tableau.
+- `.ps-table--list` : titres sur 2 lignes, marges 10 px → les 8 colonnes tiennent à 1366 px (vérifié par step17).
 
 ### Version 1.5.1 — exception VOULUE par le client à la règle n°1
 - « فسخ الكل و حط les projets hadhom » : option `replaceAll` de POST /import/excel → `ps_projects_wipe()` (DELETE des

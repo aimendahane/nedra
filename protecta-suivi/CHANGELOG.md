@@ -3,6 +3,23 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.8.0 — 2026-10-27 · base v7 — « مشروع؟ » depuis le tableau, Suivi Livraison allégé, tableaux sans défilement
+
+Retour du client : « trop de problèmes, teste toi-même ; quand on ajoute un مشروع il faut pouvoir dire plus tard,
+dans le tableau, نعم / لا s'il devient un عرض ; les détails importants dans les premières colonnes ».
+Aucune migration, aucune donnée touchée.
+- **المشاريع** : la colonne « مشروع؟ » est un interrupteur **نعم / لا** (tableau, carte téléphone, panneau). « نعم » →
+  le projet devient une offre (apparaît aussitôt dans متابعة العروض) ; « لا » → fenêtre « السبب » (obligatoire) + note.
+  Même droit que la modification de la fiche (sinon simple badge). Journalisé. Nouvelle route
+  POST /projects/{id}/is-project. Projet sans صنف passé à « نعم » → message pour ajouter un صنف.
+- **متابعة التسليم** : même principe que les autres listes — 8 colonnes importantes (رقم المشروع، الصنف، الأجل المطلوب،
+  الأجل الفعلي، التأخير، الحالة، فاتورة العرض، ملاحظات), « الأعمدة », filtres rapides (الكل / متأخرة / par statut,
+  avec compteurs), clic sur la ligne → panneau de modification ; cartes téléphone lisibles.
+- **Tableaux** : plus de défilement horizontal sur un PC portable (1366 px avec le menu) : titres sur 2 lignes,
+  marges réduites. Téléphone : filtres rapides sur une seule ligne qui défile.
+- Vérification complète de toutes les pages (PC / téléphone, الإدارة / موظف) : aucune erreur JavaScript, aucun débordement.
+- Tests : tests/test-180.php ; navigateur step17 ; step3 adapté.
+
 ## 1.7.0 — 2026-10-27 · base v7 — Expérience d'utilisation : listes courtes, panneau de détails, fiche allégée
 
 Retour du client : « l'expérience n'est pas assez bonne » — trop de colonnes, informations difficiles à trouver,

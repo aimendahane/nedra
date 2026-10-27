@@ -1193,5 +1193,14 @@
 	"تفاصيل العرض": "Offer details",
 	"تفاصيل المشروع": "Project details",
 	"فتح بطاقة المشروع": "Open project form",
-	"معبأة": "filled"
+	"معبأة": "filled",
+	"إجباري": "Required",
+	"التسليم": "Delivery",
+	"تفاصيل التسليم": "Delivery details",
+	"ليس مشروعًا": "Not a project",
+	"لن يظهر في متابعة العروض ولا في المؤشرات. يبقى في «المشاريع».": "It will not appear in Offers tracking nor in the indicators. It stays in “Projects”.",
+	"اختر السبب": "Choose the reason",
+	"أصبح مشروعًا، لكن بدون أصناف: أضف صنفًا من بطاقة المشروع ليظهر في متابعة العروض.": "Now a project, but it has no items: add an item in the project form so it appears in Offers tracking.",
+	"✔ أصبح مشروعًا — يظهر الآن في متابعة العروض": "✔ Now a project — it appears in Offers tracking",
+	"تم: ليس مشروعًا": "Done: not a project"
 }

@@ -1193,5 +1193,14 @@
 	"تفاصيل العرض": "Détails de l'offre",
 	"تفاصيل المشروع": "Détails du projet",
 	"فتح بطاقة المشروع": "Ouvrir la fiche projet",
-	"معبأة": "remplis"
+	"معبأة": "remplis",
+	"إجباري": "Obligatoire",
+	"التسليم": "Livraison",
+	"تفاصيل التسليم": "Détails de la livraison",
+	"ليس مشروعًا": "Pas un projet",
+	"لن يظهر في متابعة العروض ولا في المؤشرات. يبقى في «المشاريع».": "Il n’apparaîtra ni dans le suivi des offres ni dans les indicateurs. Il reste dans « Projets ».",
+	"اختر السبب": "Choisissez le motif",
+	"أصبح مشروعًا، لكن بدون أصناف: أضف صنفًا من بطاقة المشروع ليظهر في متابعة العروض.": "C’est maintenant un projet, mais sans article : ajoutez un article dans la fiche pour qu’il apparaisse dans le suivi des offres.",
+	"✔ أصبح مشروعًا — يظهر الآن في متابعة العروض": "✔ C’est maintenant un projet — il apparaît dans le suivi des offres",
+	"تم: ليس مشروعًا": "Fait : pas un projet"
 }

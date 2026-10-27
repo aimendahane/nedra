@@ -287,18 +287,26 @@ async function step3(browser) {
 
 	console.log('Étape 3 — Suivi Livraison');
 	await go(page, '#/livraison');
-	await page.waitForSelector('.ps-table--edit tbody tr');
+	await page.waitForSelector('.ps-table--list tbody tr');
 	check('livraisons en retard en rouge : 3', (await page.$$('tr.is-late')).length === 3);
 	const lateHeader = await page.textContent('[data-results] [role=status]');
 	check('« 3 تسليم متأخر »', lateHeader.includes('3 تسليم متأخر'), lateHeader);
 	await page.screenshot({ path: SHOTS + '/s3-04-livraison.png', fullPage: true });
-	const editable = await page.$$('tr.is-late input[data-field="deliveryActualDate"]');
+	// 1.8.0 : la حالة reste modifiable dans le tableau ; le reste dans le panneau (clic sur la ligne).
+	const editable = await page.$$('tr.is-late select[data-field="deliveryStatusId"]');
 	check('موظف : seules ses lignes sont modifiables (2)', editable.length === 2, String(editable.length));
-	await editable[0].fill('2026-10-01');
-	await editable[0].dispatchEvent('change');
-	await page.waitForTimeout(1200);
-	await page.selectOption('tr[data-row] >> nth=0 >> select[data-field="deliveryStatusId"]', { label: 'تم التسليم' }).catch(() => null);
-	await page.waitForTimeout(1200);
+	const lateId = await (await editable[0].evaluateHandle((e) => e.closest('tr'))).getAttribute('data-row');
+	await page.click(`tr[data-row="${lateId}"] td:nth-child(2)`);
+	await page.waitForSelector('.ps-modal--drawer [data-d="deliveryActualDate"]');
+	await page.fill('.ps-modal--drawer [data-d="deliveryActualDate"]', '01/10/2026');
+	await page.selectOption('.ps-modal--drawer [data-d="deliveryStatusId"]', { label: 'تم التسليم' });
+	await page.click('.ps-modal--drawer [data-btn=save]');
+	await page.waitForSelector('.ps-modal--drawer', { state: 'detached', timeout: 8000 });
+	await page.waitForTimeout(800);
+	check('panneau de livraison : date réelle + تم التسليم enregistrées → plus en retard', (await page.$$('tr.is-late')).length === 2);
+	await page.click('[data-chip="delivery"][data-value="late"]');
+	await page.waitForTimeout(300);
+	check('filtre rapide « متأخرة » : 2 lignes', (await page.$$('.ps-table--list tbody tr')).length === 2);
 	check('statut « متأخر » jamais proposé dans la liste', !(await page.$$eval('select[data-field="deliveryStatusId"] option', (o) => o.map((x) => x.textContent))).includes('متأخر'));
 	await ctx.close();
 
@@ -1099,8 +1107,8 @@ async function step14(browser) {
 	check('fichier choisi à la création → joint au projet', saved.files.length === 1 && saved.files[0].name === 'cahier-160.pdf');
 	await go(page, '#/projets?isProject=0');
 	await page.waitForSelector('.ps-table tbody tr');
-	const rows = await page.$$eval('.ps-table tbody tr', (t) => t.map((r) => r.textContent));
-	check('Base Projets : filtre « غير مشروع » + colonne مشروع؟ = لا', rows.length === 1 && /🚫 لا/.test(rows[0]), rows.join(' | ').slice(0, 200));
+	const rows = await page.$$eval('.ps-table tbody tr', (t) => t.map((r) => ({ no: !!r.querySelector('[data-non-project]'), txt: r.textContent })));
+	check('Base Projets : filtre « غير مشروع » + colonne مشروع؟ = لا', rows.length === 1 && rows[0].no, rows.map((x) => x.txt).join(' | ').slice(0, 200));
 	await go(page, '#/offres');
 	await page.waitForSelector('.ps-table tbody tr');
 	const offerText = await page.textContent('.ps-table');
@@ -1223,11 +1231,11 @@ async function step15(browser) {
 	await page.waitForTimeout(800);
 	const firstCells = await page.$$eval('.ps-table--list tbody tr', (t) => t.slice(0, 1).map((r) => [r.children[3].textContent.trim(), r.children[4].textContent.trim()]));
 	check('« مشروع؟ » triable : le projet « لا » en tête, avec son motif', /لا/.test(firstCells[0][0]) && /خارج الاختصاص/.test(firstCells[0][1]), JSON.stringify(firstCells));
-	const yesRow = await page.$$eval('.ps-table--list tbody tr', (t) => t.map((r) => [r.children[3].textContent.trim(), r.children[4].textContent.trim()]).find((c) => /نعم/.test(c[0])));
+	const yesRow = await page.$$eval('.ps-table--list tbody tr', (t) => t.filter((r) => !r.querySelector('[data-non-project]')).map((r) => [r.children[3].textContent.trim(), r.children[4].textContent.trim()])[0]);
 	check('projet « نعم » : colonne سبب vide', yesRow && yesRow[1] === '', JSON.stringify(yesRow));
 	await page.click('[data-chip="isProject"][data-value="0"]');
 	await page.waitForTimeout(800);
-	check('filtre « مشروع؟ = لا » → seulement les « غير مشروع »', (await page.$$eval('.ps-table--list tbody tr', (t) => t.every((r) => /🚫/.test(r.textContent)))));
+	check('filtre « مشروع؟ = لا » → seulement les « غير مشروع »', (await page.$$eval('.ps-table--list tbody tr', (t) => t.every((r) => !!r.querySelector('[data-non-project]')))));
 	await page.screenshot({ path: SHOTS + '/s15-02-base-projets.png' });
 
 	// Suivi Offres.
@@ -1266,8 +1274,8 @@ async function step15(browser) {
 	const m = await newPage(browser, 'idara', true);
 	await go(m.page, '#/projets?isProject=0');
 	await m.page.waitForSelector('.ps-pcard');
-	const card = await m.page.$eval('.ps-pcard', (c) => ({ no: c.querySelector('.ps-ptitle__num').textContent.trim(), keys: [...c.querySelectorAll('.ps-kv__k')].map((k) => k.textContent.trim()), txt: c.textContent }));
-	check('téléphone (المشاريع) : numéro d\'abord, puis مشروع؟ = لا, السبب, المسؤول, المتابع, تاريخ الاستلام, الحالة', /PRJ-2026/.test(card.no) && card.keys.join('|') === 'مشروع؟|سبب عدم الاعتبار|المسؤول عن المشروع|الموظف المتابع|تاريخ الاستلام|الحالة' && /🚫 لا/.test(card.txt) && /خارج الاختصاص/.test(card.txt), JSON.stringify(card.keys));
+	const card = await m.page.$eval('.ps-pcard', (c) => ({ no: c.querySelector('.ps-ptitle__num').textContent.trim(), keys: [...c.querySelectorAll('.ps-kv__k')].map((k) => k.textContent.trim()), txt: c.textContent, non: !!c.querySelector('[data-non-project]') }));
+	check('téléphone (المشاريع) : numéro d\'abord, puis مشروع؟ = لا, السبب, المسؤول, المتابع, تاريخ الاستلام, الحالة', /PRJ-2026/.test(card.no) && card.keys.join('|') === 'مشروع؟|سبب عدم الاعتبار|المسؤول عن المشروع|الموظف المتابع|تاريخ الاستلام|الحالة' && card.non && /خارج الاختصاص/.test(card.txt), JSON.stringify(card.keys));
 	await m.page.screenshot({ path: SHOTS + '/s15-05-mobile-projets.png', fullPage: true });
 	await go(m.page, '#/projets');
 	await m.page.waitForSelector('.ps-pcard');
@@ -1390,7 +1398,75 @@ async function step16(browser) {
 	await m.ctx.close();
 }
 
-const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15, step16 };
+/* Version 1.8.0 : « مشروع؟ » نعم / لا directement dans la liste des projets ; Suivi Livraison en liste courte. */
+async function step17(browser) {
+	console.log('1.8.0 — «مشروع؟» من الجدول، متابعة التسليم');
+	const { ctx, page } = await newPage(browser, 'idara');
+	await go(page, '#/projets');
+	await page.waitForSelector('.ps-table--list tbody tr .ps-yn');
+	const row = '.ps-table--list tbody tr >> nth=0';
+	const no = await page.textContent(row + ' >> .ps-pno');
+	check('interrupteur نعم / لا dans la colonne « مشروع؟ »', (await page.$$('.ps-table--list tbody tr .ps-yn')).length >= 20);
+	await page.click(row + ' >> [data-yn="0"]');
+	await page.waitForSelector('.ps-modal [data-q="reason"]');
+	check('« لا » depuis la liste : pas de panneau, fenêtre du سبب', !(await page.$('.ps-modal--drawer')));
+	await page.click('.ps-modal [data-btn=ok]');
+	check('« لا » sans سبب → refusé (la fenêtre reste)', !!(await page.$('.ps-modal [data-q="reason"]')));
+	await page.selectOption('.ps-modal [data-q="reason"]', { label: 'غير مؤكد' });
+	await page.screenshot({ path: SHOTS + '/s17-01-non-projet.png' });
+	await page.click('.ps-modal [data-btn=ok]');
+	await page.waitForTimeout(1200);
+	const after = await page.$eval(`.ps-table--list tbody tr:has(.ps-pno:text-is("${no}"))`, (tr) => ({ no: tr.querySelector('[data-yn="0"]').getAttribute('aria-pressed'), txt: tr.textContent }));
+	check('ligne : « لا » actif + سبب affiché', after.no === 'true' && /غير مؤكد/.test(after.txt), after.txt.replace(/\s+/g, ' ').slice(0, 160));
+	check('filtre rapide « غير مشروع » : 1', /1/.test(await page.textContent('[data-chip="isProject"][data-value="0"]')));
+	const inOffers = async () => page.evaluate(async (n) => (await PS.api.get('items?view=offers&perPage=500&q=' + encodeURIComponent(n))).rows.length, no);
+	check('« لا » → absent de Suivi Offres', (await inOffers()) === 0);
+	await page.click(`.ps-table--list tbody tr:has(.ps-pno:text-is("${no}")) [data-yn="1"]`);
+	await page.waitForTimeout(1200);
+	check('« نعم » en un clic → de nouveau une offre (Suivi Offres)', (await inOffers()) > 0);
+	const toast = await page.textContent('.ps-toast-wrap, .ps-toasts, body');
+	check('message clair « يظهر الآن في متابعة العروض »', /يظهر الآن في متابعة العروض/.test(toast));
+	// Panneau : même interrupteur.
+	await page.click(`.ps-table--list tbody tr:has(.ps-pno:text-is("${no}")) td:nth-child(6)`);
+	await page.waitForSelector('.ps-modal--drawer .ps-drawer__yn .ps-yn');
+	check('panneau : interrupteur « مشروع؟ » en haut', true);
+	await page.keyboard.press('Escape');
+	// Suivi Livraison : 8 colonnes, panneau.
+	await go(page, '#/livraison');
+	await page.waitForSelector('.ps-table--clickable tbody tr');
+	const n = await page.$$eval('.ps-table--list thead th', (e) => e.length);
+	check('Suivi Livraison : 8 colonnes importantes', n === 8, String(n));
+	check('Suivi Livraison : tient dans l\'écran (1366 px)', await page.$eval('.ps-table-wrap', (w) => w.scrollWidth <= w.clientWidth + 1));
+	await page.click('.ps-table--list tbody tr >> nth=0 >> td:nth-child(2)');
+	await page.waitForSelector('.ps-modal--drawer [data-d="deliveryDueDate"]');
+	await page.screenshot({ path: SHOTS + '/s17-02-livraison-panneau.png' });
+	await page.keyboard.press('Escape');
+	for (const pg of ['projets', 'offres', 'factures?status=all']) {
+		await go(page, '#/' + pg);
+		await page.waitForSelector('[data-results] .ps-list-head');
+		check('#/' + pg + ' : tableau sans défilement horizontal (1366 px)', await page.evaluate(() => [...document.querySelectorAll('.ps-table-wrap')].every((w) => w.scrollWidth <= w.clientWidth + 1)));
+	}
+	await ctx.close();
+	// موظف : interrupteur seulement là où il peut modifier.
+	const e = await newPage(browser, 'mowadhaf');
+	await go(e.page, '#/projets');
+	await e.page.waitForSelector('.ps-table--list tbody tr');
+	const counts = await e.page.evaluate(() => ({ rows: document.querySelectorAll('.ps-table--list tbody tr').length, yn: document.querySelectorAll('.ps-table--list tbody tr .ps-yn').length }));
+	check('موظف : badge (pas d\'interrupteur) sur les projets qu\'il ne peut pas modifier', counts.yn < counts.rows, JSON.stringify(counts));
+	await e.ctx.close();
+	// Téléphone : interrupteur sur la carte, filtres rapides sur une ligne.
+	const m = await newPage(browser, 'idara', true);
+	await go(m.page, '#/projets');
+	await m.page.waitForSelector('.ps-pcard .ps-yn');
+	check('téléphone : interrupteur « مشروع؟ » sur la carte', true);
+	await go(m.page, '#/offres');
+	await m.page.waitForSelector('[data-chips="offer"]');
+	check('téléphone : filtres rapides sur une seule ligne', await m.page.$eval('[data-chips="offer"]', (c) => c.getBoundingClientRect().height < 60));
+	await m.page.screenshot({ path: SHOTS + '/s17-03-mobile-offres.png' });
+	await m.ctx.close();
+}
+
+const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15, step16, step17 };
 
 (async () => {
 	const browser = await chromium.launch();

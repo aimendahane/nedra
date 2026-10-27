@@ -79,6 +79,16 @@ function ps_register_project_routes(): void {
 			},
 		)
 	);
+	// 1.8.0 : « مشروع؟ » نعم / لا depuis la liste (même droit que la modification de la fiche).
+	register_rest_route(
+		PS_REST_NS,
+		$id . '/is-project',
+		array(
+			'methods'             => 'POST',
+			'permission_callback' => ps_rest_permission(),
+			'callback'            => 'ps_rest_project_is_project',
+		)
+	);
 	register_rest_route(
 		PS_REST_NS,
 		'/projects/bulk-source',
@@ -180,6 +190,24 @@ function ps_rest_project_update( WP_REST_Request $r ) {
 		return $id;
 	}
 	return rest_ensure_response( ps_project_to_api( ps_project_load( $id ), $uid ) );
+}
+
+function ps_rest_project_is_project( WP_REST_Request $r ) {
+	$row = ps_project_row( (int) $r['id'] );
+	if ( ! $row || $row['deleted_at'] ) {
+		return ps_rest_not_found();
+	}
+	$uid = get_current_user_id();
+	if ( ! ps_project_edit_reason( $row, $uid ) ) {
+		return new WP_Error( 'ps_forbidden', ps__( 'لا يمكنك تعديل هذا المشروع (فقط المسؤول عنه، الإدارة، أو من أنشأه خلال 24 ساعة).' ), array( 'status' => 403 ) );
+	}
+	$b   = (array) $r->get_json_params();
+	$yes = ps_clean_bool( $b['isProject'] ?? null );
+	if ( '' === $yes ) {
+		return new WP_Error( 'ps_validation', ps__( 'خانة إجبارية: ' ) . ps__( 'مشروع؟' ), array( 'status' => 422 ) );
+	}
+	$res = ps_project_set_is_project( (int) $row['id'], (bool) $yes, $b['nonProjectReasonId'] ?? null, isset( $b['nonProjectNote'] ) ? (string) $b['nonProjectNote'] : null, $uid );
+	return is_wp_error( $res ) ? $res : rest_ensure_response( $res );
 }
 
 function ps_rest_project_delete( WP_REST_Request $r ) {

@@ -1,6 +1,6 @@
 ######## Tests PHP ########
 Site de test installé (thème : protecta-suivi)
-Thème v1.7.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
+Thème v1.8.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 
 == Activation : base de données ==
   ✔ ps_db_version = dernière migration
@@ -790,9 +790,9 @@ Thème v1.7.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ inc/i18n/en.json : JSON valide
   ✔ inc/i18n/fr.json : JSON valide
   ✔ en.json et fr.json ont exactement les mêmes clés
-  ✔ en : chaque texte de l'interface a sa traduction (1175 textes)
+  ✔ en : chaque texte de l'interface a sa traduction (1180 textes)
   ✔ en : traductions non vides, sans arabe, mêmes %s / %d que l'original
-  ✔ fr : chaque texte de l'interface a sa traduction (1175 textes)
+  ✔ fr : chaque texte de l'interface a sa traduction (1180 textes)
   ✔ fr : traductions non vides, sans arabe, mêmes %s / %d que l'original
 
 == Langues : traduction côté serveur ==
@@ -1130,8 +1130,25 @@ Thème v1.7.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ facets : 2 factures, 1 en attente (en retard), 1 « نعم »
   ✔ les compteurs des factures suivent la recherche
 
+== 1.8.0 : « مشروع؟ » depuis la liste ==
+  ✔ liste : canEdit = vrai pour الإدارة (interrupteur affiché)
+  ✔ liste : canEdit = faux pour un موظف sans lien (simple badge)
+  ✔ موظف sans lien → 403
+  ✔ valeur vide → 422
+  ✔ « لا » sans سبب → 422
+  ✔ سبب d'une autre liste → 422
+  ✔ avant : le projet est dans Suivi Offres
+  ✔ « لا » + سبب → enregistré
+  ✔ fiche : لا + سبب + ملاحظة
+  ✔ « لا » → retiré de Suivi Offres (rien n'est effacé)
+  ✔ journal : مشروع؟ et السبب enregistrés
+  ✔ « نعم » → enregistré (1 صنف)
+  ✔ « نعم » efface le سبب et la note
+  ✔ « نعم » → le projet devient une offre (Suivi Offres)
+  ✔ les أصناف sont intactes
+
 ----------------------------------------
-Résultat : 932 réussis, 0 échoués
+Résultat : 947 réussis, 0 échoués
 
 ######## Navigateur : fondations (étape 1) ########
 Page de connexion
@@ -1221,6 +1238,8 @@ Tous les contrôles navigateur sont passés.
   ✔ livraisons en retard en rouge : 3
   ✔ « 3 تسليم متأخر »
   ✔ موظف : seules ses lignes sont modifiables (2)
+  ✔ panneau de livraison : date réelle + تم التسليم enregistrées → plus en retard
+  ✔ filtre rapide « متأخرة » : 2 lignes
   ✔ statut « متأخر » jamais proposé dans la liste
 Étape 3 — الإدارة : مهامي de l'équipe
   ✔ الإدارة : tâches de toute l'équipe, filtre employé
@@ -1461,6 +1480,28 @@ Tous les contrôles navigateur sont passés.
   ✔ raccourci « الأصناف » : la section est à l'écran
   ✔ téléphone : carte → panneau plein écran
   ✔ téléphone (الفواتير) : cartes, sans défilement horizontal
+
+Tous les contrôles navigateur sont passés.
+
+######## Navigateur : step17 (jeu de démonstration) ########
+1.8.0 — «مشروع؟» من الجدول، متابعة التسليم
+  ✔ interrupteur نعم / لا dans la colonne « مشروع؟ »
+  ✔ « لا » depuis la liste : pas de panneau, fenêtre du سبب
+  ✔ « لا » sans سبب → refusé (la fenêtre reste)
+  ✔ ligne : « لا » actif + سبب affiché
+  ✔ filtre rapide « غير مشروع » : 1
+  ✔ « لا » → absent de Suivi Offres
+  ✔ « نعم » en un clic → de nouveau une offre (Suivi Offres)
+  ✔ message clair « يظهر الآن في متابعة العروض »
+  ✔ panneau : interrupteur « مشروع؟ » en haut
+  ✔ Suivi Livraison : 8 colonnes importantes
+  ✔ Suivi Livraison : tient dans l'écran (1366 px)
+  ✔ #/projets : tableau sans défilement horizontal (1366 px)
+  ✔ #/offres : tableau sans défilement horizontal (1366 px)
+  ✔ #/factures?status=all : tableau sans défilement horizontal (1366 px)
+  ✔ موظف : badge (pas d'interrupteur) sur les projets qu'il ne peut pas modifier
+  ✔ téléphone : interrupteur « مشروع؟ » sur la carte
+  ✔ téléphone : filtres rapides sur une seule ligne
 
 Tous les contrôles navigateur sont passés.
 
