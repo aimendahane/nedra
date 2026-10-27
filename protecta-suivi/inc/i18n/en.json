@@ -1173,5 +1173,11 @@
 	"⚠️ رمز الربط غير صالح أو منتهي (صالح 10 دقائق). اطلب رمزًا جديدًا من التطبيق (🔔 ← ربط Telegram).": "⚠️ Invalid or expired link code (valid 10 minutes). Get a new code in the app (🔔 → Link Telegram).",
 	"📎 ملفات العرض": "📎 Offer files",
 	"🚫 غير مشروع": "🚫 Not a project",
-	"🧾 فواتير العرض": "🧾 Offer invoices"
+	"🧾 فواتير العرض": "🧾 Offer invoices",
+	"آخر أجل": "Deadline",
+	"المبلغ والعملة": "Amount & currency",
+	"سبب عدم الاعتبار": "Reason (not a project)",
+	"موظف الصنف": "Item employee",
+	"🚫 لا": "🚫 No",
+	"🧾 الفواتير": "🧾 Invoices"
 }

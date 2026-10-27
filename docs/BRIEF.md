@@ -233,3 +233,34 @@ modifier quoi ») ; zip + résultat complet des tests + liste des décisions pri
 ## 7. Points ouverts (valeurs par défaut appliquées)
 « mon projet » et « ZZ » : non implémentés ; « 3X » → « غير محدد » à l'import ; « عاجل » → U ; délai de réponse 15 j
 (paramètre global) ; raisons « non projet » = valeurs par défaut ci-dessus.
+
+---
+
+# Correction validée par le client (27/10/2026) — ordre des champs et des colonnes (version 1.6.1)
+
+Règle générale : **les champs importants en premier, dans l'ordre ci-dessous ; tout le reste ensuite.**
+« مشروع؟ » est une vraie colonne (visible, triable, filtrable) de la liste des projets.
+
+## 1. Fiche projet (إدخال مشروع), de haut en bas
+1. 📎 الملفات المرفقة (création : envoyés juste après l'enregistrement ; projet existant : en haut de l'onglet البيانات)
+2. مشروع؟ نعم / لا (obligatoire)
+3. سبب عدم اعتباره مشروعا + ملاحظة — affichés immédiatement sous la case, seulement si « لا »
+4. Le reste : رقم المشروع، رقم العرض، اسم المشروع، dates, المسؤول، المتابع… puis الأطراف، الأصناف، المبالغ، المنافسون.
+
+## 2. Base Projets (المشاريع), colonnes
+رقم المشروع | الاسم | مشروع؟ | سبب عدم الاعتبار (vide si نعم) | المسؤول عن المشروع | الموظف المتابع |
+تاريخ الاستلام | الحالة (حالة المتابعة) | ensuite : حالة العرض، السنة، الشهر، المكان، الاستعجال، الأهمية، التصنيف،
+الشركة، الشخص المباشر، الهاتف، الأصناف، تاريخ الإرسال، الوسيط، المصدر، الأولوية، NOTE، الرابط.
+L'ancienne colonne « رقم » (numéro d'ordre) est retirée (doublon de رقم المشروع).
+
+## 3. Suivi Offres, colonnes
+رقم المشروع (nom en petit dessous) | رقم فاتورة العرض | المسؤول عن المشروع | الموظف المتابع | تاريخ الإرسال |
+حالة العرض | 📎 (icône + nombre de fichiers) | ملاحظة العرض | ensuite : الصنف، موظف الصنف، الاستعجال، الأجل المطلوب، 🧾 الفواتير.
+
+## 4. Factures (page + fenêtre « 🧾 » d'une offre), colonnes
+رقم الفاتورة | رقم المشروع (nom en petit) | تاريخ الإرسال | آخر أجل | جواب الحريف | المبلغ والعملة |
+📎 (icône + nombre de fichiers) | ملاحظة الفاتورة | ensuite : الصنف، الموظف المتابع.
+
+## 5. Projet « لا »
+Visible dans Base Projets (« مشروع؟ = لا » + motif) ; absent de Suivi Offres, de Suivi Livraison et des factures ;
+compté à part dans le Recap. Pas de colonne « مشروع؟ » dans Suivi Offres / Factures (elle vaudrait toujours نعم).

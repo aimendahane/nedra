@@ -21,7 +21,7 @@ function ps_export_projects_table( array $args ): array {
 	$code            = fn( $id ) => $id ? ( ps_list_code( $id ) ?: ps_list_label_t( $id ) ) : '';
 	$offer           = fn( $c ) => ps_list_label_t( ps_list_id_by_code( 'offer_status', $c ) );
 	$months          = array( ps__( 'جانفي' ), ps__( 'فيفري' ), ps__( 'مارس' ), ps__( 'أفريل' ), ps__( 'ماي' ), ps__( 'جوان' ), ps__( 'جويلية' ), ps__( 'أوت' ), ps__( 'سبتمبر' ), ps__( 'أكتوبر' ), ps__( 'نوفمبر' ), ps__( 'ديسمبر' ) );
-	$headers         = array( ps__( 'السنة' ), ps__( 'رقم' ), ps__( 'المكان' ), ps__( 'درجة الاستعجال' ), ps__( 'الأهمية كصنف' ), ps__( 'الأهمية كحجم' ), ps__( 'الشهر' ), ps__( 'التصنيف' ), ps__( 'اسم الشركة' ), ps__( 'شخص المباشر' ), ps__( 'رقم شخص المباشر' ), ps__( 'اسم المشروع' ), ps__( 'الأصناف' ), ps__( 'تاريخ استلام الطلب' ), ps__( 'تاريخ إرسال الطلب' ), ps__( 'الموظف المتابع' ), ps__( 'الموظف الوسيط' ), ps__( 'رقم المشروع' ), ps__( 'حالة المتابعة' ), ps__( 'حالة العرض' ), 'NOTE', ps__( 'رابط ملف المشاريع' ), ps__( 'رقم العرض' ), ps__( 'مصدر الطلب' ), ps__( 'الأولوية' ), ps__( 'مبلغ العرض' ), ps__( 'العملة' ) );
+	$headers         = array( ps__( 'السنة' ), ps__( 'رقم' ), ps__( 'المكان' ), ps__( 'درجة الاستعجال' ), ps__( 'الأهمية كصنف' ), ps__( 'الأهمية كحجم' ), ps__( 'الشهر' ), ps__( 'التصنيف' ), ps__( 'اسم الشركة' ), ps__( 'شخص المباشر' ), ps__( 'رقم شخص المباشر' ), ps__( 'اسم المشروع' ), ps__( 'الأصناف' ), ps__( 'تاريخ استلام الطلب' ), ps__( 'تاريخ إرسال الطلب' ), ps__( 'الموظف المتابع' ), ps__( 'الموظف الوسيط' ), ps__( 'رقم المشروع' ), ps__( 'حالة المتابعة' ), ps__( 'حالة العرض' ), 'NOTE', ps__( 'رابط ملف المشاريع' ), ps__( 'رقم العرض' ), ps__( 'مصدر الطلب' ), ps__( 'الأولوية' ), ps__( 'مبلغ العرض' ), ps__( 'العملة' ), ps__( 'مشروع؟' ), ps__( 'سبب عدم الاعتبار' ), ps__( 'المسؤول عن المشروع' ) );
 	$out             = array();
 	foreach ( $rows as $r ) {
 		$out[] = array(
@@ -30,6 +30,8 @@ function ps_export_projects_table( array $args ): array {
 			implode( ps__( '، ' ), array_map( 'ps_list_label_t', $r['itemTypeIds'] ) ), $r['receivedDate'], $r['sentDate'], $lab( $r['followerEmpId'] ),
 			$lab( $r['intermediaryEmpId'] ), $r['projectNo'], $lab( $r['followupStatusId'] ), $offer( $r['offerStatus'] ), $r['note'], $r['filesLink'],
 			$r['offerNo'], $lab( $r['sourceId'] ), $r['priority'], $r['offerAmount'], $code( $r['offerCurrencyId'] ),
+			// 1.6.x : colonnes ajoutées à la FIN (l'ordre d'origine reste celui du fichier Excel de l'équipe, réimportable).
+			$r['isProject'] ? ps__( 'نعم' ) : ps__( 'لا' ), $r['isProject'] ? '' : $lab( $r['nonProjectReasonId'] ), $lab( $r['responsibleEmpId'] ),
 		);
 	}
 	return array( $headers, $out );
@@ -47,8 +49,8 @@ function ps_export_items_table( array $args, int $user_id ): array {
 		$headers = array( ps__( 'رقم المشروع' ), ps__( 'اسم المشروع' ), ps__( 'الصنف' ), ps__( 'فاتورة العرض' ), ps__( 'فاتورة المورد' ), ps__( 'المتوفر' ), ps__( 'أجل التسليم المطلوب' ), ps__( 'أجل التسليم الفعلي' ), ps__( 'تأخير (أيام)' ), ps__( 'الحالة' ), ps__( 'ملاحظات' ) );
 		$out     = array_map( fn( $r ) => array( $r['projectNo'], $r['projectName'], $lab( $r['itemTypeId'] ), $r['offerInvoiceNo'], $r['supplierInvoiceNo'], $lab( $r['availabilityId'] ), $r['deliveryDueDate'], $r['deliveryActualDate'], $r['computed']['delayDays'], ps_list_label_t( ps_list_id_by_code( 'delivery_status', (string) $r['computed']['deliveryDisplay'] ) ), $r['deliveryNotes'] ), $rows );
 	} else {
-		$headers = array( ps__( 'رقم المشروع' ), ps__( 'اسم المشروع' ), ps__( 'الشركة' ), ps__( 'الصنف' ), ps__( 'الكمية' ), ps__( 'الموظف المسؤول' ), ps__( 'الأجل المطلوب' ), ps__( 'تاريخ تقديم العرض' ), ps__( 'الحالة' ), ps__( 'سبب عدم الإرسال' ), ps__( 'رقم فاتورة العرض' ), ps__( 'ملاحظات' ), ps__( 'لازم قرار' ) );
-		$out     = array_map( fn( $r ) => array( $r['projectNo'], $r['projectName'], $r['companyName'], $lab( $r['itemTypeId'] ), $r['quantity'], $lab( $r['employeeId'] ), $r['dueDate'], $r['offerDate'], $lab( $r['offerStatusId'] ), $lab( $r['notSentReasonId'] ), $r['offerInvoiceNo'], $r['offerNotes'], $r['computed']['late'] ? ps__( 'نعم' ) : '' ), $rows );
+		$headers = array( ps__( 'رقم المشروع' ), ps__( 'اسم المشروع' ), ps__( 'الشركة' ), ps__( 'الصنف' ), ps__( 'الكمية' ), ps__( 'الموظف المسؤول' ), ps__( 'الأجل المطلوب' ), ps__( 'تاريخ تقديم العرض' ), ps__( 'الحالة' ), ps__( 'سبب عدم الإرسال' ), ps__( 'رقم فاتورة العرض' ), ps__( 'ملاحظة العرض' ), ps__( 'لازم قرار' ), ps__( 'المسؤول عن المشروع' ), ps__( 'الموظف المتابع' ), ps__( 'الفواتير' ) );
+		$out     = array_map( fn( $r ) => array( $r['projectNo'], $r['projectName'], $r['companyName'], $lab( $r['itemTypeId'] ), $r['quantity'], $lab( $r['employeeId'] ), $r['dueDate'], $r['offerDate'], $lab( $r['offerStatusId'] ), $lab( $r['notSentReasonId'] ), $r['offerInvoiceNo'], $r['offerNotes'], $r['computed']['late'] ? ps__( 'نعم' ) : '', $lab( $r['responsibleEmpId'] ), $lab( $r['followerEmpId'] ), $r['invoices']['total'] ), $rows );
 	}
 	return array( $headers, $out );
 }

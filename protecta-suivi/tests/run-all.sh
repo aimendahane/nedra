@@ -25,7 +25,7 @@ echo "\n######## Navigateur : fonctionnalités (étapes 2-5) ########"
 ONLY=step2 BASE_URL=http://localhost:8081 SHOTS="$SHOTS" node "$DIR/e2e-app.js" || fail "navigateur étape 2"
 
 # Chaque étape repart d'un site neuf avec le jeu de démonstration (les étapes modifient les données).
-for STEP in step3 step4 step5 step6 step7 step8 step9 step11 step12 step13 step14; do
+for STEP in step3 step4 step5 step6 step7 step8 step9 step11 step12 step13 step14 step15; do
 	echo "\n######## Navigateur : $STEP (jeu de démonstration) ########"
 	(cd "$WP" && sudo -u www-data env PS_TEST=1 DEMO=1 php "$DIR/e2e-setup.php") >/dev/null || fail "préparation démo $STEP"
 	ONLY=$STEP BASE_URL=http://localhost:8081 SHOTS="$SHOTS" node "$DIR/e2e-app.js" || fail "navigateur $STEP"

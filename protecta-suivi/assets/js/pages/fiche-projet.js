@@ -136,9 +136,7 @@
 				${state.mode === 'edit' ? fieldWrap(PS.t('رقم المشروع'), null, html`<input value="${state.project.projectNo}" disabled>`) : fieldWrap(PS.t('رقم المشروع'), null, html`<input value="${PS.t('يتولّد تلقائيًا عند الحفظ')}" disabled>`)}
 				${fieldWrap(PS.t('رقم العرض'), 'offer_no', html`<span class="ps-inline"><input data-bind="offerNo" data-key="offer_no" value="${d.offerNo || ''}" dir="ltr"${dis()}>${offerNoBtn}</span>`)}
 				${input('name', PS.t('اسم المشروع'), 'text', 'name', { key: 'name', cls: 'ps-span-2' })}
-				${yesNo()}
-				${d.isProject === false ? html`${select('nonProjectReasonId', PS.t('سبب عدم اعتباره مشروعا'), 'non_project_reason', null, { key: 'non_project_reason_id', cls: 'ps-field--required' })}
-					${fieldWrap(PS.t('ملاحظة (اختياري)'), null, html`<input data-bind="nonProjectNote" data-key="non_project_note" value="${d.nonProjectNote || ''}"${dis()}>`)}` : ''}
+
 				${input('receivedDate', PS.t('تاريخ استلام الطلب'), 'date', 'received_date', { key: 'received_date' })}
 				${input('sentDate', PS.t('تاريخ إرسال العرض'), 'date', 'sent_date', { key: 'sent_date' })}
 				${select('responsibleEmpId', PS.t('المسؤول عن المشروع'), 'employee', 'responsible_emp_id', { key: 'responsible_emp_id' })}
@@ -172,11 +170,32 @@
 			${v === false ? html`<span class="ps-small ps-muted">${PS.t('لا يظهر في العروض ولا في مؤشرات العروض ونسبة النجاح.')}</span>` : ''}</div>`;
 	}
 
+	/**
+	 * 1.6.1 (demande du client) : « مشروع؟ » juste après les fichiers, AVANT tous les autres champs ;
+	 * le motif (et sa note) s'affiche immédiatement dessous quand « لا » est choisi.
+	 */
+	function sectionYesNo() {
+		const d = state.draft;
+		return html`<section class="ps-card ps-card--yesno" data-section="is-project">
+			<div class="ps-grid">
+				${yesNo()}
+				${d.isProject === false ? html`${select('nonProjectReasonId', PS.t('سبب عدم اعتباره مشروعا'), 'non_project_reason', null, { key: 'non_project_reason_id', cls: 'ps-field--required' })}
+					${fieldWrap(PS.t('ملاحظة (اختياري)'), null, html`<input data-bind="nonProjectNote" data-key="non_project_note" value="${d.nonProjectNote || ''}"${dis()}>`)}` : ''}
+			</div>
+		</section>`;
+	}
+
+	/** Projet existant : les fichiers joints en haut de l'onglet البيانات (même bloc que l'onglet الملفات). */
+	function sectionFilesTop() {
+		if (state.mode === 'create') return sectionNewFiles();
+		return html`<div data-top-files data-section="files"><div class="ps-loading">${PS.t('جاري التحميل…')}</div></div>`;
+	}
+
 	/** Fichiers choisis avant l'enregistrement d'un NOUVEAU projet (envoyés juste après la création). */
 	function sectionNewFiles() {
 		if (state.mode !== 'create') return '';
 		const list = state.pendingFiles || [];
-		return html`<section class="ps-card">
+		return html`<section class="ps-card" data-section="files">
 			<h2 class="ps-card__title">📎 ${PS.t('الملفات المرفقة')} <span class="ps-muted">(${PS.t('اختياري')})</span></h2>
 			<p class="ps-muted ps-small">${PS.t('تُرفع الملفات مباشرة بعد حفظ المشروع (نفس قواعد الملفات المرفقة).')}</p>
 			<input type="file" multiple data-new-files>
@@ -297,7 +316,7 @@
 	function formHtml() {
 		return html`<form class="ps-form" novalidate data-form>
 			<div data-errors></div>
-			${sectionInfo()}${sectionParties()}${sectionItems()}${sectionAmounts()}${sectionCompetitors()}${sectionNewFiles()}
+			${sectionYesNo()}${sectionInfo()}${sectionParties()}${sectionItems()}${sectionAmounts()}${sectionCompetitors()}
 			${formActions()}
 		</form>`;
 	}
@@ -340,11 +359,13 @@
 
 	function render() {
 		let body = '';
-		if (state.mode === 'create' || state.tab === 'data') body = formHtml();
+		if (state.mode === 'create' || state.tab === 'data') body = html`${sectionFilesTop()}${formHtml()}`;
 		else body = html`<div data-tab-body><div class="ps-loading">${PS.t('جاري التحميل…')}</div></div>`;
 		state.main.innerHTML = html`${header()}${tabs()}${body}`.html;
 		bindForm();
 		if (state.mode === 'edit' && state.tab !== 'data') PS.projectTabs[state.tab](state.main.querySelector('[data-tab-body]'), state.project);
+		const top = state.main.querySelector('[data-top-files]');
+		if (top) PS.projectTabs.files(top, state.project);
 	}
 
 	/* =====================================================================
@@ -354,6 +375,9 @@
 	function bindForm() {
 		const main = state.main;
 		main.onclick = onClick;
+		// 1.6.1 : le bloc des fichiers est AU-DESSUS du formulaire (hors <form>).
+		const nf = main.querySelector('[data-new-files]');
+		if (nf) nf.addEventListener('change', function () { addNewFiles(nf.files); });
 		const form = main.querySelector('[data-form]');
 		if (!form) return;
 		form.addEventListener('input', onInput);
@@ -400,7 +424,6 @@
 			rerenderKeepScroll();
 			return;
 		}
-		if (el.hasAttribute('data-new-files')) { addNewFiles(el.files); return; }
 		const path = el.dataset.bind;
 		if (!path || el.tagName !== 'SELECT') return;
 		if (el.value === '__add') { quickAdd(el); return; }

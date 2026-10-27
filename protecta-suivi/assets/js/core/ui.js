@@ -250,7 +250,10 @@ PS.ui = (function () {
 	function projectTitle(p, opts) {
 		const o = opts || {};
 		const no = [p.no, p.oldNo].filter(Boolean).join(' · ');
-		const inner = html`<strong class="ps-ptitle__name">${p.name || PS.t('(بدون اسم)')}</strong><span class="ps-ptitle__no" dir="ltr">${no}</span>`;
+		// 1.6.1 (demande du client) : numberFirst → le NUMÉRO en premier (gras), le nom en petit dessous.
+		const inner = o.numberFirst
+			? html`<strong class="ps-ptitle__num" dir="ltr">${no}</strong><span class="ps-ptitle__sub">${p.name || PS.t('(بدون اسم)')}</span>`
+			: html`<strong class="ps-ptitle__name">${p.name || PS.t('(بدون اسم)')}</strong><span class="ps-ptitle__no" dir="ltr">${no}</span>`;
 		return o.link === false ? html`<span class="ps-ptitle">${inner}</span>` : html`<a class="ps-ptitle" href="#/projet?id=${p.id}${o.hash || ''}">${inner}</a>`;
 	}
 

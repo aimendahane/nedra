@@ -238,8 +238,17 @@ function ps_invoices_list( array $args, int $user_id, ?string $today = null ): a
 	$status = (string) ( $args['status'] ?? 'all' );
 	$q      = ps_normalize_text( (string) ( $args['q'] ?? '' ) );
 	$out    = array();
+	// 1.6.1 : nombre de fichiers de chaque facture (colonne 📎).
+	$files = array();
+	if ( $rows ) {
+		$ids = implode( ',', array_map( 'intval', array_column( $rows, 'id' ) ) );
+		foreach ( $wpdb->get_results( 'SELECT invoice_id, COUNT(*) AS n FROM ' . ps_table( 'files' ) . " WHERE deleted_at IS NULL AND invoice_id IN ($ids) GROUP BY invoice_id", ARRAY_A ) as $f ) { // phpcs:ignore
+			$files[ (int) $f['invoice_id'] ] = (int) $f['n'];
+		}
+	}
 	foreach ( $rows as $r ) {
-		$api = ps_invoice_to_api( $r, $user_id, $today, $days );
+		$api               = ps_invoice_to_api( $r, $user_id, $today, $days );
+		$api['filesCount'] = $files[ (int) $r['id'] ] ?? 0;
 		if ( '' !== (string) $emp && (int) $emp !== (int) $api['followerEmpId'] ) {
 			continue;
 		}

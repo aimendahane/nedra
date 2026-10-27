@@ -18,31 +18,34 @@
 
 	/** Colonnes : [clé de tri, titre, rendu]. */
 	const COLUMNS = [
-		// 1.5.0 : le projet d'abord — nom en gras, numéro (PRJ-… / P029, ancien numéro) en petit.
-		['name', PS.t('المشروع'), function (r) { return html`${ui.projectTitle({ id: r.id, name: r.name, no: r.projectNo, oldNo: r.oldNo })}${r.isProject === false ? html`<span class="ps-badge ps-badge--muted ps-small" data-non-project title="${r.nonProjectReasonId ? L.label(r.nonProjectReasonId) : ''}">🚫 ${PS.t('غير مشروع')}</span>` : ''}`; }],
+		// 1.6.1 (demande du client) : les colonnes importantes d'abord — رقم المشروع، الاسم، مشروع؟، السبب،
+		// المسؤول، المتابع، تاريخ الاستلام، الحالة — puis toutes les autres.
+		['projectNo', PS.t('رقم المشروع'), function (r) { return html`<a class="ps-pno" href="#/projet?id=${r.id}" dir="ltr">${r.projectNo}</a>${r.oldNo ? html`<div class="ps-small ps-muted" dir="ltr">${r.oldNo}</div>` : ''}`; }],
+		['name', PS.t('الاسم'), function (r) { return ui.projectTitle({ id: r.id, name: r.name, no: '' }); }],
+		['isProject', PS.t('مشروع؟'), function (r) { return r.isProject === false ? html`<span class="ps-badge ps-badge--muted" data-non-project>🚫 ${PS.t('لا')}</span>` : html`<span class="ps-badge">${PS.t('نعم')}</span>`; }],
+		['nonProjectReasonId', PS.t('سبب عدم الاعتبار'), function (r) { return r.isProject === false && r.nonProjectReasonId ? L.label(r.nonProjectReasonId) : ''; }],
+		['responsibleEmpId', PS.t('المسؤول عن المشروع'), function (r) { return L.label(r.responsibleEmpId); }],
+		['followerEmpId', PS.t('الموظف المتابع'), function (r) { return L.label(r.followerEmpId); }],
+		['receivedDate', PS.t('تاريخ الاستلام'), function (r) { return F.date(r.receivedDate); }],
+		['followupStatusId', PS.t('الحالة'), function (r) { return L.badge(r.followupStatusId, L.label(r.followupStatusId)); }],
+		['offerStatus', PS.t('حالة العرض'), function (r) { return L.offerBadge(r.offerStatus); }],
 		['receivedYear', PS.t('السنة'), function (r) { return r.receivedYear; }],
-		// Numéro du fichier Excel importé (P029…) affiché tel quel (1.4.0), sinon le numéro d'ordre.
-		['seq', PS.t('رقم'), function (r) { return /^P\d+$/.test(r.projectNo || '') ? r.projectNo : r.seq; }],
+		['month', PS.t('الشهر'), function (r) { return F.month(r.month); }],
 		['placeId', PS.t('المكان'), function (r) { return html`<span title="${L.label(r.placeId)}">${L.short(r.placeId)}</span>`; }],
 		['urgencyId', PS.t('الاستعجال'), function (r) { return L.badge(r.urgencyId); }],
 		['importanceKindId', PS.t('الأهمية كصنف'), function (r) { return L.label(r.importanceKindId); }],
 		['importanceSizeId', PS.t('الأهمية كحجم'), function (r) { return L.label(r.importanceSizeId); }],
-		['month', PS.t('الشهر'), function (r) { return F.month(r.month); }],
 		['categoryId', PS.t('التصنيف'), function (r) { return L.label(r.categoryId); }],
 		['companyName', PS.t('اسم الشركة'), function (r) { return r.companyName || ''; }],
 		['directPerson', PS.t('شخص المباشر'), function (r) { return r.directPerson || ''; }],
 		['directPhone', PS.t('رقم شخص المباشر'), function (r) { return html`<span dir="ltr">${r.directPhone || ''}</span>`; }],
 		[null, PS.t('الأصناف'), function (r) { return r.itemTypeIds.map(L.label).join(PS.t('، ')); }],
-		['receivedDate', PS.t('تاريخ استلام الطلب'), function (r) { return F.date(r.receivedDate); }],
 		['sentDate', PS.t('تاريخ إرسال الطلب'), function (r) { return F.date(r.sentDate); }],
-		['followerEmpId', PS.t('الموظف المتابع'), function (r) { return L.label(r.followerEmpId); }],
 		['intermediaryEmpId', PS.t('الموظف الوسيط'), function (r) { return L.label(r.intermediaryEmpId); }],
-		['followupStatusId', PS.t('حالة المتابعة'), function (r) { return L.badge(r.followupStatusId, L.label(r.followupStatusId)); }],
-		['offerStatus', PS.t('حالة العرض'), function (r) { return L.offerBadge(r.offerStatus); }],
-		[null, 'NOTE', function (r) { return html`<span class="ps-clip" title="${r.note || ''}">${r.note || ''}</span>`; }],
-		[null, PS.t('رابط ملف المشاريع'), function (r) { return r.filesLink ? html`<a href="${r.filesLink}" target="_blank" rel="noopener noreferrer">🔗 ${PS.t('فتح')}</a>` : ''; }],
 		['sourceId', PS.t('مصدر الطلب'), function (r) { return L.label(r.sourceId); }],
 		['priority', PS.t('الأولوية'), function (r) { return r.priority ? html`<span class="ps-badge ps-prio ps-prio--${r.priority}">${r.priority}</span>` : ''; }],
+		[null, 'NOTE', function (r) { return html`<span class="ps-clip" title="${r.note || ''}">${r.note || ''}</span>`; }],
+		[null, PS.t('رابط ملف المشاريع'), function (r) { return r.filesLink ? html`<a href="${r.filesLink}" target="_blank" rel="noopener noreferrer">🔗 ${PS.t('فتح')}</a>` : ''; }],
 	];
 
 	/** Filtres : [paramètre, libellé, liste ou fonction d'options]. */
@@ -59,7 +62,6 @@
 		['sourceId', PS.t('مصدر الطلب'), 'source'],
 		['itemTypeId', PS.t('الصنف'), 'item_type'],
 		['priority', PS.t('الأولوية'), 'priority'],
-		['isProject', PS.t('مشروع؟'), 'isProject'], // 1.6.0
 	];
 
 	let st = null; // { main, params, data, selected:Set }
@@ -75,7 +77,7 @@
 		} else if (kind === 'offerStatus') {
 			L.values('offer_status').forEach(function (v) { h += opt(v.code, v.label); });
 		} else if (kind === 'isProject') {
-			h += opt('1', PS.t('مشروع')) + opt('0', PS.t('🚫 غير مشروع'));
+			h += opt('1', PS.t('نعم')) + opt('0', PS.t('🚫 لا'));
 		} else if (kind === 'priority') {
 			['P1', 'P2', 'P3'].forEach(function (p) { h += opt(p, p); });
 		} else {
@@ -92,10 +94,11 @@
 
 	function toolbar() {
 		const p = st.params;
-		const active = FILTERS.filter(function (f) { return p[f[0]]; }).length + (p.q ? 1 : 0) + (p.companyId ? 1 : 0);
+		const active = FILTERS.filter(function (f) { return p[f[0]]; }).length + (p.q ? 1 : 0) + (p.companyId ? 1 : 0) + (p.isProject ? 1 : 0);
 		return html`<div class="ps-card ps-toolbar">
 			<div class="ps-toolbar__row">
 				<input type="search" class="ps-input ps-search" placeholder="🔍 ${PS.t('بحث: اسم المشروع، الشركة، الرقم، الهاتف…')}" value="${p.q || ''}" data-search>
+				<label class="ps-field ps-field--compact ps-field--inline"><span class="ps-field__label">${PS.t('مشروع؟')}</span><select class="ps-input ps-input--auto" data-filter="isProject" aria-label="${PS.t('مشروع؟')}">${filterOptions('isProject', p.isProject)}</select></label>
 				${PS.router.can('ps_create_project') ? html`<a class="ps-btn ps-btn--primary" href="#/projet">➕ ${PS.t('مشروع جديد')}</a>` : ''}
 				${PS.router.can('ps_export') ? html`<button type="button" class="ps-btn" data-action="export-csv">⬇ CSV</button><button type="button" class="ps-btn" data-action="export-xlsx">⬇ Excel</button>` : ''}
 				<button type="button" class="ps-btn ps-btn--ghost" data-action="toggle-filters" aria-expanded="${st.showFilters ? 'true' : 'false'}">⚙ ${PS.t('الفلاتر')} ${active ? html`<span class="ps-count">${active}</span>` : ''}</button>
@@ -151,7 +154,7 @@
 	function cards(rows) {
 		return html`<div class="ps-cards ps-mobile-only">${rows.map(function (r) {
 			return html`<a class="ps-pcard" href="#/projet?id=${r.id}">
-				<div class="ps-pcard__top">${ui.projectTitle({ name: r.name, no: r.projectNo, oldNo: r.oldNo }, { link: false })} ${L.badge(r.urgencyId)} ${r.priority ? html`<span class="ps-badge ps-prio ps-prio--${r.priority}">${r.priority}</span>` : ''}</div>
+				<div class="ps-pcard__top">${ui.projectTitle({ name: r.name, no: r.projectNo, oldNo: r.oldNo }, { link: false, numberFirst: true })} ${L.badge(r.urgencyId)} ${r.priority ? html`<span class="ps-badge ps-prio ps-prio--${r.priority}">${r.priority}</span>` : ''}</div>
 				<div class="ps-muted ps-small">${r.companyName || '—'} · ${L.short(r.placeId)} · ${F.date(r.receivedDate)}</div>
 				<div class="ps-pcard__badges">${r.isProject === false ? html`<span class="ps-badge ps-badge--muted">🚫 ${PS.t('غير مشروع')}</span>` : ''}${L.offerBadge(r.offerStatus)} ${L.badge(r.followupStatusId, L.label(r.followupStatusId))}</div>
 			</a>`;

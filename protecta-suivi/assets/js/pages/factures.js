@@ -123,6 +123,31 @@ PS.invoices = (function () {
 		}).then(function () { return saved; });
 	}
 
+	/*
+	 * 1.6.1 (demande du client) : colonnes importantes d'abord — رقم الفاتورة، رقم المشروع، تاريخ الإرسال، آخر أجل،
+	 * جواب الحريف، المبلغ والعملة، 📎، ملاحظة الفاتورة — puis الصنف et الموظف المتابع. Même ordre sur la page « الفواتير »
+	 * et dans la fenêtre « 🧾 فواتير العرض ». openAttr = attribut du bouton qui ouvre la facture (data-open / data-btn).
+	 */
+	const HEADERS = [PS.t('رقم الفاتورة'), PS.t('رقم المشروع'), PS.t('تاريخ الإرسال'), PS.t('آخر أجل'), PS.t('جواب الحريف'), PS.t('المبلغ والعملة'), '📎', PS.t('ملاحظة الفاتورة'), PS.t('الصنف'), PS.t('الموظف المتابع')];
+
+	function headRow(extra) {
+		return html`<tr>${HEADERS.map(function (h) { return html`<th>${h}</th>`; })}${extra ? html`<th></th>` : ''}</tr>`;
+	}
+
+	function rowCells(v, open) {
+		const btn = function (content, cls, title) { return ui.raw('<button type="button" class="' + cls + '"' + (title ? ' title="' + ui.esc(title) + '"' : '') + ' ' + open(v.id) + '>' + content + '</button>'); };
+		return html`<td dir="ltr">${btn('<strong>' + ui.esc(v.invoiceNo) + '</strong>', 'ps-link')}</td>
+			<td>${ui.projectTitle({ id: v.projectId, name: v.projectName, no: v.projectNo, oldNo: v.oldNo }, { numberFirst: true })}</td>
+			<td class="ps-nowrap">${F.date(v.sentDate)}</td>
+			<td class="ps-nowrap">${deadlineHtml(v)}</td>
+			<td>${answerBadge(v)}</td>
+			<td class="ps-nowrap" dir="ltr">${v.amount !== null ? F.money(v.amount, L.code(v.currencyId)) : ''}</td>
+			<td>${btn('📎 ' + (v.filesCount || 0), 'ps-btn ps-btn--small ps-nowrap', PS.t('ملفات الفاتورة'))}</td>
+			<td><span class="ps-clip" title="${v.note || ''}">${v.note || ''}</span></td>
+			<td>${L.label(v.itemTypeId)}</td>
+			<td>${L.label(v.followerEmpId)}</td>`;
+	}
+
 	/** Fiche d'une facture (lien des alertes : #/factures/ID). */
 	function open(id) {
 		return PS.api.get('invoices/' + id).then(function (inv) {
@@ -140,9 +165,9 @@ PS.invoices = (function () {
 				wide: true,
 				body: html`<p class="ps-small ps-muted">${PS.t('المشروع')}: <strong>${row.projectName}</strong> <span dir="ltr">${row.projectNo}</span> · ${L.label(row.itemTypeId)}</p>
 					${d.rows.length ? html`<div class="ps-table-wrap"><table class="ps-table ps-table--compact">
-						<thead><tr><th>${PS.t('رقم الفاتورة')}</th><th>${PS.t('تاريخ الإرسال')}</th><th>${PS.t('آخر أجل للرد')}</th><th>${PS.t('جواب الحريف')}</th><th>${PS.t('المبلغ')}</th><th></th></tr></thead>
+						<thead>${headRow(true)}</thead>
 						<tbody>${d.rows.map(function (v) {
-							return html`<tr class="${v.computed.late ? 'is-late' : ''}"><td dir="ltr"><strong>${v.invoiceNo}</strong></td><td>${F.date(v.sentDate)}</td><td>${deadlineHtml(v)}</td><td>${answerBadge(v)}</td><td>${v.amount !== null ? F.money(v.amount, L.code(v.currencyId)) : ''}</td>
+							return html`<tr class="${v.computed.late ? 'is-late' : ''}">${rowCells(v, function (id) { return 'data-btn="inv-' + id + '"'; })}
 								<td><button type="button" class="ps-btn ps-btn--small" data-btn="inv-${v.id}">${v.canEdit ? PS.t('تعديل') : PS.t('عرض')}</button></td></tr>`;
 						})}</tbody></table></div>` : html`<p class="ps-muted">${PS.t('لا توجد فواتير لهذا العرض.')}</p>`}`,
 				buttons: (canAdd ? [{ id: 'new', label: PS.t('+ فاتورة جديدة'), kind: 'primary' }] : []).concat([{ id: 'close', label: PS.t('إغلاق') }]),
@@ -174,7 +199,7 @@ PS.invoices = (function () {
 		}).catch(function (e) { ui.toast(e.message, 'error'); });
 	}
 
-	return { forOffer: forOffer, open: open, offerFiles: offerFiles, deadlineHtml: deadlineHtml, answerBadge: answerBadge };
+	return { forOffer: forOffer, open: open, offerFiles: offerFiles, deadlineHtml: deadlineHtml, answerBadge: answerBadge, headRow: headRow, rowCells: rowCells };
 })();
 
 /* ---------------------------------------------------------------------- */
@@ -209,14 +234,9 @@ PS.invoices = (function () {
 		}
 		box.innerHTML = html`<p class="ps-muted ps-small" role="status">${d.total} ${PS.t('فاتورة')} · ${PS.t('آخر أجل للرد = تاريخ الإرسال +')} ${d.replyDays} ${PS.t('يوم')}</p>
 			<div class="ps-table-wrap"><table class="ps-table ps-table--list">
-				<thead><tr><th>${PS.t('رقم الفاتورة')}</th><th>${PS.t('المشروع')}</th><th>${PS.t('الصنف')}</th><th>${PS.t('تاريخ إرسال الفاتورة')}</th><th>${PS.t('آخر أجل للرد')}</th><th>${PS.t('جواب الحريف')}</th><th>${PS.t('المبلغ')}</th><th>${PS.t('الموظف المتابع')}</th></tr></thead>
+				<thead>${PS.invoices.headRow(false)}</thead>
 				<tbody>${d.rows.map(function (v) {
-					return html`<tr class="${v.computed.late ? 'is-late' : ''}" data-inv="${v.id}">
-						<td dir="ltr"><button type="button" class="ps-link" data-open="${v.id}"><strong>${v.invoiceNo}</strong></button></td>
-						<td>${ui.projectTitle({ id: v.projectId, name: v.projectName, no: v.projectNo, oldNo: v.oldNo })}</td>
-						<td>${L.label(v.itemTypeId)}</td><td>${F.date(v.sentDate)}</td><td>${PS.invoices.deadlineHtml(v)}</td><td>${PS.invoices.answerBadge(v)}</td>
-						<td>${v.amount !== null ? F.money(v.amount, L.code(v.currencyId)) : ''}</td><td>${L.label(v.followerEmpId)}</td>
-					</tr>`;
+					return html`<tr class="${v.computed.late ? 'is-late' : ''}" data-inv="${v.id}">${PS.invoices.rowCells(v, function (id) { return 'data-open="' + id + '"'; })}</tr>`;
 				})}</tbody></table></div>`.html;
 	}
 

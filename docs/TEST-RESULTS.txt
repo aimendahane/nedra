@@ -1,6 +1,6 @@
 ######## Tests PHP ########
 Site de test installé (thème : protecta-suivi)
-Thème v1.6.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
+Thème v1.6.1 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 
 == Activation : base de données ==
   ✔ ps_db_version = dernière migration
@@ -790,9 +790,9 @@ Thème v1.6.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ inc/i18n/en.json : JSON valide
   ✔ inc/i18n/fr.json : JSON valide
   ✔ en.json et fr.json ont exactement les mêmes clés
-  ✔ en : chaque texte de l'interface a sa traduction (1159 textes)
+  ✔ en : chaque texte de l'interface a sa traduction (1163 textes)
   ✔ en : traductions non vides, sans arabe, mêmes %s / %d que l'original
-  ✔ fr : chaque texte de l'interface a sa traduction (1159 textes)
+  ✔ fr : chaque texte de l'interface a sa traduction (1163 textes)
   ✔ fr : traductions non vides, sans arabe, mêmes %s / %d que l'original
 
 == Langues : traduction côté serveur ==
@@ -1161,7 +1161,7 @@ Tous les contrôles navigateur sont passés.
   ✔ « حفظ رغم ذلك » : PRJ-2026-002 enregistré
 Étape 2 — Base Projets
   ✔ 3 projets listés
-  ✔ colonnes : المشروع d'abord, puis السنة … رابط ملف المشاريع
+  ✔ colonnes : رقم المشروع، الاسم، مشروع؟ d'abord … رابط ملف المشاريع
   ✔ recherche tolérante (« مستشفي ») : 1 résultat
   ✔ filtres conservés dans l'adresse
   ✔ filtre الاستعجال = VU : 1 projet
@@ -1338,7 +1338,7 @@ Tous les contrôles navigateur sont passés.
 
 ######## Navigateur : step11 (jeu de démonstration) ########
 1.5.0 — nom d'abord, recherche par numéro, fichiers joints, carte Google Drive
-  ✔ Base Projets : nom du projet en gras puis numéro en petit (1re colonne)
+  ✔ Base Projets : رقم المشروع (1re colonne) puis le nom en gras (1.6.1)
   ✔ recherche par numéro : le projet est trouvé
   ✔ fiche : titre = nom puis numéro
   ✔ fichier .php : refusé avec un message en arabe
@@ -1380,7 +1380,7 @@ Tous les contrôles navigateur sont passés.
   ✔ « لا » → liste « سبب عدم اعتباره مشروعا »
   ✔ enregistré « غير مشروع » + سبب + ملاحظة المشروع, date saisie 05/10/2026
   ✔ fichier choisi à la création → joint au projet
-  ✔ Base Projets : filtre « غير مشروع » + badge
+  ✔ Base Projets : filtre « غير مشروع » + colonne مشروع؟ = لا
   ✔ Suivi Offres : « غير مشروع » absent ; colonnes المسؤول / المتابع / ملاحظة العرض / الفواتير
   ✔ المتابع : justification vide → refusée
   ✔ المتابع de l'offre changé + journal avec justification
@@ -1392,6 +1392,26 @@ Tous les contrôles navigateur sont passés.
   ✔ الإعدادات : « آخر أجل للرد » (15) + « تفعيل التنبيهات » + explication wp-config.php
   ✔ المستخدمون : colonne Telegram (مربوط / غير مربوط)
   ✔ téléphone : page « الفواتير » sans défilement horizontal
+
+Tous les contrôles navigateur sont passés.
+
+######## Navigateur : step15 (jeu de démonstration) ########
+1.6.1 — ترتيب الخانات والأعمدة
+  ✔ fiche : 📎 الملفات ثم مشروع؟ ثم رقم العرض / اسم المشروع
+  ✔ « لا » : السبب affiché immédiatement sous la case (même bloc)
+  ✔ projet existant : الملفات en haut de البيانات, puis مشروع؟, puis le reste
+  ✔ Base Projets : رقم المشروع | الاسم | مشروع؟ | سبب عدم الاعتبار | المسؤول | المتابع | تاريخ الاستلام | الحالة
+  ✔ Base Projets : filtre « مشروع؟ » visible sans ouvrir les filtres
+  ✔ « مشروع؟ » triable : le projet « لا » en tête, avec son motif
+  ✔ projet « نعم » : colonne سبب vide
+  ✔ filtre « مشروع؟ = لا » → seulement les « غير مشروع »
+  ✔ Suivi Offres : رقم المشروع | رقم فاتورة العرض | المسؤول | المتابع | تاريخ الإرسال | حالة العرض | 📎 | ملاحظة العرض
+  ✔ Suivi Offres : le NUMÉRO du projet d'abord (nom en petit)
+  ✔ Suivi Offres : 📎 avec le nombre de fichiers ; « غير مشروع » absent
+  ✔ Factures : رقم الفاتورة | رقم المشروع | تاريخ الإرسال | آخر أجل | جواب الحريف | المبلغ والعملة | 📎 | ملاحظة الفاتورة
+  ✔ Factures : 📎 1 + ملاحظة الفاتورة affichés
+  ✔ 📎 de la facture → ouvre la facture (ses fichiers)
+  ✔ fenêtre « 🧾 فواتير العرض » : même ordre de colonnes
 
 Tous les contrôles navigateur sont passés.
 
@@ -1410,19 +1430,17 @@ Tous les contrôles navigateur sont passés.
 
 === TOUS LES TESTS SONT PASSÉS ===
 
-######## release-check 1.5.3 -> 1.6.0 ########
-######## 1. Installation vierge : /home/user/nedra/dist/protecta-suivi-1.6.0.zip ########
+######## release-check 1.6.0 -> 1.6.1 ########
+######## 1. Installation vierge : /home/user/nedra/dist/protecta-suivi-1.6.1.zip ########
+Téléverser le thème : OK
+Thème actif : protecta-suivi 1.6.1
+######## 2. Mise à jour depuis protecta-suivi-1.6.0.zip avec données ########
 Téléverser le thème : OK
 Thème actif : protecta-suivi 1.6.0
-######## 2. Mise à jour depuis protecta-suivi-1.5.3.zip avec données ########
-Téléverser le thème : OK
-Thème actif : protecta-suivi 1.5.3
 Données de test insérées (projet PRJ-2026-001, comptes wafa et idara, fichier, listes personnalisées)
-Photographie : 1 projet(s), 106 valeurs de listes
+Photographie : 1 projet(s), 110 valeurs de listes
 Mise à jour (remplacer le thème) : OK
-Listes : 4 valeur(s) ajoutée(s) (non_project_reason)
-Réglages ajoutés : invoice_reply_days, alerts_enabled
-Thème après mise à jour : 1.6.0 · base v7
+Thème après mise à jour : 1.6.1 · base v7
 AUCUNE PERTE : projets, أصناف, intervenants, sociétés, suivis, fichiers, journal, listes, réglages et comptes identiques
 ######## Navigateur ########
 Installation vierge (zip final) — http://localhost:8082

@@ -136,40 +136,50 @@ PS.items = (function () {
 	}
 
 	/** Factures de l'offre + fichier joint de l'offre (1.6.0). */
-	function extrasCell(r) {
-		const inv = r.invoices || { total: 0, late: 0 };
-		return html`<span class="ps-row ps-row--tight ps-nowrap">
-			<button type="button" class="ps-btn ps-btn--small ${inv.late ? 'ps-btn--danger' : ''}" data-invoices title="${PS.t('الفواتير')}">🧾 ${inv.total}${inv.late ? html` <span class="ps-badge ps-badge--danger">${inv.late}</span>` : ''}</button>
-			<button type="button" class="ps-btn ps-btn--small" data-offer-files title="${PS.t('ملفات العرض')}">📎 ${r.filesCount || ''}</button>
-		</span>`;
+	/** 📎 fichiers de l'offre : icône + nombre (1.6.1 : colonne à part). */
+	function filesCell(r) {
+		return html`<button type="button" class="ps-btn ps-btn--small ps-nowrap" data-offer-files title="${PS.t('ملفات العرض')}" aria-label="${PS.t('ملفات العرض')}">📎 ${r.filesCount || 0}</button>`;
 	}
+
+	/** 🧾 factures de l'offre (nombre, badge rouge si retard). */
+	function invoicesCell(r) {
+		const inv = r.invoices || { total: 0, late: 0 };
+		return html`<button type="button" class="ps-btn ps-btn--small ps-nowrap ${inv.late ? 'ps-btn--danger' : ''}" data-invoices title="${PS.t('الفواتير')}">🧾 ${inv.total}${inv.late ? html` <span class="ps-badge ps-badge--danger">${inv.late}</span>` : ''}</button>`;
+	}
+
+	/*
+	 * 1.6.1 (demande du client) : colonnes importantes d'abord — رقم المشروع، رقم فاتورة العرض، المسؤول، المتابع،
+	 * تاريخ الإرسال، حالة العرض، 📎، ملاحظة العرض — puis الصنف، موظف الصنف، الاستعجال، الأجل، 🧾.
+	 */
+	const HEADERS = [PS.t('رقم المشروع'), PS.t('رقم فاتورة العرض'), PS.t('المسؤول عن المشروع'), PS.t('الموظف المتابع'), PS.t('تاريخ الإرسال'), PS.t('حالة العرض'), '📎', PS.t('ملاحظة العرض'), PS.t('الصنف'), PS.t('موظف الصنف'), PS.t('الاستعجال'), PS.t('الأجل المطلوب'), PS.t('🧾 الفواتير')];
 
 	function rowHtml(r) {
 		const cls = r.computed.rowColor === 'late' ? 'is-late' : r.computed.rowColor === 'done' ? 'is-done' : '';
 		return html`<tr class="${cls}" data-row="${r.id}">
-			<td>${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo })}</td>
+			<td>${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo }, { numberFirst: true })}</td>
+			<td>${input(r, 'offerInvoiceNo', 'text', 'ps-input--code')}</td>
+			<td>${assignCell(r, 'responsibleEmpId')}</td>
+			<td>${assignCell(r, 'followerEmpId')}</td>
+			<td>${input(r, 'offerDate', 'date')}</td>
+			<td>${statusCell(r)}</td>
+			<td>${filesCell(r)}</td>
+			<td>${input(r, 'offerNotes', 'text')}</td>
 			<td>${L.label(r.itemTypeId)}${r.quantity ? html` <span class="ps-muted">×${F.number(r.quantity)}</span>` : ''}</td>
 			<td>${L.label(r.employeeId)}</td>
 			<td>${L.badge(r.urgencyId)}</td>
 			<td>${F.date(r.dueDate)}${r.computed.late ? html` <span class="ps-badge ps-badge--danger">${PS.t('لازم قرار')}</span>` : ''}</td>
-			<td>${input(r, 'offerDate', 'date')}</td>
-			<td>${statusCell(r)}</td>
-			<td>${input(r, 'offerInvoiceNo', 'text', 'ps-input--code')}</td>
-			<td>${assignCell(r, 'responsibleEmpId')}</td>
-			<td>${assignCell(r, 'followerEmpId')}</td>
-			<td>${input(r, 'offerNotes', 'text')}</td>
-			<td>${extrasCell(r)}</td>
+			<td>${invoicesCell(r)}</td>
 		</tr>`;
 	}
 
 	function cardHtml(r) {
 		const cls = r.computed.rowColor === 'late' ? 'is-late' : r.computed.rowColor === 'done' ? 'is-done' : '';
 		return html`<div class="ps-icard ${cls}" data-row="${r.id}">
-			<div class="ps-pcard__top">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo })} ${L.badge(r.urgencyId)} ${r.computed.late ? html`<span class="ps-badge ps-badge--danger">${PS.t('لازم قرار')}</span>` : ''}</div>
+			<div class="ps-pcard__top">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo }, { numberFirst: true })} ${L.badge(r.urgencyId)} ${r.computed.late ? html`<span class="ps-badge ps-badge--danger">${PS.t('لازم قرار')}</span>` : ''}</div>
 			<div class="ps-pcard__name">${L.label(r.itemTypeId)}</div>
 			<div class="ps-small ps-muted">${L.label(r.employeeId)} · ${PS.t('الأجل')} ${F.date(r.dueDate)}</div>
 			<div class="ps-small ps-muted">${PS.t('المسؤول')}: ${L.label(r.responsibleEmpId)} · ${PS.t('المتابع')}: ${L.label(r.followerEmpId)}</div>
-			<div class="ps-icard__edit">${statusCell(r)} ${extrasCell(r)}</div>
+			<div class="ps-icard__edit">${statusCell(r)} ${filesCell(r)} ${invoicesCell(r)}</div>
 		</div>`;
 	}
 
@@ -184,7 +194,7 @@ PS.items = (function () {
 		}
 		box.innerHTML = html`<p class="ps-muted ps-small" role="status">${d.total} ${PS.t('صنف ·')} <span class="ps-legend ps-legend--late"></span> ${PS.t('متأخر (لازم قرار) ·')} <span class="ps-legend ps-legend--done"></span> ${PS.t('مقبول')}</p>
 			<div class="ps-table-wrap ps-desktop-only"><table class="ps-table ps-table--list ps-table--edit">
-				<thead><tr><th>${PS.t('رقم المشروع')}</th><th>${PS.t('الصنف')}</th><th>${PS.t('الموظف المسؤول')}</th><th>${PS.t('الاستعجال')}</th><th>${PS.t('الأجل المطلوب')}</th><th>${PS.t('تاريخ تقديم العرض')}</th><th>${PS.t('الحالة')}</th><th>${PS.t('رقم فاتورة العرض')}</th><th>${PS.t('المسؤول عن المشروع')}</th><th>${PS.t('الموظف المتابع')}</th><th>${PS.t('ملاحظة العرض')}</th><th>${PS.t('الفواتير / الملفات')}</th></tr></thead>
+				<thead><tr>${HEADERS.map(function (h) { return html`<th>${h}</th>`; })}</tr></thead>
 				<tbody>${d.rows.map(rowHtml)}</tbody></table></div>
 			<div class="ps-cards ps-mobile-only">${d.rows.map(cardHtml)}</div>`.html;
 	}

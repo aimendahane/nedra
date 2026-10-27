@@ -133,8 +133,8 @@ async function step2(browser) {
 	await page.waitForSelector('.ps-table--list tbody tr');
 	check('3 projets listés', (await page.textContent('[data-results] [role=status]')).includes('3'));
 	const headers = await page.$$eval('.ps-table--list thead th', (e) => e.map((x) => x.textContent.trim()));
-	// 1.5.0 (demande du client) : le projet (nom puis numéro) en 1re colonne, puis les colonnes du cahier §4.
-	check('colonnes : المشروع d\'abord, puis السنة … رابط ملف المشاريع', headers[0].startsWith('المشروع') && headers[1].startsWith('السنة') && headers.some((h) => h.startsWith('رابط ملف المشاريع')), headers.slice(0, 3).join('|'));
+	// 1.6.1 (demande du client) : رقم المشروع، الاسم، مشروع؟ … puis les autres colonnes du cahier §4.
+	check('colonnes : رقم المشروع، الاسم، مشروع؟ d\'abord … رابط ملف المشاريع', headers[0].startsWith('رقم المشروع') && headers[1].startsWith('الاسم') && headers[2].startsWith('مشروع؟') && headers.some((h) => h.startsWith('رابط ملف المشاريع')), headers.slice(0, 4).join('|'));
 	await page.screenshot({ path: SHOTS + '/s2-04-base-projets.png', fullPage: true });
 	await page.fill('[data-search]', 'مستشفي');
 	await page.waitForTimeout(900);
@@ -916,11 +916,11 @@ async function step11(browser) {
 	const { ctx, page } = await newPage(browser, 'idara');
 	await go(page, '#/projets');
 	await page.waitForSelector('.ps-table tbody tr');
-	const first = await page.$eval('.ps-table tbody tr td .ps-ptitle', (a) => ({ name: a.querySelector('.ps-ptitle__name').textContent, no: a.querySelector('.ps-ptitle__no').textContent, bold: getComputedStyle(a.querySelector('.ps-ptitle__name')).fontWeight }));
-	check('Base Projets : nom du projet en gras puis numéro en petit (1re colonne)', first.name.length > 2 && /PRJ-\d{4}-\d+|P\d+/.test(first.no) && Number(first.bold) >= 700, JSON.stringify(first));
+	const first = await page.$eval('.ps-table tbody tr', (tr) => ({ name: tr.querySelector('.ps-ptitle__name').textContent, no: tr.querySelector('.ps-pno').textContent, bold: getComputedStyle(tr.querySelector('.ps-ptitle__name')).fontWeight }));
+	check('Base Projets : رقم المشروع (1re colonne) puis le nom en gras (1.6.1)', first.name.length > 2 && /PRJ-\d{4}-\d+|P\d+/.test(first.no) && Number(first.bold) >= 700, JSON.stringify(first));
 	await page.fill('[data-search]', first.no.trim());
 	await page.waitForTimeout(900);
-	const found = await page.$$eval('.ps-table tbody .ps-ptitle__no', (n) => n.map((x) => x.textContent.trim()));
+	const found = await page.$$eval('.ps-table tbody .ps-pno', (n) => n.map((x) => x.textContent.trim()));
 	check('recherche par numéro : le projet est trouvé', found.length >= 1 && found.includes(first.no.trim()), found.join(','));
 	await page.click('.ps-table tbody .ps-ptitle');
 	await page.waitForSelector('.ps-ptitle-h1');
@@ -1088,7 +1088,7 @@ async function step14(browser) {
 	await go(page, '#/projets?isProject=0');
 	await page.waitForSelector('.ps-table tbody tr');
 	const rows = await page.$$eval('.ps-table tbody tr', (t) => t.map((r) => r.textContent));
-	check('Base Projets : filtre « غير مشروع » + badge', rows.length === 1 && /غير مشروع/.test(rows[0]), rows.join(' | ').slice(0, 200));
+	check('Base Projets : filtre « غير مشروع » + colonne مشروع؟ = لا', rows.length === 1 && /🚫 لا/.test(rows[0]), rows.join(' | ').slice(0, 200));
 	await go(page, '#/offres');
 	await page.waitForSelector('.ps-table tbody tr');
 	const offerText = await page.textContent('.ps-table');
@@ -1157,7 +1157,95 @@ async function step14(browser) {
 	await m.ctx.close();
 }
 
-const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14 };
+/* Version 1.6.1 : ordre des champs (fiche) et des colonnes (Base Projets, Suivi Offres, Factures) demandé par le client. */
+async function step15(browser) {
+	console.log('1.6.1 — ترتيب الخانات والأعمدة');
+	const { ctx, page } = await newPage(browser, 'idara');
+	const heads = async () => (await page.$$eval('.ps-table thead th', (e) => e.map((x) => x.textContent.replace(/[▲▼]/g, '').trim()))).filter((x) => x);
+	// Données : un projet « لا » + une facture avec fichier.
+	await page.evaluate(async () => {
+		const L = (await PS.api.get('lists')).lists, id = (k, l) => L[k].find((v) => v.label === l || v.code === l).id;
+		await PS.api.post('projects', { isProject: 0, nonProjectReasonId: id('non_project_reason', 'خارج الاختصاص'), offerNo: 'OFR-NP-15', name: 'طلب غير مشروع 15', receivedDate: '2026-10-05',
+			responsibleEmpId: id('employee', 'وليد جدير'), followerEmpId: id('employee', 'محمد حسين'), placeId: id('place', 'T'), categoryId: id('category', 'إنارة'), urgencyId: id('urgency', 'U'), sourceId: id('source', 'direct'),
+			parties: { owner: { companyName: 'شركة المثال', person: 'سالم', phone: '0912345678' }, executor: { companyName: 'شركة التنفيذ' }, direct: { person: 'خالد', phone: '0921112233' } },
+			items: [{ itemTypeId: id('item_type', 'UPS'), employeeId: id('employee', 'محمد حسين'), dueDate: '2026-10-25' }], confirmDuplicates: true });
+		const row = (await PS.api.get('items?view=offers&perPage=500')).rows.find((r) => /2026/.test(r.projectNo));
+		const inv = await PS.api.post('items/' + row.id + '/invoices', { invoiceNo: 'FAC-15-001', sentDate: '2026-10-01', amount: '1500', note: 'ملاحظة الفاتورة 15' });
+		const fd = new FormData();
+		fd.append('file', new Blob(['%PDF-1.4'], { type: 'application/pdf' }), 'facture.pdf');
+		fd.append('invoiceId', inv.id);
+		await PS.api.post('projects/' + row.projectId + '/files', fd);
+	});
+
+	// Fiche projet : 📎 الملفات المرفقة tout en haut, puis « مشروع؟ », motif juste dessous si « لا ».
+	await go(page, '#/projet');
+	await page.waitForSelector('[data-section="files"]');
+	const order = await page.$$eval('[data-section="files"], [data-section="is-project"], [data-bind="name"], [data-bind="offerNo"]', (e) => e.map((x) => x.dataset.section || x.dataset.bind));
+	check('fiche : 📎 الملفات ثم مشروع؟ ثم رقم العرض / اسم المشروع', order.join(',') === 'files,is-project,offerNo,name', order.join(','));
+	await page.check('input[name="isProject"][value="0"]');
+	await page.waitForSelector('[data-section="is-project"] [data-bind="nonProjectReasonId"]');
+	check('« لا » : السبب affiché immédiatement sous la case (même bloc)', !!(await page.$('[data-section="is-project"] [data-bind="nonProjectNote"]')));
+	await page.screenshot({ path: SHOTS + '/s15-01-fiche.png', fullPage: true });
+	// Projet existant : fichiers en haut de l'onglet البيانات.
+	const pid = await page.evaluate(async () => (await PS.api.get('projects?q=' + encodeURIComponent('طلب غير مشروع 15'))).rows[0].id);
+	await go(page, '#/projet?id=' + pid);
+	await page.waitForSelector('[data-top-files] [data-file]', { state: 'attached', timeout: 8000 });
+	const topOrder = await page.$$eval('[data-top-files], [data-section="is-project"], [data-bind="name"]', (e) => e.map((x) => x.hasAttribute('data-top-files') ? 'files' : (x.dataset.section || x.dataset.bind)));
+	check('projet existant : الملفات en haut de البيانات, puis مشروع؟, puis le reste', topOrder.join(',') === 'files,is-project,name', topOrder.join(','));
+
+	// Base Projets.
+	await go(page, '#/projets');
+	await page.waitForSelector('.ps-table--list tbody tr');
+	const bp = await heads();
+	check('Base Projets : رقم المشروع | الاسم | مشروع؟ | سبب عدم الاعتبار | المسؤول | المتابع | تاريخ الاستلام | الحالة', bp.slice(0, 8).join('|') === 'رقم المشروع|الاسم|مشروع؟|سبب عدم الاعتبار|المسؤول عن المشروع|الموظف المتابع|تاريخ الاستلام|الحالة', bp.slice(0, 9).join('|'));
+	check('Base Projets : filtre « مشروع؟ » visible sans ouvrir les filtres', await page.isVisible('[data-filter="isProject"]'));
+	await page.click('.ps-sort[data-sort="isProject"]');
+	await page.waitForTimeout(800);
+	await page.click('.ps-sort[data-sort="isProject"]');
+	await page.waitForTimeout(800);
+	const firstCells = await page.$$eval('.ps-table--list tbody tr', (t) => t.slice(0, 1).map((r) => [r.children[3].textContent.trim(), r.children[4].textContent.trim()]));
+	check('« مشروع؟ » triable : le projet « لا » en tête, avec son motif', /لا/.test(firstCells[0][0]) && /خارج الاختصاص/.test(firstCells[0][1]), JSON.stringify(firstCells));
+	const yesRow = await page.$$eval('.ps-table--list tbody tr', (t) => t.map((r) => [r.children[3].textContent.trim(), r.children[4].textContent.trim()]).find((c) => /نعم/.test(c[0])));
+	check('projet « نعم » : colonne سبب vide', yesRow && yesRow[1] === '', JSON.stringify(yesRow));
+	await page.selectOption('[data-filter="isProject"]', '0');
+	await page.waitForTimeout(800);
+	check('filtre « مشروع؟ = لا » → seulement les « غير مشروع »', (await page.$$eval('.ps-table--list tbody tr', (t) => t.every((r) => /🚫/.test(r.textContent)))));
+	await page.screenshot({ path: SHOTS + '/s15-02-base-projets.png' });
+
+	// Suivi Offres.
+	await go(page, '#/offres');
+	await page.waitForSelector('.ps-table tbody tr');
+	const so = await heads();
+	check('Suivi Offres : رقم المشروع | رقم فاتورة العرض | المسؤول | المتابع | تاريخ الإرسال | حالة العرض | 📎 | ملاحظة العرض', so.slice(0, 8).join('|') === 'رقم المشروع|رقم فاتورة العرض|المسؤول عن المشروع|الموظف المتابع|تاريخ الإرسال|حالة العرض|📎|ملاحظة العرض', so.join('|'));
+	const firstCell = await page.$eval('.ps-table tbody tr td .ps-ptitle', (a) => a.firstElementChild.className);
+	check('Suivi Offres : le NUMÉRO du projet d\'abord (nom en petit)', firstCell === 'ps-ptitle__num', firstCell);
+	check('Suivi Offres : 📎 avec le nombre de fichiers ; « غير مشروع » absent', /📎 \d+/.test(await page.textContent('.ps-table tbody tr td:nth-child(7)')) && !/طلب غير مشروع 15/.test(await page.textContent('.ps-table')));
+	await page.screenshot({ path: SHOTS + '/s15-03-offres.png' });
+
+	// Factures.
+	await go(page, '#/factures?status=all');
+	await page.waitForSelector('[data-results] tr[data-inv]');
+	const fa = await heads();
+	check('Factures : رقم الفاتورة | رقم المشروع | تاريخ الإرسال | آخر أجل | جواب الحريف | المبلغ والعملة | 📎 | ملاحظة الفاتورة', fa.slice(0, 8).join('|') === 'رقم الفاتورة|رقم المشروع|تاريخ الإرسال|آخر أجل|جواب الحريف|المبلغ والعملة|📎|ملاحظة الفاتورة', fa.join('|'));
+	const r1 = await page.textContent('[data-results] tr[data-inv]');
+	check('Factures : 📎 1 + ملاحظة الفاتورة affichés', /📎 1/.test(r1) && /ملاحظة الفاتورة 15/.test(r1), r1.replace(/\s+/g, ' ').slice(0, 200));
+	await page.screenshot({ path: SHOTS + '/s15-04-factures.png' });
+	await page.click('[data-results] tr[data-inv] button.ps-btn');
+	await page.waitForSelector('.ps-modal [name=invoiceNo]');
+	check('📎 de la facture → ouvre la facture (ses fichiers)', /facture\.pdf/.test(await page.textContent('.ps-modal')));
+	await page.click('.ps-modal [data-btn=close]');
+	// Fenêtre « 🧾 » d'une offre : même ordre.
+	await go(page, '#/offres');
+	await page.waitForSelector('.ps-table tbody tr');
+	const btn = await page.$('.ps-table tbody tr:has-text("PRJ-2026") [data-invoices]');
+	await btn.click();
+	await page.waitForSelector('.ps-modal table');
+	const mh = (await page.$$eval('.ps-modal thead th', (e) => e.map((x) => x.textContent.trim()))).filter((x) => x);
+	check('fenêtre « 🧾 فواتير العرض » : même ordre de colonnes', mh.slice(0, 8).join('|') === fa.slice(0, 8).join('|'), mh.join('|'));
+	await ctx.close();
+}
+
+const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15 };
 
 (async () => {
 	const browser = await chromium.launch();

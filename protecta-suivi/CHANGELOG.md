@@ -3,6 +3,23 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.6.1 — 2026-10-27 · base v7 — Ordre des champs et des colonnes (validé par le client)
+
+Aucune migration, aucune donnée touchée : seuls l'ordre et l'affichage changent (docs/BRIEF.md, « Correction validée »).
+- **Fiche projet** : 📎 الملفات المرفقة tout en haut (projet existant : en haut de l'onglet البيانات), puis
+  « مشروع؟ نعم / لا » dans son propre bloc, le motif et sa note juste dessous si « لا » ; ensuite le reste.
+- **Base Projets** : رقم المشروع | الاسم | **مشروع؟** (vraie colonne, triable) | سبب عدم الاعتبار (vide si نعم) |
+  المسؤول عن المشروع (nouvelle colonne) | الموظف المتابع | تاريخ الاستلام | الحالة | puis les autres. Filtre
+  « مشروع؟ » toujours visible dans la barre. Colonne « رقم » (doublon) retirée.
+- **Suivi Offres** : رقم المشروع (numéro d'abord, nom en petit) | رقم فاتورة العرض | المسؤول | المتابع | تاريخ الإرسال |
+  حالة العرض | 📎 (nombre de fichiers) | ملاحظة العرض | puis الصنف، موظف الصنف، الاستعجال، الأجل، 🧾.
+- Dates lisibles dans les tableaux modifiables (champ jj/mm/aaaa complet).
+- **Factures** (page + fenêtre 🧾) : رقم الفاتورة | رقم المشروع | تاريخ الإرسال | آخر أجل | جواب الحريف |
+  المبلغ والعملة | 📎 (nombre de fichiers, API filesCount) | ملاحظة الفاتورة | puis الصنف، الموظف المتابع.
+- Exports CSV / Excel : مشروع؟، سبب، المسؤول ajoutés (Base Projets) ; المسؤول، المتابع، nombre de factures (Offres),
+  en fin de fichier (l'ordre d'origine du fichier Excel reste réimportable).
+- Tests : étape navigateur step15 (ordre de chaque écran, tri / filtre « مشروع؟ », 📎).
+
 ## 1.6.0 — 2026-10-27 · base v7 — Fiche Projet, Offres, Factures, alertes Telegram
 
 Migration 7 (ajouts seulement : ADD COLUMN / CREATE TABLE ; projets existants = « مشروع = نعم ») :
