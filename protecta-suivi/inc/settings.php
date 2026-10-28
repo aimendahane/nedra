@@ -26,7 +26,8 @@ function ps_default_settings(): array {
 		'duplicate_window_days' => 60,  // Détection de doublons : fenêtre en jours.
 		'creator_edit_hours'    => 24,  // Le créateur d'un projet peut modifier ses infos pendant N heures.
 		'file_max_mb'           => 20,  // 1.5.0 : taille maximale d'un fichier joint (Mo).
-		'invoice_reply_days'    => 15,  // 1.6.0 : آخر أجل للرد = تاريخ إرسال الفاتورة + N jours (calculé, jamais stocké).
+		'invoice_reply_days'    => 15,  // 1.6.0 : آخر أجل للرد proposé = تاريخ إرسال الفاتورة + N jours (1.11.0 : modifiable).
+		'invoice_remind_days'   => 15,  // 1.11.0 : après آخر أجل, rappel tous les N jours tant que le client n'a pas répondu.
 
 		// E-mail récapitulatif du matin (étape 5).
 		'digest_enabled' => false,

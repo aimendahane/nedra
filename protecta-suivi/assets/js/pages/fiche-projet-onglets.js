@@ -201,8 +201,8 @@ PS.projectTabs = (function () {
 		delivery_due_date: PS.t('أجل التسليم'), delivery_actual_date: PS.t('التسليم الفعلي'), delivery_status_id: PS.t('حالة التسليم'), delivery_notes: PS.t('ملاحظات التسليم'),
 		date: PS.t('التاريخ'), entry_date: PS.t('التاريخ'), text: PS.t('النص'), next_date: PS.t('المتابعة القادمة'),
 		// 1.6.0
-		is_project: PS.t('مشروع؟'), non_project_reason_id: PS.t('سبب عدم اعتباره مشروعا'), non_project_note: PS.t('ملاحظة (غير مشروع)'), project_note: PS.t('ملاحظة المشروع'),
-		invoice_no: PS.t('رقم الفاتورة'), answer: PS.t('جواب الحريف'), amount: PS.t('المبلغ'), currency_id: PS.t('العملة'), sent_date_invoice: PS.t('تاريخ إرسال الفاتورة'),
+		is_project: PS.t('مشروع؟'), non_project_reason_id: PS.t('سبب عدم اعتباره مشروعا'), non_project_note: PS.t('ملاحظة (مشروع مُلغى)'), project_note: PS.t('ملاحظة المشروع'),
+		invoice_no: PS.t('رقم الفاتورة'), answer: PS.t('جواب الحريف'), amount: PS.t('المبلغ'), currency_id: PS.t('العملة'), sent_date_invoice: PS.t('تاريخ إرسال الفاتورة'), reply_deadline: PS.t('آخر أجل للرد'),
 	};
 	const ROLES = { owner: PS.t('المالك'), executor: PS.t('الشركة المنفذة'), direct: PS.t('الشخص المباشر'), broker: PS.t('الوسيط') };
 	const PARTY_COLS = { company_id: PS.t('الشركة'), person: PS.t('الشخص'), email: PS.t('الإيميل'), phone: PS.t('الهاتف'), address: PS.t('العنوان'), position: PS.t('المنصب'), rank_title: PS.t('الرتبة'), margin: PS.t('هامش الربح'), location: PS.t('الموقع') };

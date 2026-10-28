@@ -69,21 +69,25 @@ PS.invoices = (function () {
 	 * Formulaire d'une facture (nouvelle : inv = null). → Promise<facture enregistrée | null>
 	 */
 	function form(ctx, inv, opts) {
+		const days = PS.config.settings.invoiceReplyDays;
+		const plus = function (iso, n) { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 		const v = inv || { invoiceNo: '', sentDate: PS.config.today, answer: 'pending', amount: null, currencyId: (L.byCode('currency', 'LYD') || {}).id, note: '' };
+		// 1.11.0 : « آخر أجل للرد » saisi (proposé : date d'envoi + N jours, suit la date d'envoi tant qu'on ne l'a pas changé).
+		const deadline = (inv && (inv.replyDeadline || inv.computed.deadline)) || plus(v.sentDate, days);
 		const ro = inv && !inv.canEdit;
 		const dis = ro ? ui.raw(' disabled') : '';
-		const days = PS.config.settings.invoiceReplyDays;
 		let saved = null;
 		return ui.modal({
 			title: inv ? PS.t('الفاتورة') + ' ' + inv.invoiceNo : PS.t('فاتورة جديدة'),
 			wide: !(opts && opts.drawer),
 			drawer: !!(opts && opts.drawer), // 1.7.0 : panneau latéral depuis la page « الفواتير »
-			body: html`<p class="ps-small ps-muted">${PS.t('المشروع')}: <strong>${ctx.projectName || ''}</strong> <span dir="ltr">${ctx.projectNo || ''}</span> · ${PS.t('الصنف')}: ${L.label(ctx.itemTypeId)}</p>
+			body: html`<p class="ps-small ps-muted">${PS.t('العرض')}: <strong>${ctx.projectName || ''}</strong> <span dir="ltr">${ctx.projectNo || ''}</span>${(ctx.itemTypeIds || []).length ? html` · ${PS.t('الأصناف')}: ${ctx.itemTypeIds.map(L.label).join(PS.t('، '))}` : ''}</p>
+				<p class="ps-small ps-muted">${PS.t('الفاتورة تخص العرض كاملًا (كل أصناف المشروع).')}</p>
 				<div class="ps-grid" data-inv-form>
 					<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('رقم الفاتورة *')}</span><input name="invoiceNo" data-key="invoiceNo" dir="ltr" value="${v.invoiceNo}"${dis}></label>
 					<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('تاريخ إرسال الفاتورة *')}</span><input type="date" name="sentDate" data-key="sentDate" value="${v.sentDate || ''}"${dis}></label>
-					<div class="ps-field"><span class="ps-field__label">${PS.t('آخر أجل للرد')}</span><output data-deadline class="ps-input" style="display:block">${inv ? deadlineHtml(inv) : ''}</output>
-						<span class="ps-small ps-muted">${PS.t('محسوب تلقائيًا: تاريخ الإرسال +')} ${days} ${PS.t('يوم')}</span></div>
+					<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('آخر أجل للرد *')}</span><input type="date" name="replyDeadline" data-key="replyDeadline" value="${deadline}"${dis}>
+						<span class="ps-small ps-muted">${PS.t('مقترح: تاريخ الإرسال +')} ${days} ${PS.t('يوم')} · ${PS.t('تذكير كل')} ${PS.config.settings.invoiceRemindDays || 15} ${PS.t('يوم بعده حتى الرد')}</span>${inv ? html`<span class="ps-small">${deadlineHtml(inv)}</span>` : ''}</label>
 					<label class="ps-field"><span class="ps-field__label">${PS.t('جواب الحريف')}</span><select name="answer" data-key="answer"${dis}>${ui.raw(Object.keys(PS.config.invoiceAnswers).map(function (k) { return '<option value="' + k + '"' + (k === v.answer ? ' selected' : '') + '>' + ui.esc(answerLabel(k)) + '</option>'; }).join(''))}</select></label>
 					<label class="ps-field"><span class="ps-field__label">${PS.t('المبلغ (اختياري)')}</span><input type="number" step="any" min="0" name="amount" data-key="amount" value="${v.amount === null || v.amount === undefined ? '' : v.amount}"${dis}></label>
 					<label class="ps-field"><span class="ps-field__label">${PS.t('العملة')}</span><select name="currencyId" data-key="currencyId"${dis}>${ui.raw(L.options('currency', v.currencyId, { noEmpty: true }))}</select></label>
@@ -96,6 +100,16 @@ PS.invoices = (function () {
 			buttons: (ro ? [] : [{ id: 'save', label: PS.t('💾 حفظ'), kind: 'primary' }])
 				.concat(inv && inv.canDelete ? [{ id: 'delete', label: PS.t('حذف'), kind: 'danger' }] : [])
 				.concat([{ id: 'close', label: PS.t('إغلاق') }]),
+			onOpen: function (wrap) {
+				const sent = wrap.querySelector('[name="sentDate"]');
+				const dl = wrap.querySelector('[name="replyDeadline"]');
+				if (!sent || !dl) return;
+				let touched = !!(inv && inv.replyDeadline);
+				dl.addEventListener('change', function () { touched = true; });
+				const follow = function () { if (!touched && sent.value) dl.value = plus(sent.value, days); };
+				sent.addEventListener('change', follow);
+				sent.addEventListener('input', follow);
+			},
 			onButton: function (id, wrap, close) {
 				const f = function (n) { return wrap.querySelector('[name="' + n + '"]'); };
 				if (id === 'delete') {
@@ -106,8 +120,16 @@ PS.invoices = (function () {
 					return false;
 				}
 				if (id !== 'save') return true;
-				const body = { invoiceNo: f('invoiceNo').value, sentDate: f('sentDate').value, answer: f('answer').value, amount: f('amount').value, currencyId: f('currencyId').value ? Number(f('currencyId').value) : null, note: f('note').value };
-				if (!body.invoiceNo.trim() || !body.sentDate) { ui.showErrors(wrap, { invoiceNo: body.invoiceNo.trim() ? '' : PS.t('خانة إجبارية'), sentDate: body.sentDate ? '' : PS.t('خانة إجبارية') }); ui.toast(PS.t('يرجى تعبئة الخانات الإجبارية'), 'error'); return false; }
+				const body = { invoiceNo: f('invoiceNo').value, sentDate: f('sentDate').value, replyDeadline: f('replyDeadline').value, answer: f('answer').value, amount: f('amount').value, currencyId: f('currencyId').value ? Number(f('currencyId').value) : null, note: f('note').value };
+				if (!body.invoiceNo.trim() || !body.sentDate || !body.replyDeadline) {
+					const e = {};
+					if (!body.invoiceNo.trim()) e.invoiceNo = PS.t('خانة إجبارية');
+					if (!body.sentDate) e.sentDate = PS.t('خانة إجبارية');
+					if (!body.replyDeadline) e.replyDeadline = PS.t('خانة إجبارية');
+					ui.showErrors(wrap, e);
+					ui.toast(PS.t('يرجى تعبئة الخانات الإجبارية'), 'error');
+					return false;
+				}
 				const req = inv ? PS.api.put('invoices/' + inv.id, body) : PS.api.post('items/' + ctx.itemId + '/invoices', body);
 				const files = wrap.querySelector('[data-inv-upload]');
 				req.then(function (r) {
@@ -144,8 +166,9 @@ PS.invoices = (function () {
 		['amount', PS.t('المبلغ والعملة'), function (v) { return html`<span dir="ltr">${v.amount !== null ? F.money(v.amount, L.code(v.currencyId)) : ''}</span>`; }, true],
 		['files', '📎', function (v, open) { return btnOpen(v, open, '📎 ' + (v.filesCount || 0), 'ps-btn ps-btn--small ps-nowrap', PS.t('ملفات الفاتورة')); }, true],
 		['note', PS.t('ملاحظة الفاتورة'), function (v) { return html`<span class="ps-clip" title="${v.note || ''}">${v.note || ''}</span>`; }, true],
-		['itemTypeId', PS.t('الصنف'), function (v) { return L.label(v.itemTypeId); }, false],
-		['followerEmpId', PS.t('الموظف المتابع'), function (v) { return L.label(v.followerEmpId); }, false],
+		// 1.11.0 : la facture couvre toute l'offre → toutes ses أصناف ; toutes les colonnes visibles (demande du client).
+		['itemTypeId', PS.t('الأصناف'), function (v) { return (v.itemTypeIds || []).map(L.label).join(PS.t('، ')); }, true],
+		['followerEmpId', PS.t('الموظف المتابع'), function (v) { return L.label(v.followerEmpId); }, true],
 	];
 	const NOWRAP = { sentDate: 1, deadline: 1, amount: 1 };
 
@@ -162,7 +185,7 @@ PS.invoices = (function () {
 	/** Fiche d'une facture (lien des alertes : #/factures/ID). */
 	function open(id, opts) {
 		return PS.api.get('invoices/' + id).then(function (inv) {
-			return form({ projectName: inv.projectName, projectNo: inv.projectNo, itemTypeId: inv.itemTypeId, itemId: inv.itemId }, inv, opts);
+			return form({ projectName: inv.projectName, projectNo: inv.projectNo, itemTypeIds: inv.itemTypeIds, itemId: inv.itemId }, inv, opts);
 		}).catch(function (e) { ui.toast(e.message, 'error'); return null; });
 	}
 
@@ -171,6 +194,8 @@ PS.invoices = (function () {
 		const ctx = { projectName: row.projectName, projectNo: row.projectNo, itemTypeId: row.itemTypeId, itemId: row.id };
 		const canAdd = row.canEdit || (PS.config.user.employeeId && row.followerEmpId === PS.config.user.employeeId);
 		return PS.api.get('invoices?itemId=' + row.id).then(function (d) {
+			// 1.11.0 : les factures de l'offre ENTIÈRE (toutes ses أصناف).
+			if (d.rows[0]) ctx.itemTypeIds = d.rows[0].itemTypeIds;
 			return ui.modal({
 				title: PS.t('🧾 فواتير العرض'),
 				wide: true,
@@ -272,7 +297,7 @@ PS.invoices = (function () {
 		}
 		const cols = ui.visibleColumns('factures', PS.invoices.colDefs()).map(function (c) { return c.col; });
 		const open = function (id) { return 'data-open="' + id + '"'; };
-		box.innerHTML = html`${head}<p class="ps-muted ps-small" role="status">${d.total} ${PS.t('فاتورة')} · ${PS.t('آخر أجل للرد = تاريخ الإرسال +')} ${d.replyDays} ${PS.t('يوم')}</p>
+		box.innerHTML = html`${head}<p class="ps-muted ps-small" role="status">${d.total} ${PS.t('فاتورة')} · ${PS.t('آخر أجل يُكتب في كل فاتورة (مقترح: الإرسال +')} ${d.replyDays} ${PS.t('يوم)')} · ${PS.t('تذكير كل')} ${PS.config.settings.invoiceRemindDays || 15} ${PS.t('يوم بعده حتى الرد')}</p>
 			<div class="ps-table-wrap ps-desktop-only"><table class="ps-table ps-table--list ps-table--clickable">
 				<thead>${PS.invoices.headRow(false, cols)}</thead>
 				<tbody>${d.rows.map(function (v) {

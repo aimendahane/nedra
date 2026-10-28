@@ -33,6 +33,7 @@ function ps_migrations(): array {
 		5 => 'ps_migration_005_broker_margin',
 		6 => 'ps_migration_006_files_drive',
 		7 => 'ps_migration_007_invoices',
+		8 => 'ps_migration_008_invoice_deadline',
 	);
 	return apply_filters( 'ps_migrations', $migrations );
 }
@@ -116,6 +117,16 @@ function ps_migration_007_invoices(): void {
 	ps_seed_lists();   // nouvelle liste non_project_reason (remplie une seule fois)
 	ps_init_settings(); // nouveaux réglages : délai de réponse, interrupteur des alertes (clés manquantes seulement)
 	ps_register_roles();
+}
+
+/**
+ * Migration 8 (1.11.0) : « آخر أجل للرد » saisi à la main (ps_invoices.reply_deadline, ajout seulement) ; réglage
+ * « تذكير كل N يوم » (invoice_remind_days, clé manquante seulement). Les factures existantes ne sont pas touchées
+ * (reply_deadline vide = échéance calculée comme avant).
+ */
+function ps_migration_008_invoice_deadline(): void {
+	ps_apply_schema();
+	ps_init_settings();
 }
 
 /**

@@ -62,7 +62,7 @@
 	const STATE_VALUE = { yes: '1', no: '0', pending: '2' };
 	function ynBadge(r) {
 		const s = stateOf(r);
-		if (s === 'no') return html`<span class="ps-badge ps-badge--muted" data-non-project>🚫 ${PS.t('لا')}</span>`;
+		if (s === 'no') return html`<span class="ps-badge ps-badge--muted" data-non-project>🚫 ${PS.t('مشروع مُلغى')}</span>`;
 		if (s === 'pending') return html`<span class="ps-badge ps-badge--warning" data-pending>⏳ ${PS.t('لم يُحدد بعد')}</span>`;
 		return html`<span class="ps-badge ps-badge--success">✔ ${PS.t('نعم')}</span>`;
 	}
@@ -310,7 +310,7 @@
 				{ value: '', label: PS.t('الكل'), count: f.yes + f.no + f.pending },
 				{ value: '1', label: PS.t('مشروع'), count: f.yes },
 				{ value: '2', label: PS.t('⏳ بانتظار القرار'), count: f.pending, tone: f.pending ? 'warning' : '' },
-				{ value: '0', label: PS.t('🚫 غير مشروع'), count: f.no, tone: 'muted' },
+				{ value: '0', label: PS.t('🚫 مشروع مُلغى'), count: f.no, tone: 'muted' },
 			], st.params.isProject)}
 			<span class="ps-row ps-row--tight">
 				${PS.router.can('ps_delete') && !st.params.trash ? html`<button type="button" class="ps-btn ps-btn--ghost ps-btn--small" data-action="trash-open">🗑 ${PS.t('سلة المحذوفات')}</button>` : ''}

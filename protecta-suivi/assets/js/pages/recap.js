@@ -202,7 +202,7 @@
 		const k = d.kpis;
 		const c = d.compare;
 		return html`<div class="ps-kpis">
-			${kpi(PS.t('عدد المشاريع'), k.projects, c.projects, { sub: k.cancelled ? PS.t('ملغى: ') + k.cancelled + PS.t(' (غير محسوبة)') : PS.t('ملغى: 0'), link: 'projets' })}
+			${kpi(PS.t('عدد المشاريع'), k.projects, c.projects, { sub: k.cancelled ? PS.t('أصناف ملغاة: ') + k.cancelled + PS.t(' (غير محسوبة)') : PS.t('أصناف ملغاة: 0'), link: 'projets' })}
 			${kpi(PS.t('المؤكدة'), k.confirmed, c.confirmed, { cls: 'ps-kpi--good', link: 'projets|followupType=confirmed' })}
 			${kpi(PS.t('المرفوضة'), k.rejected, c.rejected, { inverse: true, cls: 'ps-kpi--bad', link: 'projets|followupType=rejected' })}
 			${kpi(PS.t('قيد الدراسة'), k.ongoing, c.ongoing, { link: 'projets|followupType=ongoing' })}
@@ -214,7 +214,7 @@
 			${kpi(PS.t('التسليمات المتأخرة'), k.lateDeliveries, c.lateDeliveries, { inverse: true, cls: k.lateDeliveries ? 'ps-kpi--bad' : '', link: 'livraison|deliveryLate=1' })}
 			${amountsKpi(PS.t('مبالغ العروض'), k.amounts, c.amounts)}
 			${amountsKpi(PS.t('مبالغ المشاريع المؤكدة'), k.confirmedAmounts, c.confirmedAmounts)}
-			${kpi(PS.t('غير مشروع'), k.nonProjects || 0, c.nonProjects, { sub: PS.t('محسوبة على حدة (خارج العروض ونسبة النجاح)'), link: 'projets|isProject=0', cls: 'ps-kpi--muted' })}
+			${kpi(PS.t('🚫 مشروع مُلغى'), k.nonProjects || 0, c.nonProjects, { sub: PS.t('محسوبة على حدة (خارج العروض ونسبة النجاح)'), link: 'projets|isProject=0', cls: 'ps-kpi--muted' })}
 			${k.pendingProjects ? kpi(PS.t('⏳ بانتظار القرار'), k.pendingProjects, c.pendingProjects, { sub: PS.t('«مشروع؟» لم يُحدد بعد (خارج العروض)'), link: 'projets|isProject=2', cls: 'ps-kpi--muted' }) : ''}
 		</div>`;
 	}

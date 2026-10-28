@@ -2,14 +2,16 @@
 /**
  * Factures (version 1.6.0) — table ps_invoices.
  *
- * Une facture est liée à une OFFRE (= un صنف de Suivi Offres). Plusieurs factures par offre sont possibles
- * (paiements en tranches) ; chacune a son propre suivi.
+ * Une facture est liée à une OFFRE. 1.11.0 (demande du client) : l'offre = le عرض ENTIER du projet (une offre peut
+ * contenir plusieurs أصناف) → item_id = 0. Les factures d'avant 1.11.0 gardent leur صنف (item_id > 0) et restent
+ * affichées avec leur projet. Plusieurs factures par offre sont possibles (paiements en tranches).
  *
  * Champs : رقم الفاتورة (unique dans le système), تاريخ إرسال الفاتورة (obligatoire), جواب الحريف
  * (pending = في الانتظار par défaut / yes = نعم / no = لا), مبلغ + عملة (facultatifs, jamais additionnés entre
  * devises), ملاحظة الفاتورة, fichiers joints (ps_files.invoice_id).
  *
- * « آخر أجل للرد » n'est PAS stocké : calculé (inc/calculs.php) = date d'envoi + réglage invoice_reply_days.
+ * « آخر أجل للرد » (1.11.0) : saisi à la main (reply_deadline), proposé = date d'envoi + réglage invoice_reply_days ;
+ * vide pour les anciennes factures → calculé comme avant (ps_invoice_deadline).
  *
  * Droits :
  *   - voir : tout compte de l'application (comme les projets, décision n°1) ;
@@ -40,10 +42,42 @@ function ps_invoice_reply_days(): int {
 	return max( 0, (int) ps_setting( 'invoice_reply_days' ) );
 }
 
+/** « آخر أجل للرد » d'une facture : saisi (reply_deadline) sinon date d'envoi + N jours (anciennes factures). */
+function ps_invoice_deadline( array $r, ?int $days = null ): string {
+	return ! empty( $r['reply_deadline'] ) ? (string) $r['reply_deadline'] : ps_calc_invoice_deadline( $r['sent_date'], $days ?? ps_invoice_reply_days() );
+}
+
 /**
- * Peut ajouter / modifier les factures de cette offre.
+ * Peut ajouter / modifier les factures de l'OFFRE ENTIÈRE d'un projet (1.11.0) : الإدارة, المسؤول (ou le créateur
+ * pendant 24 h), le المسؤول / المتابع du projet, et tout employé qui a un صنف de cette offre (ou en est
+ * المسؤول / المتابع au niveau du صنف).
+ */
+function ps_invoice_can_edit_offer( array $project, int $user_id ): bool {
+	static $cache = array();
+	if ( empty( $project['id'] ) || ! empty( $project['deleted_at'] ) ) {
+		return false;
+	}
+	$key = $user_id . ':' . (int) $project['id'];
+	if ( isset( $cache[ $key ] ) ) {
+		return $cache[ $key ];
+	}
+	$ok = null !== ps_project_edit_reason( $project, $user_id );
+	$emp = ps_user_employee_id( $user_id );
+	if ( ! $ok && $emp ) {
+		global $wpdb;
+		$ok = in_array( $emp, array( (int) $project['responsible_emp_id'], (int) $project['follower_emp_id'] ), true )
+			|| (bool) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . ps_table( 'items' ) . ' WHERE project_id = %d AND ( employee_id = %d OR responsible_emp_id = %d OR follower_emp_id = %d ) LIMIT 1', (int) $project['id'], $emp, $emp, $emp ) );
+	}
+	return $cache[ $key ] = $ok;
+}
+
+/**
+ * Peut ajouter / modifier les factures de cette offre (item_id = 0 : l'offre entière, voir ci-dessus).
  */
 function ps_invoice_can_edit( array $item, array $project, int $user_id ): bool {
+	if ( empty( $item['id'] ) ) {
+		return ps_invoice_can_edit_offer( $project, $user_id );
+	}
 	if ( ps_item_can_edit( $item, $project, $user_id ) ) {
 		return true;
 	}
@@ -95,6 +129,21 @@ function ps_invoice_input( array $b, ?array $existing = null ) {
 			$set['sent_date'] = $d;
 		}
 	}
+	// 1.11.0 : « آخر أجل للرد » saisi ; vide → date d'envoi + N jours (proposé par l'interface).
+	if ( $has( 'replyDeadline' ) || ( null === $existing && isset( $set['sent_date'] ) ) ) {
+		$dl = ps_clean_text( $b['replyDeadline'] ?? null );
+		if ( null !== $dl && ! ps_is_valid_date( $dl ) ) {
+			$errors['replyDeadline'] = ps__( 'تاريخ غير صحيح' );
+		} else {
+			$sent = $set['sent_date'] ?? ( $existing['sent_date'] ?? null );
+			$dl   = $dl ?? ( $sent ? ps_calc_invoice_deadline( $sent, ps_invoice_reply_days() ) : null );
+			if ( $dl && $sent && $dl < $sent ) {
+				$errors['replyDeadline'] = ps__( 'آخر أجل للرد قبل تاريخ إرسال الفاتورة' );
+			} else {
+				$set['reply_deadline'] = $dl;
+			}
+		}
+	}
 	if ( $has( 'answer' ) ) {
 		$a = (string) ( $b['answer'] ?? 'pending' );
 		$a = '' === $a ? 'pending' : $a;
@@ -131,9 +180,9 @@ function ps_invoice_input( array $b, ?array $existing = null ) {
 }
 
 /**
- * Crée une facture pour une offre. @return int|WP_Error
+ * Crée une facture pour l'OFFRE ENTIÈRE d'un projet (1.11.0 : item_id = 0). @return int|WP_Error
  */
-function ps_invoice_create( array $item, array $b, int $user_id ) {
+function ps_invoice_create( array $project, array $b, int $user_id ) {
 	global $wpdb;
 	$set = ps_invoice_input( $b );
 	if ( is_wp_error( $set ) ) {
@@ -147,8 +196,8 @@ function ps_invoice_create( array $item, array $b, int $user_id ) {
 	$ok = $wpdb->insert(
 		ps_table( 'invoices' ),
 		$set + array(
-			'project_id' => (int) $item['project_id'],
-			'item_id'    => (int) $item['id'],
+			'project_id' => (int) $project['id'],
+			'item_id'    => 0, // 1.11.0 : facture de l'offre entière
 			'created_by' => $user_id,
 			'updated_by' => $user_id,
 			'created_at' => $now,
@@ -160,7 +209,7 @@ function ps_invoice_create( array $item, array $b, int $user_id ) {
 		return new WP_Error( 'ps_validation', ps__( 'يرجى تصحيح الخانات المعلّمة' ), array( 'status' => 422, 'errors' => array( 'invoiceNo' => ps__( 'رقم الفاتورة مستعمل في فاتورة أخرى' ) ) ) );
 	}
 	$id = (int) $wpdb->insert_id;
-	ps_log( (int) $item['project_id'], 'create', 'invoice', $id, null, null, $set['invoice_no'], $user_id );
+	ps_log( (int) $project['id'], 'create', 'invoice', $id, null, null, $set['invoice_no'], $user_id );
 	return $id;
 }
 
@@ -218,16 +267,22 @@ function ps_invoices_list( array $args, int $user_id, ?string $today = null ): a
 	$days  = ps_invoice_reply_days();
 	$where = array( 'v.deleted_at IS NULL', 'p.deleted_at IS NULL' );
 	$q_args = array();
-	foreach ( array( 'id' => 'v.id', 'itemId' => 'v.item_id', 'projectId' => 'v.project_id' ) as $k => $col ) {
+	// 1.11.0 : itemId = les factures de l'OFFRE de ce صنف (toute l'offre du projet, anciennes factures du صنف comprises).
+	$filters = array(
+		'id'        => 'v.id = %d',
+		'itemId'    => 'v.project_id = (SELECT project_id FROM ' . ps_table( 'items' ) . ' WHERE id = %d)',
+		'projectId' => 'v.project_id = %d',
+	);
+	foreach ( $filters as $k => $cond ) {
 		if ( ! empty( $args[ $k ] ) ) {
-			$where[]  = "$col = %d";
+			$where[]  = $cond;
 			$q_args[] = (int) $args[ $k ];
 		}
 	}
 	$sql  = 'SELECT v.*, i.item_type_id, i.employee_id, i.offer_invoice_no, i.responsible_emp_id AS i_responsible, i.follower_emp_id AS i_follower,
 			p.project_no, p.name AS project_name, p.legacy_id, p.responsible_emp_id, p.follower_emp_id, p.created_by AS p_created_by, p.created_at AS p_created_at, p.deleted_at AS p_deleted_at
 		FROM ' . ps_table( 'invoices' ) . ' v
-		JOIN ' . ps_table( 'items' ) . ' i ON i.id = v.item_id
+		LEFT JOIN ' . ps_table( 'items' ) . ' i ON i.id = v.item_id
 		JOIN ' . ps_table( 'projects' ) . ' p ON p.id = v.project_id
 		WHERE ' . implode( ' AND ', $where ) . ' ORDER BY v.sent_date, v.id';
 	$rows = $q_args ? $wpdb->get_results( $wpdb->prepare( $sql, $q_args ), ARRAY_A ) : $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore
@@ -247,9 +302,20 @@ function ps_invoices_list( array $args, int $user_id, ?string $today = null ): a
 			$files[ (int) $f['invoice_id'] ] = (int) $f['n'];
 		}
 	}
+	// 1.11.0 : أصناف de l'offre (une facture couvre toute l'offre du projet).
+	$types = array();
+	if ( $rows ) {
+		$pids = implode( ',', array_map( 'intval', array_unique( array_column( $rows, 'project_id' ) ) ) );
+		foreach ( $wpdb->get_results( 'SELECT project_id, item_type_id FROM ' . ps_table( 'items' ) . " WHERE project_id IN ($pids) ORDER BY id", ARRAY_A ) as $it ) { // phpcs:ignore
+			if ( $it['item_type_id'] ) {
+				$types[ (int) $it['project_id'] ][] = (int) $it['item_type_id'];
+			}
+		}
+	}
 	foreach ( $rows as $r ) {
-		$api               = ps_invoice_to_api( $r, $user_id, $today, $days );
-		$api['filesCount'] = $files[ (int) $r['id'] ] ?? 0;
+		$api                = ps_invoice_to_api( $r, $user_id, $today, $days );
+		$api['filesCount']  = $files[ (int) $r['id'] ] ?? 0;
+		$api['itemTypeIds'] = $api['itemId'] ? array_filter( array( $api['itemTypeId'] ) ) : array_values( array_unique( $types[ (int) $r['project_id'] ] ?? array() ) );
 		if ( '' !== (string) $emp && (int) $emp !== (int) $api['followerEmpId'] ) {
 			continue;
 		}
@@ -300,7 +366,7 @@ function ps_invoices_list( array $args, int $user_id, ?string $today = null ): a
 function ps_invoice_to_api( array $r, int $user_id, ?string $today = null, ?int $days = null ): array {
 	$today    = $today ?? ps_today();
 	$days     = $days ?? ps_invoice_reply_days();
-	$deadline = ps_calc_invoice_deadline( $r['sent_date'], $days );
+	$deadline = ps_invoice_deadline( $r, $days );
 	$project  = array(
 		'id'                 => (int) $r['project_id'],
 		'responsible_emp_id' => $r['responsible_emp_id'],
@@ -322,6 +388,7 @@ function ps_invoice_to_api( array $r, int $user_id, ?string $today = null, ?int 
 		'offerInvoiceNo'   => $r['offer_invoice_no'],
 		'invoiceNo'        => $r['invoice_no'],
 		'sentDate'         => $r['sent_date'],
+		'replyDeadline'    => $r['reply_deadline'] ?? null, // 1.11.0 : saisi (null = ancienne facture, calculé)
 		'answer'           => $r['answer'],
 		'answerDate'       => $r['answer_date'],
 		'amount'           => null === $r['amount'] ? null : (float) $r['amount'],
@@ -357,11 +424,11 @@ function ps_invoice_stats( array $project_ids, ?string $today = null ): array {
 		return $out;
 	}
 	$ids  = implode( ',', array_map( 'intval', $project_ids ) );
-	$rows = $wpdb->get_results( 'SELECT answer, sent_date, amount, currency_id FROM ' . ps_table( 'invoices' ) . " WHERE deleted_at IS NULL AND project_id IN ($ids)", ARRAY_A ); // phpcs:ignore
+	$rows = $wpdb->get_results( 'SELECT answer, sent_date, reply_deadline, amount, currency_id FROM ' . ps_table( 'invoices' ) . " WHERE deleted_at IS NULL AND project_id IN ($ids)", ARRAY_A ); // phpcs:ignore
 	foreach ( $rows as $r ) {
 		++$out['total'];
 		++$out[ $r['answer'] ];
-		if ( ps_calc_invoice_late( $r['answer'], ps_calc_invoice_deadline( $r['sent_date'], $days ), $today ) ) {
+		if ( ps_calc_invoice_late( $r['answer'], ps_invoice_deadline( $r, $days ), $today ) ) {
 			++$out['late'];
 		}
 	}

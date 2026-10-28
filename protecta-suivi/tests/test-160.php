@@ -86,7 +86,7 @@ foreach ( array( 'responsible_emp_id', 'follower_emp_id' ) as $col ) {
 	ps_assert( (bool) $wpdb->get_var( "SHOW COLUMNS FROM " . ps_table( 'items' ) . " LIKE '$col'" ), "ps_items.$col ajoutée (المسؤول / المتابع de l'offre)" );
 }
 ps_assert( $wpdb->get_var( "SHOW TABLES LIKE '" . ps_table( 'invoices' ) . "'" ) && $wpdb->get_var( "SHOW TABLES LIKE '" . ps_table( 'alerts' ) . "'" ), 'tables ps_invoices et ps_alerts créées' );
-ps_assert( 7 === (int) get_option( 'ps_db_version' ), 'ps_db_version = 7' );
+ps_assert( 7 <= (int) get_option( 'ps_db_version' ), 'ps_db_version ≥ 7' );
 $reasons = array_column( ps_lists_all()['non_project_reason'] ?? array(), 'label' );
 ps_assert( array( 'غير مؤكد', 'خارج الاختصاص', 'معلومات غير كافية', 'أخرى' ) === $reasons, 'liste « سبب عدم اعتباره مشروعا » : valeurs par défaut', implode( ', ', $reasons ) );
 ps_assert( 15 === (int) ps_setting( 'invoice_reply_days' ) && true === (bool) ps_setting( 'alerts_enabled' ), 'réglages : délai de réponse 15 j, « تفعيل التنبيهات » activé' );
@@ -214,11 +214,15 @@ $one = fn( $id ) => ps_invoices_list( array( 'id' => $id ), $adm, '2026-10-30' )
 ps_assert( 'yes' === $one( $f1['id'] )['answer'] && false === $one( $f1['id'] )['computed']['late'] && 'pending' === $one( $f2['id'] )['answer'] && true === $one( $f2['id'] )['computed']['late'] && 5 === $one( $f2['id'] )['computed']['daysLate'], 'chaque facture a son propre suivi (1 répondue, 2 en retard de 5 j au 30/10)' );
 ps_assert( null !== $one( $f1['id'] )['answerDate'], 'date de la réponse retenue' );
 
-// Changer N recalcule les échéances SANS toucher aux dates d'envoi.
+// 1.11.0 : آخر أجل saisi (proposé +N) → changer N ne touche pas aux factures enregistrées ; une ANCIENNE facture
+// (sans échéance saisie) garde le calcul d'avant (date d'envoi + N).
 $settings = get_option( 'ps_settings' );
 $settings['invoice_reply_days'] = 20;
 update_option( 'ps_settings', $settings );
-ps_assert( '2026-10-30' === $one( $f2['id'] )['computed']['deadline'] && '2026-10-10' === $wpdb->get_var( $wpdb->prepare( 'SELECT sent_date FROM ' . ps_table( 'invoices' ) . ' WHERE id = %d', $f2['id'] ) ), 'N = 20 : échéance recalculée (30/10), date d\'envoi inchangée (10/10)' );
+ps_assert( '2026-10-25' === $one( $f2['id'] )['computed']['deadline'] && '2026-10-10' === $wpdb->get_var( $wpdb->prepare( 'SELECT sent_date FROM ' . ps_table( 'invoices' ) . ' WHERE id = %d', $f2['id'] ) ), 'N = 20 : échéance saisie inchangée (25/10), date d\'envoi inchangée (10/10)' );
+$wpdb->update( ps_table( 'invoices' ), array( 'reply_deadline' => null ), array( 'id' => $f2['id'] ) );
+ps_assert_same( '2026-10-30', $one( $f2['id'] )['computed']['deadline'], 'ancienne facture (sans échéance saisie) : calculée = envoi + N (30/10)' );
+$wpdb->update( ps_table( 'invoices' ), array( 'reply_deadline' => '2026-10-25' ), array( 'id' => $f2['id'] ) );
 $settings['invoice_reply_days'] = 15;
 update_option( 'ps_settings', $settings );
 
@@ -233,7 +237,7 @@ $req = new WP_REST_Request( 'POST', '/' . PS_REST_NS . '/projects/' . $p_yes['id
 $req->set_param( 'invoiceId', $f2['id'] );
 $req->set_file_params( array( 'file' => array( 'name' => 'facture.pdf', 'tmp_name' => $tmp, 'size' => filesize( $tmp ), 'error' => 0 ) ) );
 $fr = rest_get_server()->dispatch( $req );
-ps_assert( 200 === $fr->get_status() && $f2['id'] === $fr->get_data()['invoiceId'] && $item['id'] === $fr->get_data()['itemId'], 'fichier joint à la facture (lié aussi à l\'offre)' );
+ps_assert( 200 === $fr->get_status() && $f2['id'] === $fr->get_data()['invoiceId'] && null === $fr->get_data()['itemId'], 'fichier joint à la facture (facture de l\'offre entière : pas de صنف)' );
 ps_assert( 1 === count( ps_test_json( 'GET', '/invoices/' . $f2['id'] )->get_data()['files'] ), 'fiche facture : son fichier' );
 wp_set_current_user( $emp );
 ps_assert_same( 403, ps_test_json( 'DELETE', '/invoices/' . $f2['id'] )->get_status(), 'retirer une facture : refusé au موظف (même المتابع)' );
@@ -279,7 +283,10 @@ ps_tg_poll();
 /* ------------------------------------------------------------------ */
 ps_test_section( '1.6.0 : alertes des factures (J-3, jour J, retard, sans doublon)' );
 
-// Facture 2 : envoyée le 10/10 → آخر أجل 25/10. L'offre a pour متابع « هاشم الخراز » ($emp, lié à Telegram 3001).
+// Facture 2 : envoyée le 10/10 → آخر أجل 25/10. 1.11.0 : la facture suit l'offre ENTIÈRE → destinataire = le
+// المتابع du PROJET ; on le règle sur « هاشم الخراز » ($emp, lié à Telegram 3001).
+$p_fol = $wpdb->get_var( $wpdb->prepare( 'SELECT follower_emp_id FROM ' . ps_table( 'projects' ) . ' WHERE id = %d', $p_yes['id'] ) );
+$wpdb->update( ps_table( 'projects' ), array( 'follower_emp_id' => ps_test_lid( 'employee', 'هاشم الخراز' ) ), array( 'id' => $p_yes['id'] ) );
 $tg['calls'] = array();
 $mails       = array();
 $run         = fn( $day ) => ps_alerts_run( $day );
@@ -299,28 +306,29 @@ ps_assert( 2 === count( $tg_msgs( 3001 ) ) && str_contains( $tg_msgs( 3001 )[1][
 $run( '2026-10-26' );
 $run( '2026-10-26' );
 $run( '2026-10-27' );
-ps_assert( 4 === count( $tg_msgs( 3001 ) ), 'retard : une alerte par jour au maximum (26/10 et 27/10)' );
-ps_assert_same( 'before,due,late,late', implode( ',', $wpdb->get_col( $wpdb->prepare( 'SELECT kind FROM ' . ps_table( 'alerts' ) . ' WHERE invoice_id = %d AND user_id = %d ORDER BY alert_day', $f2['id'], $emp ) ) ), 'envois enregistrés dans ps_alerts (un par type et par jour)' );
+ps_assert( 2 === count( $tg_msgs( 3001 ) ), '1.11.0 : après آخر أجل, pas de rappel chaque jour (26/10, 27/10 : rien)' );
+ps_assert_same( 'before,due', implode( ',', $wpdb->get_col( $wpdb->prepare( 'SELECT kind FROM ' . ps_table( 'alerts' ) . ' WHERE invoice_id = %d AND user_id = %d ORDER BY alert_day', $f2['id'], $emp ) ) ), 'envois enregistrés dans ps_alerts (un par type et par jour)' );
 // Réponse enregistrée → plus d'alerte.
 ps_test_json( 'PUT', '/invoices/' . $f2['id'], array( 'answer' => 'no' ) );
 $run( '2026-10-28' );
-ps_assert( 4 === count( $tg_msgs( 3001 ) ), 'réponse « لا » enregistrée → plus d\'alerte' );
+ps_assert( 2 === count( $tg_msgs( 3001 ) ), 'réponse « لا » enregistrée → plus d\'alerte' );
 ps_test_json( 'PUT', '/invoices/' . $f2['id'], array( 'answer' => 'pending' ) );
 // Interrupteur global.
 $opts                   = get_option( 'ps_settings' );
 $opts['alerts_enabled'] = false;
 update_option( 'ps_settings', $opts );
-ps_assert( 'off' === $run( '2026-10-29' )['status'] && 4 === count( $tg_msgs( 3001 ) ), '« تفعيل التنبيهات » désactivé → rien n\'est envoyé' );
+ps_assert( 'off' === $run( '2026-10-29' )['status'] && 2 === count( $tg_msgs( 3001 ) ), '« تفعيل التنبيهات » désactivé → rien n\'est envoyé' );
 $opts['alerts_enabled'] = true;
 update_option( 'ps_settings', $opts );
-// Destinataire de secours : المسؤول de l'offre quand le المتابع n'a pas de compte ; sans Telegram → e-mail.
+// Destinataire de secours : المسؤول du projet quand le المتابع n'a pas de compte ; sans Telegram → e-mail.
 $wpdb->insert( ps_table( 'lists' ), array( 'list_key' => 'employee', 'label' => 'موظف بلا حساب', 'sort_order' => 999, 'created_at' => ps_now(), 'updated_at' => ps_now() ) );
-$wpdb->update( ps_table( 'items' ), array( 'follower_emp_id' => (int) $wpdb->insert_id ), array( 'id' => $item['id'] ) );
-wp_update_user( array( 'ID' => $other_mgr, 'user_email' => 't16_mgr2@example.com' ) ); // المسؤول de l'offre (بدر ناجي), non lié à Telegram
+$p_resp = $wpdb->get_var( $wpdb->prepare( 'SELECT responsible_emp_id FROM ' . ps_table( 'projects' ) . ' WHERE id = %d', $p_yes['id'] ) );
+$wpdb->update( ps_table( 'projects' ), array( 'follower_emp_id' => (int) $wpdb->insert_id, 'responsible_emp_id' => ps_test_lid( 'employee', 'بدر ناجي' ) ), array( 'id' => $p_yes['id'] ) );
+wp_update_user( array( 'ID' => $other_mgr, 'user_email' => 't16_mgr2@example.com' ) ); // بدر ناجي, non lié à Telegram
 $mails = array();
 $run( '2026-10-30' );
-ps_assert( 1 === count( array_filter( $mails, fn( $m ) => 't16_mgr2@example.com' === $m['to'] && str_contains( $m['message'], 'F-2026-002' ) ) ), 'المتابع sans compte → المسؤول (de l\'offre) prévenu, par e-mail faute de Telegram' );
-$wpdb->update( ps_table( 'items' ), array( 'follower_emp_id' => $new_f ), array( 'id' => $item['id'] ) );
+ps_assert( 1 === count( array_filter( $mails, fn( $m ) => 't16_mgr2@example.com' === $m['to'] && str_contains( $m['message'], 'F-2026-002' ) ) ), 'المتابع sans compte → المسؤول (du projet) prévenu, par e-mail faute de Telegram' );
+$wpdb->update( ps_table( 'projects' ), array( 'follower_emp_id' => ps_test_lid( 'employee', 'هاشم الخراز' ), 'responsible_emp_id' => $p_resp ), array( 'id' => $p_yes['id'] ) );
 
 /* ------------------------------------------------------------------ */
 ps_test_section( '1.6.0 : Telegram indisponible (échec journalisé, e-mail de secours, nouvel essai)' );
@@ -328,15 +336,19 @@ ps_test_section( '1.6.0 : Telegram indisponible (échec journalisé, e-mail de s
 $tg['down'] = true;
 $mails      = array();
 $before     = count( $tg_msgs( 3001 ) );
-$a          = $run( '2026-10-31' );
-$fail       = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . ps_table( 'alerts' ) . " WHERE invoice_id = %d AND user_id = %d AND alert_day = '2026-10-31'", $f2['id'], $emp ), ARRAY_A );
+// 1.11.0 : rappel « retard » 15 jours après آخر أجل (25/10 + 15 = 09/11).
+ps_assert( 0 === $run( '2026-11-08' )['sent'] + $run( '2026-11-08' )['failed'], '08/11 : pas encore de rappel (14 jours après آخر أجل)' );
+$a          = $run( '2026-11-09' );
+$fail       = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . ps_table( 'alerts' ) . " WHERE invoice_id = %d AND user_id = %d AND alert_day = '2026-11-09'", $f2['id'], $emp ), ARRAY_A );
 ps_assert( 1 === $a['failed'] && 'failed' === $fail['status'] && str_contains( (string) $fail['error'], 'timed out' ), 'Telegram indisponible : échec journalisé (status failed + erreur)', wp_json_encode( $fail ) );
 ps_assert( 1 === (int) $fail['email_sent'] && 1 === count( array_filter( $mails, fn( $m ) => 't16_emp@example.com' === $m['to'] && str_contains( $m['message'], 'F-2026-002' ) ) ), 'e-mail de secours envoyé à l\'utilisateur' );
 $tg['down'] = false;
-$a          = $run( '2026-10-31' ); // Cron suivant
+$a          = $run( '2026-11-09' ); // Cron suivant
 $fail       = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . ps_table( 'alerts' ) . ' WHERE id = %d', $fail['id'] ), ARRAY_A );
 ps_assert( 1 === $a['retried'] && 'sent' === $fail['status'] && 2 === (int) $fail['tries'] && $before + 1 === count( $tg_msgs( 3001 ) ), 'Cron suivant : nouvel essai réussi, rien de perdu (et pas de doublon)' );
 ps_assert( 1 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . ps_table( 'invoices' ) . ' WHERE id = %d', $f2['id'] ) ), 'aucune donnée perdue (facture intacte)' );
+ps_assert( 'late' === $fail['kind'], '09/11 = 15 jours après آخر أجل : rappel « retard » (réglage تذكير كل 15 يوم)' );
+$wpdb->update( ps_table( 'projects' ), array( 'follower_emp_id' => $p_fol ), array( 'id' => $p_yes['id'] ) );
 ps_assert( str_contains( ps_cron_run(), 'alerts=ok' ), 'Cron : les alertes font partie de la tâche du matin' );
 
 /* ------------------------------------------------------------------ */

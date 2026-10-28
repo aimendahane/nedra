@@ -1,6 +1,6 @@
 ######## Tests PHP ########
 Site de test installé (thème : protecta-suivi)
-Thème v1.10.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
+Thème v1.11.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 
 == Activation : base de données ==
   ✔ ps_db_version = dernière migration
@@ -88,7 +88,7 @@ Thème v1.10.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ données de test en place
 
 == Mise à jour : version actuelle (migration 2) + migration simulée ==
-  ✔ ps_db_version passe à 8
+  ✔ ps_db_version passe à 9
   ✔ deuxième passage : aucune migration rejouée
   ✔ verrou de migration libéré
   ✔ une sauvegarde automatique créée AVANT la migration
@@ -138,6 +138,10 @@ Thème v1.10.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ journal : colonne « justification » ajoutée
   ✔ tables ps_invoices et ps_alerts créées vides
   ✔ liste « سبب عدم اعتباره مشروعا » remplie une fois
+
+== Migration 8 (1.11.0) : آخر أجل للرد saisi, rappel tous les N jours ==
+  ✔ ps_invoices.reply_deadline ajoutée (ajout seulement)
+  ✔ réglage « تذكير كل N يوم » ajouté (15)
 
 == Mise à jour : listes et réglages de la الإدارة conservés ==
   ✔ valeur renommée : nom conservé
@@ -790,9 +794,9 @@ Thème v1.10.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ inc/i18n/en.json : JSON valide
   ✔ inc/i18n/fr.json : JSON valide
   ✔ en.json et fr.json ont exactement les mêmes clés
-  ✔ en : chaque texte de l'interface a sa traduction (1204 textes)
+  ✔ en : chaque texte de l'interface a sa traduction (1212 textes)
   ✔ en : traductions non vides, sans arabe, mêmes %s / %d que l'original
-  ✔ fr : chaque texte de l'interface a sa traduction (1204 textes)
+  ✔ fr : chaque texte de l'interface a sa traduction (1212 textes)
   ✔ fr : traductions non vides, sans arabe, mêmes %s / %d que l'original
 
 == Langues : traduction côté serveur ==
@@ -1002,7 +1006,7 @@ Thème v1.10.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ ps_items.responsible_emp_id ajoutée (المسؤول / المتابع de l'offre)
   ✔ ps_items.follower_emp_id ajoutée (المسؤول / المتابع de l'offre)
   ✔ tables ps_invoices et ps_alerts créées
-  ✔ ps_db_version = 7
+  ✔ ps_db_version ≥ 7
   ✔ liste « سبب عدم اعتباره مشروعا » : valeurs par défaut
   ✔ réglages : délai de réponse 15 j, « تفعيل التنبيهات » activé
 
@@ -1062,10 +1066,11 @@ Thème v1.10.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ facture 1 : جواب = نعم
   ✔ chaque facture a son propre suivi (1 répondue, 2 en retard de 5 j au 30/10)
   ✔ date de la réponse retenue
-  ✔ N = 20 : échéance recalculée (30/10), date d'envoi inchangée (10/10)
+  ✔ N = 20 : échéance saisie inchangée (25/10), date d'envoi inchangée (10/10)
+  ✔ ancienne facture (sans échéance saisie) : calculée = envoi + N (30/10)
   ✔ Recap factures : 1 en attente, 1 en retard, taux نعم 100 %
   ✔ montants séparés par devise (jamais additionnés)
-  ✔ fichier joint à la facture (lié aussi à l'offre)
+  ✔ fichier joint à la facture (facture de l'offre entière : pas de صنف)
   ✔ fiche facture : son fichier
   ✔ retirer une facture : refusé au موظف (même المتابع)
 
@@ -1087,17 +1092,19 @@ Thème v1.10.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ Cron relancé le même jour : aucun doublon
   ✔ 23/10 (J-2) : le rappel n'est pas répété
   ✔ 25/10 : alerte « jour de l'échéance »
-  ✔ retard : une alerte par jour au maximum (26/10 et 27/10)
+  ✔ 1.11.0 : après آخر أجل, pas de rappel chaque jour (26/10, 27/10 : rien)
   ✔ envois enregistrés dans ps_alerts (un par type et par jour)
   ✔ réponse « لا » enregistrée → plus d'alerte
   ✔ « تفعيل التنبيهات » désactivé → rien n'est envoyé
-  ✔ المتابع sans compte → المسؤول (de l'offre) prévenu, par e-mail faute de Telegram
+  ✔ المتابع sans compte → المسؤول (du projet) prévenu, par e-mail faute de Telegram
 
 == 1.6.0 : Telegram indisponible (échec journalisé, e-mail de secours, nouvel essai) ==
+  ✔ 08/11 : pas encore de rappel (14 jours après آخر أجل)
   ✔ Telegram indisponible : échec journalisé (status failed + erreur)
   ✔ e-mail de secours envoyé à l'utilisateur
   ✔ Cron suivant : nouvel essai réussi, rien de perdu (et pas de doublon)
   ✔ aucune donnée perdue (facture intacte)
+  ✔ 09/11 = 15 jours après آخر أجل : rappel « retard » (réglage تذكير كل 15 يوم)
   ✔ Cron : les alertes font partie de la tâche du matin
 
 == 1.6.0 : le token n'apparaît nulle part ==
@@ -1200,9 +1207,22 @@ Thème v1.10.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 == 1.10.0 : création sans « مشروع؟ » (l'interface envoie « لم يُحدد بعد ») ==
   ✔ nouveau projet : « ⏳ لم يُحدد بعد »
   ✔ API sans le champ (ancienne interface, import) : نعم comme avant
+  ✔ projet avec 2 أصناف
+
+== 1.11.0 : une facture pour l'offre entière ==
+  ✔ POST /projects/{id}/invoices
+  ✔ facture de l'offre : pas de صنف, les 2 أصناف affichés
+  ✔ آخر أجل للرد saisi (20/10) et utilisé
+  ✔ depuis un صنف : la facture suit l'offre entière ; آخر أجل vide → proposé (+15 j = 20/10)
+  ✔ les 2 factures visibles depuis chaque صنف de l'offre
+  ✔ Suivi Offres : 🧾 2 sur chaque ligne de l'offre
+  ✔ آخر أجل avant la date d'envoi → refusé
+  ✔ modifier آخر أجل
+  ✔ journal : changement de آخر أجل enregistré
+  ✔ nouvelle échéance (01/11) : pas en retard au 25/10
 
 ----------------------------------------
-Résultat : 985 réussis, 0 échoués
+Résultat : 1001 réussis, 0 échoués
 
 ######## Navigateur : fondations (étape 1) ########
 Page de connexion
@@ -1304,7 +1324,7 @@ Tous les contrôles navigateur sont passés.
 
 ######## Navigateur : step4 (jeu de démonstration) ########
 Étape 4 — Recap (الإدارة, jeu de démonstration)
-  ✔ عدد المشاريع 23 (ملغى: 1) avec comparaison 2025
+  ✔ عدد المشاريع 23 (أصناف ملغاة: 1) avec comparaison 2025
   ✔ نسبة النجاح 63.6 % ↑ 13.6 نقطة
   ✔ montants séparés par devise (LYD, USD, EUR, TND)
   ✔ 5 graphiques dessinés (mois, تصنيف, أصناف, مكان, أسباب…)
@@ -1586,6 +1606,21 @@ Tous les contrôles navigateur sont passés.
   ✔ le projet n'existe plus nulle part
   ✔ corbeille : « ↩ استرجاع » de la sélection → projets revenus
   ✔ موظف : ni 🗑 dans le panneau, ni corbeille, ni cases à cocher
+
+Tous les contrôles navigateur sont passés.
+
+######## Navigateur : step20 (jeu de démonstration) ########
+1.11.0 — الفواتير حسب العرض، آخر أجل يدوي، السرعة
+  ✔ offre de démonstration avec ≥ 2 أصناف
+  ✔ formulaire : « آخر أجل للرد » est un champ à saisir (proposé +15 j)
+  ✔ formulaire : « الفاتورة تخص العرض كاملًا »
+  ✔ la date proposée suit la date d'envoi (16/10/2026)
+  ✔ facture enregistrée pour l'offre entière (visible depuis chaque صنف), آخر أجل = 20/10
+  ✔ الفواتير : les 10 colonnes visibles (… الأصناف، الموظف المتابع)
+  ✔ الفواتير : آخر أجل saisi affiché (20/10/2026)
+  ✔ filtre « 🚫 مشروع مُلغى » (au lieu de « غير مشروع »)
+  ✔ vitesse : réponses JSON compressées (gzip)
+  ✔ vitesse : les listes viennent de la page (pas d'appel /lists)
 
 Tous les contrôles navigateur sont passés.
 

@@ -188,7 +188,7 @@ function ps_rest_file_upload( WP_REST_Request $r ) {
 			return new WP_Error( 'ps_upload', ps__( 'الفاتورة غير موجودة في هذا المشروع' ), array( 'status' => 400 ) );
 		}
 		$links['invoice_id'] = $inv;
-		$links['item_id']    = (int) $row['item_id'];
+		$links['item_id']    = (int) $row['item_id'] ?: null; // facture de l'offre entière (1.11.0) : pas de صنف
 	}
 	$id = ps_file_store( (int) $r['id'], $files['file'], get_current_user_id(), $r->get_param( 'displayName' ), $links );
 	if ( is_wp_error( $id ) ) {

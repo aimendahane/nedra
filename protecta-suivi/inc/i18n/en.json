@@ -1226,5 +1226,21 @@
 	"لا يُحذف نهائيًا إلا مشروع موجود في سلة المحذوفات.": "Only a project in the recycle bin can be deleted permanently.",
 	"نقل إلى سلة المحذوفات:": "Move to the recycle bin:",
 	"نُقل إلى سلة المحذوفات:": "Moved to the recycle bin:",
-	"يُحذف المشروع وكل بياناته (الأصناف، المتابعات، الفواتير…) نهائيًا. تُحفظ نسخة احتياطية كاملة قبل الحذف (يمكن التراجع من «استرجاع» في الإعدادات).": "The project and all its data (items, follow-ups, invoices…) are deleted permanently. A full backup is saved first (you can undo it with “Restore” in Settings)."
+	"يُحذف المشروع وكل بياناته (الأصناف، المتابعات، الفواتير…) نهائيًا. تُحفظ نسخة احتياطية كاملة قبل الحذف (يمكن التراجع من «استرجاع» في الإعدادات).": "The project and all its data (items, follow-ups, invoices…) are deleted permanently. A full backup is saved first (you can undo it with “Restore” in Settings).",
+	"آخر أجل للرد *": "Reply deadline *",
+	"آخر أجل للرد قبل تاريخ إرسال الفاتورة": "The reply deadline is before the invoice sending date",
+	"أصناف ملغاة:": "Cancelled items:",
+	"أصناف ملغاة: 0": "Cancelled items: 0",
+	"الفاتورة تخص العرض كاملًا (كل أصناف المشروع).": "The invoice covers the whole offer (all the project’s items).",
+	"تذكير بالفاتورة بعد آخر أجل: كل (أيام)": "Invoice reminder after the deadline: every (days)",
+	"تذكير كل": "Reminder every",
+	"مشروع مُلغى": "Cancelled project",
+	"مقترح: تاريخ الإرسال +": "Suggested: sending date +",
+	"ملاحظة (مشروع مُلغى)": "Note (cancelled project)",
+	"هذا الطلب مسجّل «مشروع مُلغى»: لا عروض ولا فواتير.": "This request is a “cancelled project”: no offers, no invoices.",
+	"يوم بعده حتى الرد": "days after it, until the answer",
+	"🚫 مشروع مُلغى": "🚫 Cancelled project",
+	"تظهر أول": "Showing the first",
+	"فقط — استعمل صفحة العروض أو المشاريع لرؤية الباقي.": "only — use the Offers or Projects page to see the rest.",
+	"آخر أجل يُكتب في كل فاتورة (مقترح: الإرسال +": "The deadline is entered on each invoice (suggested: sending +"
 }

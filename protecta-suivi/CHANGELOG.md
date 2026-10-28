@@ -3,6 +3,30 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.11.0 — 2026-10-28 · base v8 — Factures par offre, آخر أجل saisi, « مشروع مُلغى », vitesse
+
+Demande du client : « غير مشروع » → « مشروع مُلغى » ; « آخر أجل للرد » à saisir + rappel tous les 15 jours ; factures
+pour le عرض (devis) entier — une offre peut avoir plusieurs أصناف ; tableau des factures complet ; site plus rapide.
+Migration 8 (ajout seulement) : colonne `ps_invoices.reply_deadline`, réglage `invoice_remind_days` (15).
+- **« 🚫 مشروع مُلغى »** remplace « غير مشروع » partout (filtre, badges, Recap). Le compteur « ملغى » du Recap
+  (projets dont toutes les أصناف sont annulées) devient « أصناف ملغاة » pour ne pas confondre.
+- **Factures par offre** : une nouvelle facture couvre tout le عرض du projet (toutes ses أصناف) ; depuis n'importe
+  quelle ligne de l'offre (🧾), on voit et on ajoute les mêmes factures. Les anciennes factures (liées à un صنف) restent
+  telles quelles. Colonne « الأصناف » = tous les أصناف de l'offre.
+- **« آخر أجل للرد »** : champ à saisir (date proposée = date d'envoi + 15 jours, suit la date d'envoi tant qu'on ne la
+  change pas), modifiable, journalisé. Les anciennes factures gardent l'échéance calculée.
+- **Rappels** : avant (J-3) et le jour J comme avant, puis **un rappel tous les 15 jours** (réglage « تذكير كل N يوم »)
+  tant que le client n'a pas répondu — au lieu d'un rappel chaque jour. Un Cron manqué est rattrapé.
+- **Page « الفواتير »** : les 10 colonnes visibles par défaut (رقم الفاتورة … الأصناف، الموظف المتابع).
+- **Vitesse** (mesurée avec 600 projets) :
+  - réponses du serveur compressées (gzip) : Suivi Offres 263 Ko → 11 Ko, مهامي 240 Ko → 6 Ko ;
+  - listes de الإعدادات incluses dans la page : un appel de moins à chaque ouverture ;
+  - fichiers du thème (CSS, JS, polices, images) gardés en cache par le navigateur (`.htaccess` du thème) : à la 2e
+    visite, plus rien à retélécharger ;
+  - مهامي : 100 lignes au plus par bloc envoyées (le vrai nombre reste affiché).
+  Côté serveur : 1 à 15 requêtes SQL par appel, < 70 ms localement (pas de requêtes en boucle).
+- Tests : tests/test-1110.php, test-migrations (migration 8), test-160 adapté (rappel tous les 15 jours) ; step20.
+
 ## 1.10.0 — 2026-10-28 · base v7 — Création sans « مشروع؟ », suppression de projets par la الإدارة
 
 Demande du client : « pas besoin de choisir نعم / لا à la création — après, dans la colonne de « المشاريع » ;

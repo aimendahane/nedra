@@ -34,3 +34,26 @@ function ps_rest_permission( string $cap = 'ps_access' ): callable {
 		return true;
 	};
 }
+
+/*
+ * 1.11.0 (vitesse) — réponses JSON compressées (gzip) quand le navigateur l'accepte et que l'hébergeur ne le fait
+ * pas déjà : 5 à 10 fois moins de données (ex. مهامي 240 Ko → ~25 Ko). Jamais pour les téléchargements (fichiers,
+ * vocal, exports, sauvegardes : flux binaires, Range).
+ */
+add_filter(
+	'rest_pre_serve_request',
+	static function ( $served, $result, $request ) {
+		$route = (string) $request->get_route();
+		if ( str_starts_with( $route, '/' . PS_REST_NS . '/' ) && ! preg_match( '#/(files|voice|export|backup)#', $route ) && ps_rest_can_gzip() ) {
+			ob_start( 'ob_gzhandler' );
+		}
+		return $served;
+	},
+	10,
+	3
+);
+
+function ps_rest_can_gzip(): bool {
+	return ! headers_sent() && function_exists( 'ob_gzhandler' ) && ! ini_get( 'zlib.output_compression' )
+		&& str_contains( strtolower( (string) ( $_SERVER['HTTP_ACCEPT_ENCODING'] ?? '' ) ), 'gzip' ); // phpcs:ignore
+}

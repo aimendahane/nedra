@@ -235,13 +235,14 @@ function ps_items_list( array $args, int $user_id, ?string $today = null ): arra
 
 	// 1.6.0 : factures et fichiers de chaque offre (compteurs).
 	$inv_count = array();
-	foreach ( $wpdb->get_results( 'SELECT item_id, answer, sent_date FROM ' . ps_table( 'invoices' ) . ' WHERE deleted_at IS NULL', ARRAY_A ) as $v ) {
-		$k                = (int) $v['item_id'];
+	// 1.11.0 : une facture suit l'offre ENTIÈRE → compteurs par projet (chaque صنف de l'offre affiche les mêmes).
+	foreach ( $wpdb->get_results( 'SELECT project_id, answer, sent_date, reply_deadline FROM ' . ps_table( 'invoices' ) . ' WHERE deleted_at IS NULL', ARRAY_A ) as $v ) {
+		$k                = (int) $v['project_id'];
 		$inv_count[ $k ]  = $inv_count[ $k ] ?? array( 'total' => 0, 'pending' => 0, 'late' => 0 );
 		++$inv_count[ $k ]['total'];
 		if ( 'pending' === $v['answer'] ) {
 			++$inv_count[ $k ]['pending'];
-			$inv_count[ $k ]['late'] += ps_calc_invoice_late( 'pending', ps_calc_invoice_deadline( $v['sent_date'], ps_invoice_reply_days() ), $today ) ? 1 : 0;
+			$inv_count[ $k ]['late'] += ps_calc_invoice_late( 'pending', ps_invoice_deadline( $v ), $today ) ? 1 : 0;
 		}
 	}
 	$file_count = array();
@@ -345,7 +346,7 @@ function ps_items_list( array $args, int $user_id, ?string $today = null ): arra
 			'followerEmpId'      => ps_item_effective( $r, $project, 'follower_emp_id' ),
 			'assignOverride'     => ! empty( $r['responsible_emp_id'] ) || ! empty( $r['follower_emp_id'] ),
 			'canAssign'          => ps_item_can_assign( $project, $user_id ),
-			'invoices'           => $inv_count[ (int) $r['id'] ] ?? array( 'total' => 0, 'pending' => 0, 'late' => 0 ),
+			'invoices'           => $inv_count[ (int) $r['project_id'] ] ?? array( 'total' => 0, 'pending' => 0, 'late' => 0 ),
 			'filesCount'         => $file_count[ (int) $r['id'] ] ?? 0,
 			'computed'           => array(
 				'late'            => $late,

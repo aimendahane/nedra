@@ -15,6 +15,15 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/** Listes de الإعدادات (réponse de GET /lists ; 1.11.0 : aussi incluse dans la page pour éviter un aller-retour). */
+function ps_lists_payload(): array {
+	return array(
+		'labels'        => ps_list_labels(),
+		'followupTypes' => ps_followup_types(),
+		'lists'         => ps_lists_all(),
+	);
+}
+
 add_action( 'rest_api_init', 'ps_register_lists_routes' );
 function ps_register_lists_routes(): void {
 	register_rest_route(
@@ -23,13 +32,7 @@ function ps_register_lists_routes(): void {
 		array(
 			'methods'             => 'GET',
 			'permission_callback' => ps_rest_permission(),
-			'callback'            => static fn() => rest_ensure_response(
-				array(
-					'labels'        => ps_list_labels(),
-					'followupTypes' => ps_followup_types(),
-					'lists'         => ps_lists_all(),
-				)
-			),
+			'callback'            => static fn() => rest_ensure_response( ps_lists_payload() ),
 		)
 	);
 

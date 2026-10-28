@@ -5,7 +5,7 @@
  * Pour chaque facture encore « في الانتظار » (offre d'un projet « مشروع = نعم », non supprimé) :
  *   - « before » : rappel 3 jours avant آخر أجل للرد (une seule fois) ;
  *   - « due »    : le jour de l'échéance ;
- *   - « late »   : après l'échéance, UNE alerte par jour au maximum tant que la réponse n'est pas enregistrée.
+ *   - « late »   : après l'échéance, 1.11.0 : un rappel tous les N jours (invoice_remind_days, 15) tant que la réponse n'est pas enregistrée.
  * Règles de calcul : ps_calc_invoice_alert_kind() (inc/calculs.php).
  *
  * Destinataire : le الموظف المتابع de l'offre (comptes actifs liés à cet employé) ; à défaut, المسؤول عن المشروع.
@@ -115,7 +115,7 @@ function ps_alerts_run( ?string $today = null ): array {
 	$days = ps_invoice_reply_days();
 	$rows = $wpdb->get_results(
 		'SELECT v.*, p.project_no, p.responsible_emp_id, p.follower_emp_id, i.responsible_emp_id AS i_responsible_emp_id, i.follower_emp_id AS i_follower_emp_id
-		 FROM ' . ps_table( 'invoices' ) . ' v JOIN ' . ps_table( 'items' ) . ' i ON i.id = v.item_id JOIN ' . ps_table( 'projects' ) . " p ON p.id = v.project_id
+		 FROM ' . ps_table( 'invoices' ) . ' v LEFT JOIN ' . ps_table( 'items' ) . ' i ON i.id = v.item_id JOIN ' . ps_table( 'projects' ) . " p ON p.id = v.project_id
 		 WHERE v.deleted_at IS NULL AND p.deleted_at IS NULL AND p.is_project = 1 AND v.answer = 'pending' ORDER BY v.id",
 		ARRAY_A
 	);
@@ -132,7 +132,7 @@ function ps_alerts_run( ?string $today = null ): array {
 			$wpdb->update( $at, array( 'status' => 'cancelled' ), array( 'id' => (int) $a['id'] ) ); // réponse reçue ou compte délié entre-temps
 			continue;
 		}
-		$err = ps_alert_send_telegram( $u, $a['kind'], $inv, ps_calc_invoice_deadline( $inv['sent_date'], $days ), $a['alert_day'] );
+		$err = ps_alert_send_telegram( $u, $a['kind'], $inv, ps_invoice_deadline( $inv, $days ), $a['alert_day'] );
 		$wpdb->update( $at, '' === $err ? array( 'status' => 'sent', 'tries' => (int) $a['tries'] + 1, 'sent_at' => ps_now(), 'error' => null ) : array( 'tries' => (int) $a['tries'] + 1, 'error' => mb_substr( $err, 0, 250 ) ), array( 'id' => (int) $a['id'] ) );
 		++$report['retried'];
 		$report[ '' === $err ? 'sent' : 'failed' ] += 1;
@@ -140,7 +140,7 @@ function ps_alerts_run( ?string $today = null ): array {
 
 	// 2. Alertes du jour.
 	foreach ( $rows as $inv ) {
-		$deadline = ps_calc_invoice_deadline( $inv['sent_date'], $days );
+		$deadline = ps_invoice_deadline( $inv, $days ); // 1.11.0 : saisi, sinon calculé
 		$kind     = ps_calc_invoice_alert_kind( $inv['answer'], $deadline, $today, PS_ALERT_BEFORE_DAYS );
 		if ( ! $kind ) {
 			continue;
@@ -149,6 +149,16 @@ function ps_alerts_run( ?string $today = null ): array {
 			// Rappel « avant » : une seule fois en tout ; les autres : une fois par jour (clé unique de la table).
 			if ( 'before' === $kind && $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $at WHERE user_id = %d AND invoice_id = %d AND kind = 'before'", $u->ID, $inv['id'] ) ) ) { // phpcs:ignore
 				continue;
+			}
+			// 1.11.0 (demande du client) : après آخر أجل, un rappel tous les N jours (réglage, 15 par défaut) et non plus
+			// chaque jour ; « depuis le dernier rappel » → un Cron manqué est rattrapé au passage suivant.
+			$every = max( 1, (int) ps_setting( 'invoice_remind_days' ) );
+			if ( 'late' === $kind ) {
+				$last = $wpdb->get_var( $wpdb->prepare( "SELECT MAX(alert_day) FROM $at WHERE user_id = %d AND invoice_id = %d AND kind IN ('late','due')", $u->ID, $inv['id'] ) ); // phpcs:ignore
+				if ( $last && ps_calc_days_between( (string) $last, $today ) < $every ) {
+					++$report['skipped'];
+					continue;
+				}
 			}
 			$tg      = '' !== ps_tg_chat_id( $u->ID ) && ps_tg_enabled();
 			$inserted = $wpdb->query(

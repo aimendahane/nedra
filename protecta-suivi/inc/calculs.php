@@ -340,7 +340,7 @@ function ps_calc_invoice_days_late( string $answer, string $deadline, string $to
  * Alerte du jour pour une facture (Telegram / e-mail) — tant que la réponse est « في الانتظار » :
  *   « before » : l'échéance est dans 1 à $before jours (rappel, 3 jours avant par défaut — envoyé une seule fois) ;
  *   « due »    : c'est le jour de l'échéance ;
- *   « late »   : l'échéance est dépassée (une alerte par jour au maximum) ;
+ *   « late »   : l'échéance est dépassée (1.11.0 : un rappel tous les N jours — réglage invoice_remind_days — filtré dans alerts.php) ;
  *   null       : rien à envoyer (réponse reçue, ou échéance encore lointaine).
  */
 function ps_calc_invoice_alert_kind( string $answer, string $deadline, string $today, int $before = 3 ): ?string {

@@ -151,6 +151,9 @@ function ps_tasks( array $facts, ?int $employee_id, ?string $today = null ): arr
 	return $out;
 }
 
+/** Lignes au plus par bloc de مهامي envoyées au navigateur (1.11.0). */
+const PS_TASKS_MAX_ROWS = 100;
+
 function ps_rest_tasks( WP_REST_Request $r ) {
 	$uid   = get_current_user_id();
 	$me    = ps_user_employee_id( $uid );
@@ -166,5 +169,13 @@ function ps_rest_tasks( WP_REST_Request $r ) {
 	if ( ! $admin && ! $me ) {
 		return rest_ensure_response( array( 'linked' => false, 'employeeId' => null, 'today' => ps_today(), 'sent' => $sent ) + ps_tasks( array(), -1 ) );
 	}
-	return rest_ensure_response( array( 'linked' => true, 'employeeId' => $emp, 'today' => ps_today(), 'sent' => $sent ) + ps_tasks( ps_stats_facts(), $emp ) );
+	// 1.11.0 (vitesse) : au plus 100 lignes par bloc envoyées au navigateur (« عرض الكل » en montre 5 puis le reste) ;
+	// le vrai nombre est dans « totals » (la vue « tout le monde » de الإدارة pouvait dépasser 200 Ko).
+	$tasks  = ps_tasks( ps_stats_facts(), $emp );
+	$totals = array();
+	foreach ( array( 'lateOffers', 'followupsDue', 'noFollowup', 'deliveries', 'pendingDecision' ) as $k ) {
+		$totals[ $k ] = count( $tasks[ $k ] );
+		$tasks[ $k ]  = array_slice( $tasks[ $k ], 0, PS_TASKS_MAX_ROWS );
+	}
+	return rest_ensure_response( array( 'linked' => true, 'employeeId' => $emp, 'today' => ps_today(), 'sent' => $sent, 'totals' => $totals ) + $tasks );
 }

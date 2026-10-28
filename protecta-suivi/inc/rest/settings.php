@@ -167,6 +167,7 @@ function ps_numeric_settings(): array {
 		'creator_edit_hours'    => array( 0, 720, ps__( 'مدة تعديل المشروع من طرف منشئه (ساعات)' ) ),
 		'file_max_mb'           => array( 1, 200, ps__( 'الحجم الأقصى للملف المرفق (ميغابايت)' ) ),
 		'invoice_reply_days'    => array( 1, 365, ps__( 'آخر أجل للرد على الفاتورة (أيام بعد الإرسال)' ) ),
+		'invoice_remind_days'   => array( 1, 90, ps__( 'تذكير بالفاتورة بعد آخر أجل: كل (أيام)' ) ),
 	);
 }
 

@@ -96,7 +96,7 @@ function ps_field_label( string $field ): string {
 	$extra = array(
 		'is_project'            => ps__( 'مشروع؟' ),
 		'non_project_reason_id' => ps__( 'سبب عدم اعتباره مشروعا' ),
-		'non_project_note'      => ps__( 'ملاحظة (غير مشروع)' ),
+		'non_project_note'      => ps__( 'ملاحظة (مشروع مُلغى)' ),
 		'responsible_emp_id'    => ps__( 'المسؤول عن المشروع' ),
 		'follower_emp_id'       => ps__( 'الموظف المتابع' ),
 	);

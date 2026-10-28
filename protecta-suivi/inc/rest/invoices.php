@@ -4,7 +4,8 @@
  *
  *   GET    /invoices?status=pending|late|answered|yes|no|all&q=&employeeId=&projectId=&itemId=   liste
  *   GET    /invoices/{id}             une facture (+ ses fichiers)
- *   POST   /items/{id}/invoices       nouvelle facture pour une offre
+ *   POST   /projects/{id}/invoices    nouvelle facture pour l'OFFRE ENTIÈRE du projet (1.11.0)
+ *   POST   /items/{id}/invoices       idem, à partir d'un صنف de l'offre (la facture suit l'offre entière)
  *   PUT    /invoices/{id}             modifier (seules les clés envoyées)
  *   DELETE /invoices/{id}             retirer (corbeille) — مسؤول المشروع / الإدارة
  */
@@ -49,7 +50,19 @@ function ps_register_invoice_routes(): void {
 		array(
 			'methods'             => 'POST',
 			'permission_callback' => ps_rest_permission(),
-			'callback'            => 'ps_rest_invoice_create',
+			'callback'            => static function ( WP_REST_Request $r ) {
+				$item = ps_item_row( (int) $r['id'] );
+				return ps_rest_invoice_create_for( $item ? (int) $item['project_id'] : 0, (array) $r->get_json_params() );
+			},
+		)
+	);
+	register_rest_route(
+		PS_REST_NS,
+		'/projects/(?P<id>\d+)/invoices',
+		array(
+			'methods'             => 'POST',
+			'permission_callback' => ps_rest_permission(),
+			'callback'            => static fn( WP_REST_Request $r ) => ps_rest_invoice_create_for( (int) $r['id'], (array) $r->get_json_params() ),
 		)
 	);
 }
@@ -72,36 +85,40 @@ function ps_rest_invoice_get( WP_REST_Request $r ) {
 	return $one ? rest_ensure_response( $one ) : new WP_Error( 'ps_not_found', ps__( 'الفاتورة غير موجودة' ), array( 'status' => 404 ) );
 }
 
-/** Offre + projet (non supprimé, et projet « مشروع = نعم »). @return array|WP_Error [ item, project ] */
-function ps_rest_invoice_context( int $item_id ) {
-	$item = ps_item_row( $item_id );
-	$proj = $item ? ps_project_row( (int) $item['project_id'] ) : null;
+/**
+ * Contexte d'une facture : [ صنف, projet ]. Facture de l'offre entière (1.11.0, item_id = 0) → صنف vide.
+ *
+ * @return array|WP_Error
+ */
+function ps_rest_invoice_context( array $inv ) {
+	$proj = ps_project_row( (int) $inv['project_id'] );
+	$item = (int) $inv['item_id'] ? ps_item_row( (int) $inv['item_id'] ) : array( 'id' => 0, 'project_id' => (int) $inv['project_id'] );
 	if ( ! $item || ! $proj || $proj['deleted_at'] ) {
-		return new WP_Error( 'ps_not_found', ps__( 'الصنف غير موجود' ), array( 'status' => 404 ) );
+		return new WP_Error( 'ps_not_found', ps__( 'الفاتورة غير موجودة' ), array( 'status' => 404 ) );
 	}
 	return array( $item, $proj );
 }
 
-function ps_rest_invoice_create( WP_REST_Request $r ) {
-	$ctx = ps_rest_invoice_context( (int) $r['id'] );
-	if ( is_wp_error( $ctx ) ) {
-		return $ctx;
+/** Nouvelle facture pour l'offre entière d'un projet (« مشروع = نعم » seulement). */
+function ps_rest_invoice_create_for( int $project_id, array $body ) {
+	$proj = $project_id ? ps_project_row( $project_id ) : null;
+	if ( ! $proj || $proj['deleted_at'] ) {
+		return new WP_Error( 'ps_not_found', ps__( 'المشروع غير موجود' ), array( 'status' => 404 ) );
 	}
-	list( $item, $proj ) = $ctx;
 	$uid = get_current_user_id();
-	if ( ! ps_invoice_can_edit( $item, $proj, $uid ) ) {
+	if ( ! ps_invoice_can_edit_offer( $proj, $uid ) ) {
 		return new WP_Error( 'ps_forbidden', ps__( 'إضافة فاتورة: للموظف المسؤول عن الصنف، المتابع، المسؤول عن المشروع أو الإدارة.' ), array( 'status' => 403 ) );
 	}
-	if ( PS_PROJECT_YES !== (int) $proj['is_project'] ) { // « لا » ou « لم يُحدد بعد » (1.9.0)
-		return new WP_Error( 'ps_validation', ps__( 'هذا الطلب مسجّل «غير مشروع»: لا عروض ولا فواتير.' ), array( 'status' => 422 ) );
+	if ( PS_PROJECT_YES !== (int) $proj['is_project'] ) { // « لا » ou « لم يُحدد بعد »
+		return new WP_Error( 'ps_validation', ps__( 'هذا الطلب مسجّل «مشروع مُلغى»: لا عروض ولا فواتير.' ), array( 'status' => 422 ) );
 	}
-	$id = ps_invoice_create( $item, (array) $r->get_json_params(), $uid );
+	$id = ps_invoice_create( $proj, $body, $uid );
 	return is_wp_error( $id ) ? $id : rest_ensure_response( ps_rest_invoice_one( $id ) );
 }
 
 function ps_rest_invoice_update( WP_REST_Request $r ) {
 	$inv = ps_invoice_row( (int) $r['id'] );
-	$ctx = $inv && ! $inv['deleted_at'] ? ps_rest_invoice_context( (int) $inv['item_id'] ) : new WP_Error( 'ps_not_found', ps__( 'الفاتورة غير موجودة' ), array( 'status' => 404 ) );
+	$ctx = $inv && ! $inv['deleted_at'] ? ps_rest_invoice_context( $inv ) : new WP_Error( 'ps_not_found', ps__( 'الفاتورة غير موجودة' ), array( 'status' => 404 ) );
 	if ( is_wp_error( $ctx ) ) {
 		return $ctx;
 	}
@@ -115,7 +132,7 @@ function ps_rest_invoice_update( WP_REST_Request $r ) {
 
 function ps_rest_invoice_delete( WP_REST_Request $r ) {
 	$inv = ps_invoice_row( (int) $r['id'] );
-	$ctx = $inv && ! $inv['deleted_at'] ? ps_rest_invoice_context( (int) $inv['item_id'] ) : new WP_Error( 'ps_not_found', ps__( 'الفاتورة غير موجودة' ), array( 'status' => 404 ) );
+	$ctx = $inv && ! $inv['deleted_at'] ? ps_rest_invoice_context( $inv ) : new WP_Error( 'ps_not_found', ps__( 'الفاتورة غير موجودة' ), array( 'status' => 404 ) );
 	if ( is_wp_error( $ctx ) ) {
 		return $ctx;
 	}

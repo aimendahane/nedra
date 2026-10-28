@@ -83,10 +83,12 @@ function ps_client_config(): array {
 			'serverMaxUpload'   => (int) wp_max_upload_size(),
 			'blockedExts'       => ps_file_blocked_exts(),
 			'invoiceReplyDays'  => ps_invoice_reply_days(), // 1.6.0
+			'invoiceRemindDays' => max( 1, (int) ps_setting( 'invoice_remind_days' ) ), // 1.11.0
 		),
 		'invoiceAnswers' => ps_invoice_answers(), // 1.6.0 : pending / yes / no
 		'partyRoles' => ps_party_roles(),
 		'today'      => ps_today(),
+		'preload'    => array( 'lists' => ps_lists_payload() ), // 1.11.0 : un appel de moins à l'ouverture
 	);
 }
 

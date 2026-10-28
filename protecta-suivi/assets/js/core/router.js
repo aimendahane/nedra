@@ -141,6 +141,12 @@ PS.router = (function () {
 	/** Listes déroulantes, chargées une fois puis gardées en mémoire. */
 	let listsPromise = null;
 	function lists(force) {
+		// 1.11.0 (vitesse) : au premier affichage, les listes viennent de la page elle-même (PS.config.preload) —
+		// un appel au serveur de moins ; ensuite (après une modification), elles sont redemandées au serveur.
+		if (!listsPromise && !force && PS.config.preload && PS.config.preload.lists) {
+			listsPromise = Promise.resolve(PS.config.preload.lists);
+			delete PS.config.preload.lists;
+		}
 		if (!listsPromise || force) listsPromise = PS.api.get('lists');
 		return listsPromise;
 	}

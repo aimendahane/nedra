@@ -313,14 +313,16 @@ function ps_schema_sql(): array {
   KEY project_id (project_id)
 ) $c;";
 
-	// Factures (1.6.0, migration 7) : liées à une offre (صنف), plusieurs par offre (paiements en tranches).
-	// « آخر أجل للرد » n'est PAS stocké : calculé = sent_date + réglage invoice_reply_days (inc/calculs.php).
+	// Factures (1.6.0, migration 7) : plusieurs par offre (paiements en tranches).
+	// 1.11.0 (migration 8) : la facture suit l'OFFRE ENTIÈRE (le عرض du projet) → item_id = 0 ; les anciennes gardent
+	// leur صنف. « آخر أجل للرد » saisi à la main (reply_deadline) ; vide (anciennes factures) = sent_date + N jours.
 	$sql['invoices'] = "CREATE TABLE {$t('invoices')} (
   id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   project_id bigint(20) unsigned NOT NULL,
   item_id bigint(20) unsigned NOT NULL,
   invoice_no varchar(100) NOT NULL,
   sent_date date NOT NULL,
+  reply_deadline date DEFAULT NULL,
   answer varchar(10) NOT NULL DEFAULT 'pending',
   answer_date date DEFAULT NULL,
   amount decimal(15,3) DEFAULT NULL,

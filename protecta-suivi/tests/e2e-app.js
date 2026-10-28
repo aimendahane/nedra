@@ -338,7 +338,7 @@ async function step4(browser) {
 	await page.waitForSelector('#ch-month');
 	await page.waitForTimeout(500);
 	const kpis = await page.$$eval('.ps-kpi', (e) => e.map((x) => x.textContent.replace(/\s+/g, ' ').trim()));
-	check('عدد المشاريع 23 (ملغى: 1) avec comparaison 2025', kpis[0].includes('23') && kpis[0].includes('ملغى: 1') && kpis[0].includes('2025'), kpis[0]);
+	check('عدد المشاريع 23 (أصناف ملغاة: 1) avec comparaison 2025', kpis[0].includes('23') && kpis[0].includes('أصناف ملغاة: 1') && kpis[0].includes('2025'), kpis[0]);
 	check('نسبة النجاح 63.6 % ↑ 13.6 نقطة', kpis.some((k) => k.includes('63.6') && k.includes('13.6')));
 	check('montants séparés par devise (LYD, USD, EUR, TND)', kpis.some((k) => k.includes('75,000') && k.includes('LYD') && k.includes('TND')));
 	const drawn = await page.evaluate(() => Array.from(document.querySelectorAll('.ps-chart canvas')).map((c) => {
@@ -1168,7 +1168,7 @@ async function step14(browser) {
 	await go(page, '#/recap');
 	await page.waitForSelector('[data-recap-invoices]');
 	const rec = await page.textContent('.ps-main');
-	check('Recap : « غير مشروع » compté à part + bloc factures (taux نعم)', /غير مشروع/.test(rec) && /جواب «نعم»/.test(rec) && /100\.0 %/.test(await page.textContent('[data-recap-invoices]')));
+	check('Recap : « غير مشروع » compté à part + bloc factures (taux نعم)', /مشروع مُلغى/.test(rec) && /جواب «نعم»/.test(rec) && /100\.0 %/.test(await page.textContent('[data-recap-invoices]')));
 	await page.screenshot({ path: SHOTS + '/s14-05-recap.png', fullPage: true });
 	// Réglages : délai de réponse, interrupteur des alertes, token via wp-config ; utilisateurs : colonne Telegram.
 	await go(page, '#/parametres?tab=general');
@@ -1226,7 +1226,7 @@ async function step15(browser) {
 	const bp = await heads();
 	check('Base Projets : رقم المشروع | الاسم | مشروع؟ | سبب عدم الاعتبار | المسؤول | المتابع | تاريخ الاستلام | الحالة', bp.slice(0, 8).join('|') === 'رقم المشروع|الاسم|مشروع؟|سبب عدم الاعتبار|المسؤول عن المشروع|الموظف المتابع|تاريخ الاستلام|الحالة', bp.slice(0, 9).join('|'));
 	const chipTxt = await page.textContent('[data-chips="isProject"]').catch(() => '');
-	check('Base Projets : filtres rapides « مشروع؟ » avec compteurs, sans ouvrir les filtres', await page.isVisible('[data-chip="isProject"][data-value="0"]') && /غير مشروع\s*1/.test(chipTxt), chipTxt.replace(/\s+/g, ' '));
+	check('Base Projets : filtres rapides « مشروع؟ » avec compteurs, sans ouvrir les filtres', await page.isVisible('[data-chip="isProject"][data-value="0"]') && /مشروع مُلغى\s*1/.test(chipTxt), chipTxt.replace(/\s+/g, ' '));
 	await page.click('.ps-sort[data-sort="isProject"]');
 	await page.waitForTimeout(800);
 	await page.click('.ps-sort[data-sort="isProject"]');
@@ -1599,7 +1599,64 @@ async function step19(browser) {
 	await e.ctx.close();
 }
 
-const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15, step16, step17, step18, step19 };
+/* Version 1.11.0 : factures par offre entière, آخر أجل saisi, tableau des factures complet, « مشروع مُلغى », vitesse. */
+async function step20(browser) {
+	console.log('1.11.0 — الفواتير حسب العرض، آخر أجل يدوي، السرعة');
+	const { ctx, page } = await newPage(browser, 'idara');
+	// Une offre à 2 أصناف (projet de démo de 2026 avec plusieurs lignes dans Suivi Offres).
+	const target = await page.evaluate(async () => {
+		const rows = (await PS.api.get('items?view=offers&perPage=500')).rows;
+		const by = {};
+		rows.forEach((r) => { (by[r.projectId] = by[r.projectId] || []).push(r); });
+		const pid = Object.keys(by).find((k) => by[k].length >= 2 && /2026/.test(by[k][0].projectNo));
+		return { pid: Number(pid), items: by[pid].map((r) => r.id), no: by[pid][0].projectNo };
+	});
+	check('offre de démonstration avec ≥ 2 أصناف', target.items.length >= 2, JSON.stringify(target));
+	await go(page, '#/offres');
+	await page.waitForSelector('.ps-table--clickable tbody tr');
+	await page.click(`tr[data-row="${target.items[0]}"] td:nth-child(3)`);
+	await page.click('.ps-modal--drawer [data-btn=invoices]');
+	await page.waitForSelector('.ps-modal [data-btn=new]');
+	await page.click('.ps-modal [data-btn=new]');
+	await page.waitForSelector('.ps-modal [name=replyDeadline]');
+	check('formulaire : « آخر أجل للرد » est un champ à saisir (proposé +15 j)', (await page.inputValue('.ps-modal [name=replyDeadline]')) === '03/11/2026', await page.inputValue('.ps-modal [name=replyDeadline]'));
+	check('formulaire : « الفاتورة تخص العرض كاملًا »', /تخص العرض كاملًا/.test(await page.textContent('.ps-modal')));
+	await page.fill('.ps-modal [name=invoiceNo]', 'FAC-1110');
+	await page.fill('.ps-modal [name=sentDate]', '01/10/2026');
+	await page.waitForTimeout(200);
+	check('la date proposée suit la date d\'envoi (16/10/2026)', (await page.inputValue('.ps-modal [name=replyDeadline]')) === '16/10/2026', await page.inputValue('.ps-modal [name=replyDeadline]'));
+	await page.fill('.ps-modal [name=replyDeadline]', '20/10/2026');
+	await page.screenshot({ path: SHOTS + '/s20-01-facture-form.png' });
+	await page.click('.ps-modal [data-btn=save]');
+	await page.waitForSelector('.ps-modal [data-btn="new"]', { timeout: 8000 });
+	await page.click('.ps-modal [data-btn=close]');
+	const inv = await page.evaluate(async (t) => ({ a: (await PS.api.get('invoices?status=all&itemId=' + t.items[0])).rows, b: (await PS.api.get('invoices?status=all&itemId=' + t.items[1])).rows }), target);
+	check('facture enregistrée pour l\'offre entière (visible depuis chaque صنف), آخر أجل = 20/10', inv.a.length === 1 && inv.b.length === 1 && inv.a[0].itemId === 0 && inv.a[0].replyDeadline === '2026-10-20' && inv.a[0].itemTypeIds.length >= 2, JSON.stringify(inv.a[0] && { i: inv.a[0].itemId, d: inv.a[0].replyDeadline, t: inv.a[0].itemTypeIds }));
+	// Page « الفواتير » : toutes les colonnes, comme demandé.
+	await go(page, '#/factures?status=all');
+	await page.waitForSelector('[data-results] tr[data-inv]');
+	const heads = (await page.$$eval('.ps-table thead th', (e) => e.map((x) => x.textContent.trim()))).filter((x) => x);
+	check('الفواتير : les 10 colonnes visibles (… الأصناف، الموظف المتابع)', heads.length === 10 && heads[8] === 'الأصناف' && heads[9] === 'الموظف المتابع', heads.join('|'));
+	check('الفواتير : آخر أجل saisi affiché (20/10/2026)', /20\/10\/2026/.test(await page.textContent('[data-results] tr[data-inv]')));
+	await page.screenshot({ path: SHOTS + '/s20-02-factures.png' });
+	// « مشروع مُلغى ».
+	await go(page, '#/projets');
+	await page.waitForSelector('[data-chip="isProject"][data-value="0"]');
+	check('filtre « 🚫 مشروع مُلغى » (au lieu de « غير مشروع »)', /مشروع مُلغى/.test(await page.textContent('[data-chip="isProject"][data-value="0"]')) && !/غير مشروع/.test(await page.textContent('[data-chips="isProject"]')));
+	// Vitesse : listes incluses dans la page, JSON compressé.
+	const enc = await page.evaluate(async () => (await fetch(PS.config.restUrl + 'items?view=offers&perPage=300', { headers: { 'X-WP-Nonce': PS.config.nonce } })).headers.get('content-encoding'));
+	check('vitesse : réponses JSON compressées (gzip)', enc === 'gzip', String(enc));
+	await ctx.close();
+	const p2 = await newPage(browser, 'idara');
+	const calls = [];
+	p2.page.on('request', (r) => { if (r.url().includes('/wp-json/')) calls.push(r.url()); });
+	await go(p2.page, '#/projets');
+	await p2.page.waitForSelector('.ps-table--list tbody tr');
+	check('vitesse : les listes viennent de la page (pas d\'appel /lists)', !calls.some((u) => /ps\/v1\/lists(\?|$)/.test(u)), calls.join(' '));
+	await p2.ctx.close();
+}
+
+const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15, step16, step17, step18, step19, step20 };
 
 (async () => {
 	const browser = await chromium.launch();

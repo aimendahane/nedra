@@ -152,6 +152,11 @@ ps_assert( in_array( 'reason', $wpdb->get_col( 'SHOW COLUMNS FROM ' . ps_table( 
 ps_assert( 0 === (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'invoices' ) ) && 0 === (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'alerts' ) ), 'tables ps_invoices et ps_alerts créées vides' );
 ps_assert( 4 <= count( ps_lists_all()['non_project_reason'] ?? array() ), 'liste « سبب عدم اعتباره مشروعا » remplie une fois' );
 
+ps_test_section( 'Migration 8 (1.11.0) : آخر أجل للرد saisi, rappel tous les N jours' );
+
+ps_assert( in_array( 'reply_deadline', $wpdb->get_col( 'SHOW COLUMNS FROM ' . ps_table( 'invoices' ) ), true ), 'ps_invoices.reply_deadline ajoutée (ajout seulement)' );
+ps_assert_same( 15, (int) ps_setting( 'invoice_remind_days' ), 'réglage « تذكير كل N يوم » ajouté (15)' );
+
 ps_test_section( 'Mise à jour : listes et réglages de la الإدارة conservés' );
 
 ps_assert_same( 'صفاء بن علي', $wpdb->get_var( "SELECT label FROM $lt WHERE id=$safa" ), 'valeur renommée : nom conservé' );

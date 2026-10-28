@@ -23,11 +23,13 @@
 	const MAX_ROWS = 5;
 
 	function block(icon, title, rows, emptyText, rowFn, more) {
+		const n = rows.total || rows.length; // 1.11.0 : le serveur envoie 100 lignes au plus, « total » = le vrai nombre
 		return html`<section class="ps-card ps-task">
-			<h2 class="ps-card__title"><span aria-hidden="true">${icon}</span> ${title} <span class="ps-task__count ${rows.length ? 'is-on' : ''}">${rows.length}</span>${more || ''}</h2>
+			<h2 class="ps-card__title"><span aria-hidden="true">${icon}</span> ${title} <span class="ps-task__count ${n ? 'is-on' : ''}">${n}</span>${more || ''}</h2>
 			${rows.length ? html`<ul class="ps-task__list">${rows.slice(0, MAX_ROWS).map(rowFn)}</ul>` : html`<p class="ps-muted">✔ ${emptyText}</p>`}
 			${rows.length > MAX_ROWS ? html`<ul class="ps-task__list" data-task-more-list hidden>${rows.slice(MAX_ROWS).map(rowFn)}</ul>
-				<button type="button" class="ps-btn ps-btn--small ps-btn--ghost ps-task__more" data-task-more data-label="${PS.t('عرض الكل') + ' (' + rows.length + ')'}" aria-expanded="false">${PS.t('عرض الكل')} (${rows.length})</button>` : ''}
+				<button type="button" class="ps-btn ps-btn--small ps-btn--ghost ps-task__more" data-task-more data-label="${PS.t('عرض الكل') + ' (' + n + ')'}" aria-expanded="false">${PS.t('عرض الكل')} (${n})</button>` : ''}
+			${n > rows.length ? html`<p class="ps-small ps-muted">${PS.t('تظهر أول')} ${rows.length} ${PS.t('فقط — استعمل صفحة العروض أو المشاريع لرؤية الباقي.')}</p>` : ''}
 		</section>`;
 	}
 
@@ -392,6 +394,8 @@
 	}
 
 	function render(main, params, data) {
+		// 1.11.0 : nombres réels des blocs (le serveur n'envoie que les 100 premières lignes).
+		Object.keys(data.totals || {}).forEach(function (k) { if (data[k]) data[k].total = data.totals[k]; });
 		const admin = PS.router.can('ps_edit_all_projects');
 		const showEmp = admin && !data.employeeId;
 		const name = PS.config.user.name;
