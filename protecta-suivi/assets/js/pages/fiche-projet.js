@@ -56,7 +56,7 @@
 			followupStatusId: (L.values('followup_status').find(function (v) { return v.meta && v.meta.default; }) || {}).id || '',
 			sourceId: '', lossReasonId: '', offerAmount: '', offerCurrencyId: (L.byCode('currency', 'LYD') || {}).id || '',
 			purchaseAmount: '', purchaseCurrencyId: (L.byCode('currency', 'LYD') || {}).id || '',
-			filesLink: '', note: '', projectNote: '', isProject: '', nonProjectReasonId: '', nonProjectNote: '', parties: {}, items: [{ itemTypeId: '', quantity: '', employeeId: me || '', dueDate: '' }], competitors: [],
+			filesLink: '', note: '', projectNote: '', isProject: 'pending', nonProjectReasonId: '', nonProjectNote: '', parties: {}, items: [{ itemTypeId: '', quantity: '', employeeId: me || '', dueDate: '' }], competitors: [],
 		};
 		Object.keys(PS.config.partyRoles).forEach(function (r) { d.parties[r] = { companyId: null, fromDirectory: [] }; });
 		return d;
@@ -204,6 +204,11 @@
 	 */
 	function sectionYesNo() {
 		const d = state.draft;
+		// 1.10.0 (demande du client) : pas de question « مشروع؟ » à la création — la demande est enregistrée
+		// « ⏳ لم يُحدد بعد » et la décision se prend ensuite dans la colonne « مشروع؟ » de « المشاريع ».
+		if (state.mode === 'create') {
+			return html`<div class="ps-alert ps-alert--info ps-yn-hint" data-section="is-project" id="ps-sec-yesno">⏳ ${PS.t('بعد الحفظ، قرّر «مشروع؟» (نعم / لا) من عمود «مشروع؟» في «المشاريع». إلى ذلك الحين لا يظهر الطلب في العروض.')}</div>`;
+		}
 		return html`<section class="ps-card ps-card--yesno" data-section="is-project" id="ps-sec-yesno">
 			<div class="ps-grid">
 				${yesNo()}
@@ -346,7 +351,7 @@
 
 	/** 1.7.0 : raccourcis vers les sections de la fiche (moins de défilement). */
 	function jumpNav() {
-		const items = [['files', '📎 ' + PS.t('الملفات')], ['yesno', PS.t('مشروع؟')], ['info', PS.t('المعلومات')], ['parties', PS.t('الأطراف')], ['items', PS.t('الأصناف')], ['amounts', PS.t('المبالغ')], ['competitors', PS.t('المنافسون')]];
+		const items = [['files', '📎 ' + PS.t('الملفات')]].concat(state.mode === 'create' ? [] : [['yesno', PS.t('مشروع؟')]]).concat([['info', PS.t('المعلومات')], ['parties', PS.t('الأطراف')], ['items', PS.t('الأصناف')], ['amounts', PS.t('المبالغ')], ['competitors', PS.t('المنافسون')]]);
 		return html`<nav class="ps-jump" aria-label="${PS.t('أقسام البطاقة')}">${items.map(function (x) { return html`<button type="button" class="ps-jump__a" data-jump="ps-sec-${x[0]}">${x[1]}</button>`; })}</nav>`;
 	}
 
@@ -781,6 +786,7 @@
 				}
 				const saved = loadDraftLocal();
 				state = { main: main, mode: 'create', draft: saved || emptyDraft(), restored: !!saved, tab: 'data' };
+				state.draft.isProject = 'pending'; // 1.10.0 : décision ensuite, depuis « المشاريع » (même pour un ancien brouillon)
 				render();
 			});
 		},

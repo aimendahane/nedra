@@ -430,7 +430,8 @@ function ps_projects_wipe( int $user_id ): array {
 	global $wpdb;
 	$n = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'projects' ) );
 	$k = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . ps_table( 'tasks' ) );
-	foreach ( array( 'items', 'project_parties', 'project_competitors', 'followups', 'files', 'projects', 'tasks', 'notifications' ) as $t ) {
+	// 1.10.0 : factures et leurs alertes aussi (tables ajoutées en 1.6.0, oubliées ici).
+	foreach ( array( 'alerts', 'invoices', 'items', 'project_parties', 'project_competitors', 'followups', 'files', 'projects', 'tasks', 'notifications' ) as $t ) {
 		$wpdb->query( 'DELETE FROM ' . ps_table( $t ) ); // phpcs:ignore WordPress.DB.PreparedSQL
 	}
 	ps_log( null, 'delete', 'project', null, null, (string) $n, 'مسح كل المشاريع قبل الاستيراد', $user_id );

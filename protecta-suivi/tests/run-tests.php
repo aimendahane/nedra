@@ -42,7 +42,7 @@ require __DIR__ . '/lib.php';
 
 echo 'Thème v' . PS_VERSION . ' — WordPress ' . get_bloginfo( 'version' ) . ' — PHP ' . PHP_VERSION . "\n";
 
-foreach ( array( 'test-install.php', 'test-migrations.php', 'test-security.php', 'test-rest.php', 'test-projects.php', 'test-calculs.php', 'test-items.php', 'test-recap.php', 'test-admin.php', 'test-tasks.php', 'test-notifications.php', 'test-telegram-voice.php', 'test-i18n.php', 'test-excel.php', 'test-140.php', 'test-150.php', 'test-153.php', 'test-160.php', 'test-170.php', 'test-180.php', 'test-190.php' ) as $file ) {
+foreach ( array( 'test-install.php', 'test-migrations.php', 'test-security.php', 'test-rest.php', 'test-projects.php', 'test-calculs.php', 'test-items.php', 'test-recap.php', 'test-admin.php', 'test-tasks.php', 'test-notifications.php', 'test-telegram-voice.php', 'test-i18n.php', 'test-excel.php', 'test-140.php', 'test-150.php', 'test-153.php', 'test-160.php', 'test-170.php', 'test-180.php', 'test-190.php', 'test-1100.php' ) as $file ) {
 	require __DIR__ . '/' . $file;
 }
 

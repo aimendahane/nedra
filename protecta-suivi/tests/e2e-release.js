@@ -55,6 +55,14 @@ async function go(page, url) { await page.goto(url); await page.waitForLoadState
 		await page.waitForSelector('.ps-alert--success', { timeout: 10000 }).catch(() => null);
 		const ok = await page.textContent('.ps-alert--success').catch(() => '');
 		check('saisie d\'un projet : PRJ-2026-001 enregistré', ok.includes('PRJ-2026-001'), ok);
+		// 1.10.0 : la décision « مشروع؟ » se prend ensuite dans « المشاريع » (nouvelle demande = « ⏳ لم يُحدد بعد »).
+		await go(page, F + '/#/projets');
+		await page.waitForSelector('.ps-table--list tbody tr', { timeout: 10000 }).catch(() => null);
+		if (await page.$('.ps-table--list tbody tr [data-yn="1"]')) {
+			await page.click('.ps-table--list tbody tr [data-yn="1"]');
+			await page.waitForTimeout(1500);
+		}
+		check('« مشروع؟ = نعم » choisi dans la colonne de « المشاريع »', !!(await page.$('.ps-table--list tbody tr [data-yn="1"][aria-pressed="true"]')));
 		await go(page, F + '/#/recap?year=2026');
 		await page.waitForSelector('.ps-kpi', { timeout: 10000 }).catch(() => null);
 		const k = (await page.textContent('.ps-kpi').catch(() => '')).replace(/\s+/g, ' ');

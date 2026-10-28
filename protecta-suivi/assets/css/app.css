@@ -818,3 +818,4 @@ a.ps-ptitle:hover .ps-ptitle__num { color: var(--ps-primary); text-decoration: u
 .ps-qchip--warning .ps-qchip__n { background: var(--ps-warning); color: var(--ps-on-status); }
 .ps-table--list tbody tr.is-pending > td:first-child { box-shadow: inset -3px 0 0 var(--ps-warning); }
 .ps-pcard.is-pending { border-inline-start: 4px solid var(--ps-warning); }
+.ps-trash-actions { display: grid; gap: 4px; justify-items: start; }

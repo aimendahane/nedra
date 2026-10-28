@@ -1,6 +1,6 @@
 ######## Tests PHP ########
 Site de test installé (thème : protecta-suivi)
-Thème v1.9.1 — WordPress 6.7-alpha-58716 — PHP 8.3.6
+Thème v1.10.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 
 == Activation : base de données ==
   ✔ ps_db_version = dernière migration
@@ -790,9 +790,9 @@ Thème v1.9.1 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ inc/i18n/en.json : JSON valide
   ✔ inc/i18n/fr.json : JSON valide
   ✔ en.json et fr.json ont exactement les mêmes clés
-  ✔ en : chaque texte de l'interface a sa traduction (1190 textes)
+  ✔ en : chaque texte de l'interface a sa traduction (1204 textes)
   ✔ en : traductions non vides, sans arabe, mêmes %s / %d que l'original
-  ✔ fr : chaque texte de l'interface a sa traduction (1190 textes)
+  ✔ fr : chaque texte de l'interface a sa traduction (1204 textes)
   ✔ fr : traductions non vides, sans arabe, mêmes %s / %d que l'original
 
 == Langues : traduction côté serveur ==
@@ -1178,8 +1178,31 @@ Thème v1.9.1 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ journal : « لم يُحدد بعد » lisible
   ✔ fiche : passer à « نعم » sans صنف → صنف exigé
 
+== 1.10.0 : suppression en lot (corbeille) ==
+  ✔ مسؤول مشروع : pas de suppression (403)
+  ✔ الإدارة : 2 projets mis à la corbeille (doublon ignoré)
+  ✔ liste : 1 projet ; corbeille : 2
+  ✔ restauration toujours possible
+
+== 1.10.0 : suppression définitive (depuis la corbeille) ==
+  ✔ مسؤول مشروع : pas de suppression définitive (403)
+  ✔ sans le mot « حذف نهائي » → refusé
+  ✔ projet hors corbeille → refusé (rien effacé)
+  ✔ le projet hors corbeille est intact
+  ✔ 2 projets de la corbeille supprimés définitivement (le 3e, hors corbeille, ignoré)
+  ✔ sauvegarde automatique écrite AVANT
+  ✔ projets A et B effacés, C intact
+  ✔ données liées (أصناف، أطراف، منافسون، متابعة، فواتير) effacées
+  ✔ les أصناف du projet C sont intactes
+  ✔ tâche libre liée : gardée, lien retiré
+  ✔ journal : ligne « حذف نهائي »
+
+== 1.10.0 : création sans « مشروع؟ » (l'interface envoie « لم يُحدد بعد ») ==
+  ✔ nouveau projet : « ⏳ لم يُحدد بعد »
+  ✔ API sans le champ (ancienne interface, import) : نعم comme avant
+
 ----------------------------------------
-Résultat : 968 réussis, 0 échoués
+Résultat : 985 réussis, 0 échoués
 
 ######## Navigateur : fondations (étape 1) ########
 Page de connexion
@@ -1445,7 +1468,8 @@ Tous les contrôles navigateur sont passés.
 1.6.0 — مشروع؟، التواريخ، الفواتير، المتابع، Recap
   ✔ date : champ texte jj/mm/aaaa (19/10/2026), valeur API AAAA-MM-JJ
   ✔ date : bouton calendrier 📅
-  ✔ « مشروع؟ » non choisi → erreur sous le champ
+  ✔ création : pas de « مشروع؟ », message « بعد الحفظ، قرّر… »
+  ✔ nouveau projet : « ⏳ لم يُحدد بعد »
   ✔ « لا » → liste « سبب عدم اعتباره مشروعا »
   ✔ enregistré « غير مشروع » + سبب + ملاحظة المشروع, date saisie 05/10/2026
   ✔ fichier choisi à la création → joint au projet
@@ -1504,7 +1528,7 @@ Tous les contrôles navigateur sont passés.
   ✔ ملاحظة العرض visible dans le tableau
   ✔ Factures : filtres rapides avec compteurs (متأخرة 1)
   ✔ clic sur une facture → panneau latéral (formulaire)
-  ✔ fiche : 7 raccourcis de sections
+  ✔ fiche (création) : 6 raccourcis de sections (« مشروع؟ » se décide ensuite dans « المشاريع »)
   ✔ fiche : champs secondaires repliés (« المزيد »), الوسيط caché
   ✔ fiche : carte d'intervenant allégée (العنوان dans « المزيد »)
   ✔ « المزيد » reste ouvert après un nouvel affichage
@@ -1537,9 +1561,8 @@ Tous les contrôles navigateur sont passés.
 Tous les contrôles navigateur sont passés.
 
 ######## Navigateur : step18 (jeu de démonstration) ########
-1.9.0 — «مشروع؟»: لم يُحدد بعد ثم القرار لاحقًا
-  ✔ fiche : 3 choix نعم / لا / ⏳ لم يُحدد بعد
-  ✔ « ⏳ » : explication affichée
+1.9.0 / 1.10.0 — «مشروع؟»: لم يُحدد بعد ثم القرار لاحقًا من الجدول
+  ✔ fiche (création) : aucune question « مشروع؟ » + message « قرّر لاحقًا »
   ✔ enregistré « لم يُحدد بعد »
   ✔ pas encore dans Suivi Offres
   ✔ filtre rapide « ⏳ بانتظار القرار » : 1
@@ -1549,6 +1572,20 @@ Tous les contrôles navigateur sont passés.
   ✔ plus aucune demande en attente
   ✔ un clic = une seule fenêtre (pas d'écouteurs en double)
   ✔ Recap : après 2 changements de filtre, « طباعة » ne s'exécute qu'une fois
+
+Tous les contrôles navigateur sont passés.
+
+######## Navigateur : step19 (jeu de démonstration) ########
+1.10.0 — حذف المشاريع (الإدارة)
+  ✔ bouton « 🗑 سلة المحذوفات » visible au-dessus de la liste
+  ✔ panneau → 🗑 حذف : projet mis à la corbeille
+  ✔ sélection (2) → « حذف المحدد » : 2 de plus dans la corbeille
+  ✔ corbeille : « ↩ استرجاع » et « ❌ حذف نهائي » sur chaque ligne
+  ✔ « حذف نهائي » sans taper le mot → refusé (fenêtre ouverte)
+  ✔ « حذف نهائي » : projet effacé (corbeille 3 → 2)
+  ✔ le projet n'existe plus nulle part
+  ✔ corbeille : « ↩ استرجاع » de la sélection → projets revenus
+  ✔ موظف : ni 🗑 dans le panneau, ni corbeille, ni cases à cocher
 
 Tous les contrôles navigateur sont passés.
 

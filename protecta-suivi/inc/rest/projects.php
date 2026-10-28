@@ -79,6 +79,35 @@ function ps_register_project_routes(): void {
 			},
 		)
 	);
+	// 1.10.0 : suppression en lot (→ corbeille) et suppression définitive (depuis la corbeille, sauvegarde avant).
+	register_rest_route(
+		PS_REST_NS,
+		'/projects/bulk-delete',
+		array(
+			'methods'             => 'POST',
+			'permission_callback' => ps_rest_permission( 'ps_delete' ),
+			'callback'            => static function ( WP_REST_Request $r ) {
+				$ids = array_map( 'intval', (array) ( $r->get_json_params()['ids'] ?? array() ) );
+				return rest_ensure_response( array( 'deleted' => ps_projects_bulk_trash( $ids, get_current_user_id() ) ) );
+			},
+		)
+	);
+	register_rest_route(
+		PS_REST_NS,
+		'/projects/purge',
+		array(
+			'methods'             => 'POST',
+			'permission_callback' => ps_rest_permission( 'ps_edit_all_projects' ), // الإدارة seulement
+			'callback'            => static function ( WP_REST_Request $r ) {
+				$b = (array) $r->get_json_params();
+				if ( 'حذف نهائي' !== trim( (string) ( $b['confirm'] ?? '' ) ) ) {
+					return new WP_Error( 'ps_validation', ps__( 'اكتب «حذف نهائي» للتأكيد.' ), array( 'status' => 422 ) );
+				}
+				$res = ps_projects_purge( array_map( 'intval', (array) ( $b['ids'] ?? array() ) ), get_current_user_id() );
+				return is_wp_error( $res ) ? $res : rest_ensure_response( $res );
+			},
+		)
+	);
 	// 1.8.0 : « مشروع؟ » نعم / لا depuis la liste (même droit que la modification de la fiche).
 	register_rest_route(
 		PS_REST_NS,

@@ -178,8 +178,18 @@
 
 	function bulkBar() {
 		if (!isAdmin() || !st.selected.size) return '';
+		// 1.10.0 : corbeille → « استرجاع » / « حذف نهائي » des projets cochés.
+		if (st.params.trash) {
+			return html`<div class="ps-bulk" role="region" aria-label="${PS.t('تعديل جماعي')}">
+				<strong>${st.selected.size} ${PS.t('مشروع محدد')}</strong>
+				<button type="button" class="ps-btn ps-btn--small" data-action="bulk-restore">↩ ${PS.t('استرجاع')}</button>
+				<button type="button" class="ps-btn ps-btn--danger ps-btn--small" data-action="bulk-purge">❌ ${PS.t('حذف نهائي')}</button>
+				<button type="button" class="ps-btn ps-btn--small" data-action="bulk-clear">${PS.t('إلغاء التحديد')}</button>
+			</div>`;
+		}
 		return html`<div class="ps-bulk" role="region" aria-label="${PS.t('تعديل جماعي')}">
 			<strong>${st.selected.size} ${PS.t('مشروع محدد')}</strong>
+			${PS.router.can('ps_delete') ? html`<button type="button" class="ps-btn ps-btn--danger ps-btn--small" data-action="bulk-trash">🗑 ${PS.t('حذف المحدد')}</button>` : ''}
 			<label>${PS.t('تعيين مصدر الطلب:')} <select class="ps-input ps-input--sm" data-bulk-source>${ui.raw(L.options('source', '', { emptyLabel: PS.t('اختر…') }))}</select></label>
 			<button type="button" class="ps-btn ps-btn--primary ps-btn--small" data-action="bulk-apply">${PS.t('تطبيق')}</button>
 			<button type="button" class="ps-btn ps-btn--small" data-action="bulk-clear">${PS.t('إلغاء التحديد')}</button>
@@ -194,7 +204,7 @@
 	function table(rows) {
 		const sort = st.params.sort || 'receivedDate';
 		const dir = st.params.dir || 'desc';
-		const admin = isAdmin() && !st.params.trash;
+		const admin = isAdmin(); // cases à cocher aussi dans la corbeille (1.10.0)
 		const allChecked = rows.length && rows.every(function (r) { return st.selected.has(r.id); });
 		const cols = ui.visibleColumns('projets', colDefs()).map(function (d) { return d.col; });
 		return html`<div class="ps-table-wrap ps-desktop-only"><table class="ps-table ps-table--list ${st.params.trash ? '' : 'ps-table--clickable'}">
@@ -211,7 +221,7 @@
 				return html`<tr ${st.params.trash ? '' : ui.raw('data-open-row="' + r.id + '" tabindex="0"')} class="${r.isProject === false ? 'is-non-project' : ''} ${stateOf(r) === 'pending' ? 'is-pending' : ''}">
 					${admin ? html`<td><input type="checkbox" data-check="${r.id}" aria-label="${PS.t('تحديد')} ${r.projectNo}" ${st.selected.has(r.id) ? ui.raw('checked') : ''}></td>` : ''}
 					${cols.map(function (c) { return html`<td>${c[2](r)}</td>`; })}
-					${st.params.trash ? html`<td><button type="button" class="ps-btn ps-btn--small" data-restore="${r.id}">↩ ${PS.t('استرجاع')}</button></td>` : ''}
+					${st.params.trash ? html`<td class="ps-trash-actions"><button type="button" class="ps-btn ps-btn--small" data-restore="${r.id}">↩ ${PS.t('استرجاع')}</button> ${isAdmin() ? html`<button type="button" class="ps-btn ps-btn--danger ps-btn--small" data-purge="${r.id}">❌ ${PS.t('حذف نهائي')}</button>` : ''}</td>` : ''}
 				</tr>`;
 			})}</tbody>
 		</table></div>`;
@@ -236,7 +246,7 @@
 					${line(PS.t('الحالة'), L.badge(r.followupStatusId, L.label(r.followupStatusId)))}
 				</div>
 				<div class="ps-pcard__badges">${L.offerBadge(r.offerStatus)} ${r.priority ? html`<span class="ps-badge ps-prio ps-prio--${r.priority}">${r.priority}</span>` : ''} <span class="ps-muted ps-small">${r.companyName || ''}</span></div>
-				${st.params.trash ? html`<button type="button" class="ps-btn ps-btn--small" data-restore="${r.id}">↩ ${PS.t('استرجاع')}</button>` : ''}
+				${st.params.trash ? html`<div class="ps-row ps-row--tight"><button type="button" class="ps-btn ps-btn--small" data-restore="${r.id}">↩ ${PS.t('استرجاع')}</button>${isAdmin() ? html`<button type="button" class="ps-btn ps-btn--danger ps-btn--small" data-purge="${r.id}">❌ ${PS.t('حذف نهائي')}</button>` : ''}</div>` : ''}
 			</div>`;
 		})}</div>`;
 	}
@@ -260,6 +270,7 @@
 				<a class="ps-btn" href="#/projet?id=${r.id}&tab=files" data-drawer-go>📎 ${PS.t('الملفات')}</a>
 				<a class="ps-btn" href="#/projet?id=${r.id}&tab=followups" data-drawer-go>🗒 ${PS.t('سجل المتابعة')}</a>
 				${PS.router.can('ps_assign_tasks') && PS.taskModal ? html`<button type="button" class="ps-btn" data-btn="task">➕ ${PS.t('مهمة جديدة')}</button>` : ''}
+				${PS.router.can('ps_delete') ? html`<button type="button" class="ps-btn ps-btn--danger" data-btn="delete">🗑 ${PS.t('حذف')}</button>` : ''}
 			</div>
 			<div class="ps-drawer__section"><h3>${PS.t('التفاصيل')}</h3><div class="ps-kvs">
 				${COLUMNS.filter(function (c) { return !skip[c[4]]; }).map(function (c) {
@@ -277,6 +288,7 @@
 			buttons: [{ id: 'close', label: PS.t('إغلاق') }],
 			onButton: function (b, wrap, close) {
 				if (b === 'task') { close(null); PS.taskModal({ projectId: r.id, projectLabel: r.name + ' — ' + r.projectNo }); return false; }
+				if (b === 'delete') { close(null); trashProjects([r.id]); return false; }
 				return true;
 			},
 			onOpen: function (wrap) {
@@ -294,15 +306,18 @@
 	function resultsHead(d) {
 		const f = Object.assign({ yes: 0, no: 0, pending: 0 }, d.facets && d.facets.isProject);
 		return html`<div class="ps-list-head">
-			${st.params.trash ? html`<p class="ps-muted ps-small" role="status">${d.total} ${PS.t('مشروع')}${PS.t(' في سلة المحذوفات')}</p>` : ui.chips('isProject', [
+			${st.params.trash ? html`<div class="ps-row ps-row--tight"><button type="button" class="ps-btn ps-btn--small" data-action="trash-close">→ ${PS.t('رجوع إلى المشاريع')}</button><strong>🗑 ${PS.t('سلة المحذوفات')}</strong> <span class="ps-muted ps-small" role="status">${d.total} ${PS.t('مشروع')}${PS.t(' في سلة المحذوفات')}</span></div>` : ui.chips('isProject', [
 				{ value: '', label: PS.t('الكل'), count: f.yes + f.no + f.pending },
 				{ value: '1', label: PS.t('مشروع'), count: f.yes },
 				{ value: '2', label: PS.t('⏳ بانتظار القرار'), count: f.pending, tone: f.pending ? 'warning' : '' },
 				{ value: '0', label: PS.t('🚫 غير مشروع'), count: f.no, tone: 'muted' },
 			], st.params.isProject)}
-			<button type="button" class="ps-btn ps-btn--ghost ps-btn--small ps-desktop-only" data-action="columns">▦ ${PS.t('الأعمدة')}</button>
+			<span class="ps-row ps-row--tight">
+				${PS.router.can('ps_delete') && !st.params.trash ? html`<button type="button" class="ps-btn ps-btn--ghost ps-btn--small" data-action="trash-open">🗑 ${PS.t('سلة المحذوفات')}</button>` : ''}
+				<button type="button" class="ps-btn ps-btn--ghost ps-btn--small ps-desktop-only" data-action="columns">▦ ${PS.t('الأعمدة')}</button>
+			</span>
 		</div>
-		${st.params.trash ? '' : html`<p class="ps-muted ps-small" role="status">${d.total} ${PS.t('مشروع')}</p>`}`;
+		${st.params.trash ? '' : html`<p class="ps-muted ps-small" role="status">${d.total} ${PS.t('مشروع')}${isAdmin() ? ' · ' + PS.t('حدّد مشاريع (☐) لحذفها أو تعديلها معًا') : ''}</p>`}`;
 	}
 
 	function pager(d) {
@@ -384,10 +399,9 @@
 			const pg = e.target.closest('[data-page]');
 			if (pg) { setParam('page', pg.dataset.page); window.scrollTo(0, 0); return; }
 			const rs = e.target.closest('[data-restore]');
-			if (rs) {
-				PS.api.post('projects/' + rs.dataset.restore + '/restore').then(function () { ui.toast(PS.t('تم الاسترجاع'), 'success'); load(); }).catch(function (er) { ui.toast(er.message, 'error'); });
-				return;
-			}
+			if (rs) { restoreProjects([Number(rs.dataset.restore)]); return; }
+			const pu = e.target.closest('[data-purge]');
+			if (pu) { purgeProjects([Number(pu.dataset.purge)]); return; }
 			const a = e.target.closest('[data-action]');
 			if (!a) {
 				// Clic sur une ligne (hors lien, case à cocher, bouton) → panneau de détails.
@@ -402,9 +416,74 @@
 			else if (act === 'clear-company') { setParam('companyId', ''); renderPage(); }
 			else if (act === 'bulk-clear') { st.selected.clear(); renderResults(); }
 			else if (act === 'bulk-apply') bulkApply();
+			else if (act === 'bulk-trash') trashProjects(Array.from(st.selected));
+			else if (act === 'bulk-restore') restoreProjects(Array.from(st.selected));
+			else if (act === 'bulk-purge') purgeProjects(Array.from(st.selected));
+			else if (act === 'trash-open') { st.selected.clear(); setParam('trash', 1); }
+			else if (act === 'trash-close') { st.selected.clear(); setParam('trash', ''); }
 			else if (act === 'columns') ui.chooseColumns('projets', colDefs()).then(function (ch) { if (ch) renderResults(); });
 			else if (act === 'export-csv') exportFile('csv');
 			else if (act === 'export-xlsx') exportFile('xlsx');
+		});
+	}
+
+	/*
+	 * 1.10.0 — suppression (demande du client) :
+	 *   « حذف » → corbeille (restaurable) ; « حذف نهائي » (الإدارة, depuis la corbeille) → sauvegarde automatique puis
+	 *   effacement définitif, confirmé en tapant « حذف نهائي ».
+	 */
+	function label(ids) {
+		const rows = st.data.rows.filter(function (x) { return ids.indexOf(x.id) !== -1; });
+		return rows.length === 1 ? rows[0].projectNo + ' — ' + rows[0].name : ids.length + ' ' + PS.t('مشروع');
+	}
+
+	function trashProjects(ids) {
+		if (!ids.length) return;
+		ui.confirm(PS.t('نقل إلى سلة المحذوفات: ') + label(ids) + PS.t('؟ يمكن استرجاعه لاحقًا.'), PS.t('🗑 حذف'), 'danger').then(function (ok) {
+			if (!ok) return;
+			const req = ids.length === 1 ? PS.api.del('projects/' + ids[0]).then(function () { return { deleted: 1 }; }) : PS.api.post('projects/bulk-delete', { ids: ids });
+			req.then(function (res) {
+				ui.toast(PS.t('نُقل إلى سلة المحذوفات: ') + res.deleted, 'success');
+				st.selected.clear();
+				PS.router.refreshCounts();
+				load();
+			}).catch(function (e) { ui.toast(e.message, 'error'); });
+		});
+	}
+
+	function restoreProjects(ids) {
+		Promise.all(ids.map(function (id) { return PS.api.post('projects/' + id + '/restore'); })).then(function () {
+			ui.toast(PS.t('تم الاسترجاع'), 'success');
+			st.selected.clear();
+			PS.router.refreshCounts();
+			load();
+		}).catch(function (er) { ui.toast(er.message, 'error'); });
+	}
+
+	function purgeProjects(ids) {
+		if (!ids.length) return;
+		const word = PS.t('حذف نهائي');
+		ui.modal({
+			title: '❌ ' + PS.t('حذف نهائي'),
+			body: html`<p><strong>${label(ids)}</strong></p>
+				<p class="ps-small">${PS.t('يُحذف المشروع وكل بياناته (الأصناف، المتابعات، الفواتير…) نهائيًا. تُحفظ نسخة احتياطية كاملة قبل الحذف (يمكن التراجع من «استرجاع» في الإعدادات).')}</p>
+				<label class="ps-field ps-mt"><span class="ps-field__label">${PS.t('اكتب «حذف نهائي» للتأكيد')}</span><input data-q="word" autocomplete="off"></label>`,
+			buttons: [{ id: 'ok', label: '❌ ' + PS.t('حذف نهائي'), kind: 'danger' }, { id: 'cancel', label: PS.t('إلغاء') }],
+			onButton: function (b, box, close) {
+				if (b !== 'ok') return true;
+				const typed = box.querySelector('[data-q="word"]').value.trim();
+				if (typed !== 'حذف نهائي' && typed.toLowerCase() !== word.toLowerCase()) { ui.toast(PS.t('اكتب «حذف نهائي» للتأكيد'), 'error'); return false; }
+				const btn = box.querySelector('[data-btn="ok"]');
+				btn.disabled = true;
+				btn.textContent = PS.t('جاري الحذف…');
+				PS.api.post('projects/purge', { ids: ids, confirm: 'حذف نهائي' }).then(function (res) {
+					close('ok');
+					ui.toast(PS.t('حُذف نهائيًا: ') + res.deleted, 'success');
+					st.selected.clear();
+					load();
+				}).catch(function (e) { btn.disabled = false; btn.textContent = '❌ ' + word; ui.toast(e.message, 'error'); });
+				return false;
+			},
 		});
 	}
 

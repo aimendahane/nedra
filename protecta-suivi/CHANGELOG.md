@@ -3,6 +3,24 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.10.0 — 2026-10-28 · base v7 — Création sans « مشروع؟ », suppression de projets par la الإدارة
+
+Demande du client : « pas besoin de choisir نعم / لا à la création — après, dans la colonne de « المشاريع » ;
+je dois pouvoir supprimer des projets (admin) ; expérience plus claire ». Aucune migration.
+- **إدخال مشروع** : plus de question « مشروع؟ ». Un message dit : « بعد الحفظ، قرّر «مشروع؟» من عمود «مشروع؟» في
+  «المشاريع» ». Chaque nouvelle demande est enregistrée « ⏳ لم يُحدد بعد » (rappelée dans مهامي et le résumé du matin)
+  jusqu'au clic sur نعم / لا dans le tableau. Une fiche existante garde le choix (pour corriger).
+  L'API sans ce champ (ancienne interface, import Excel) donne toujours « نعم ».
+- **Supprimer des projets (الإدارة)** :
+  - 🗑 « حذف » dans le panneau de chaque projet (en plus du bouton de la fiche) ;
+  - cases à cocher → « 🗑 حذف المحدد » (plusieurs projets d'un coup) ;
+  - bouton « 🗑 سلة المحذوفات » au-dessus de la liste : « ↩ استرجاع » et « ❌ حذف نهائي » par ligne ou pour la
+    sélection. La suppression définitive demande de taper « حذف نهائي », écrit une **sauvegarde complète avant**
+    (restaurable depuis الإعدادات), efface le projet et ses données (أصناف، متابعات، فواتير…), garde les fichiers sur
+    le disque / Drive et les tâches libres (lien retiré), et laisse une ligne « حذف نهائي » au journal.
+- Correction : « مسح الكل » de l'import Excel efface aussi les factures et leurs alertes (oubli depuis 1.6.0).
+- Tests : tests/test-1100.php ; navigateur step19 ; steps 2 / 14 / 15 / 18 adaptés au nouveau parcours.
+
 ## 1.9.1 — 2026-10-27 · base v7 — demandes « بانتظار القرار » dans le compteur et le résumé du matin
 
 Le client a laissé la décision à Claude (« take you the decision ») : une demande « ⏳ لم يُحدد بعد » est une vraie

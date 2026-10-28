@@ -1212,5 +1212,19 @@
 	"يُسجَّل الطلب الآن، ولا يظهر في العروض حتى تختار «نعم» من «المشاريع» أو من هذه البطاقة.": "La demande est enregistrée ; elle n’apparaîtra dans les offres qu’après « Oui » dans Projets ou dans cette fiche.",
 	"⏳ بانتظار القرار": "⏳ En attente de décision",
 	"⏳ لم يُحدد بعد (أقرّر لاحقًا)": "⏳ Pas encore décidé (plus tard)",
-	"جاري الحذف…": "Suppression…"
+	"جاري الحذف…": "Suppression…",
+	"؟ يمكن استرجاعه لاحقًا.": "? Il pourra être restauré plus tard.",
+	"اكتب «حذف نهائي» للتأكيد": "Tapez « Supprimer définitivement » pour confirmer",
+	"اكتب «حذف نهائي» للتأكيد.": "Tapez « Supprimer définitivement » pour confirmer.",
+	"بعد الحفظ، قرّر «مشروع؟» (نعم / لا) من عمود «مشروع؟» في «المشاريع». إلى ذلك الحين لا يظهر الطلب في العروض.": "Après l’enregistrement, décidez « Projet ? » (Oui / Non) dans la colonne « Projet ? » de Projets. D’ici là, la demande n’apparaît pas dans les offres.",
+	"تعذّر حفظ نسخة احتياطية: لم يُحذف أي شيء.": "Impossible d’enregistrer une sauvegarde : rien n’a été supprimé.",
+	"حدّد مشاريع (☐) لحذفها أو تعديلها معًا": "Cochez des projets (☐) pour les supprimer ou les modifier ensemble",
+	"حذف المحدد": "Supprimer la sélection",
+	"حذف نهائي": "Supprimer définitivement",
+	"حُذف نهائيًا:": "Supprimés définitivement :",
+	"رجوع إلى المشاريع": "Retour aux projets",
+	"لا يُحذف نهائيًا إلا مشروع موجود في سلة المحذوفات.": "Seul un projet de la corbeille peut être supprimé définitivement.",
+	"نقل إلى سلة المحذوفات:": "Mettre à la corbeille :",
+	"نُقل إلى سلة المحذوفات:": "Mis à la corbeille :",
+	"يُحذف المشروع وكل بياناته (الأصناف، المتابعات، الفواتير…) نهائيًا. تُحفظ نسخة احتياطية كاملة قبل الحذف (يمكن التراجع من «استرجاع» في الإعدادات).": "Le projet et toutes ses données (articles, suivis, factures…) sont supprimés définitivement. Une sauvegarde complète est faite avant (annulable via « Restaurer » dans les Paramètres)."
 }

@@ -61,7 +61,8 @@ async function fillIfEditable(page, sel, v) {
 
 async function fillProject(page, o) {
 	await page.fill('[data-bind="name"]', o.name);
-	await page.check('input[name="isProject"][value="1"]'); // 1.6.0 : « مشروع؟ » obligatoire
+	// 1.10.0 : plus de « مشروع؟ » à la création (décision ensuite dans « المشاريع ») ; gardé pour une fiche existante.
+	if (await page.$('input[name="isProject"][value="1"]')) await page.check('input[name="isProject"][value="1"]');
 	await page.click('[data-action="suggest-offer"]');
 	await page.waitForTimeout(400);
 	await page.selectOption('[data-bind="placeId"]', { label: o.place || 'T – Tripoli' });
@@ -1076,20 +1077,11 @@ async function step14(browser) {
 	const rd = await page.$eval('[data-bind="receivedDate"]', (e) => ({ type: e.type, shown: e.getAttribute('value') === null ? '' : HTMLInputElement.prototype.__lookupGetter__('value').call(e), api: e.value }));
 	check('date : champ texte jj/mm/aaaa (19/10/2026), valeur API AAAA-MM-JJ', rd.type === 'text' && rd.shown === '19/10/2026' && rd.api === '2026-10-19', JSON.stringify(rd));
 	check('date : bouton calendrier 📅', !!(await page.$('[data-bind="receivedDate"] ~ .ps-date__btn')));
-	await page.fill('[data-bind="name"]', 'طلب أسعار — غير مشروع');
-	await page.click('[data-action="save"]');
-	await page.waitForTimeout(400);
-	check('« مشروع؟ » non choisi → erreur sous le champ', /إجبارية/.test(await page.textContent('[data-key="is_project"]')));
-	await page.check('input[name="isProject"][value="0"]');
-	await page.waitForSelector('[data-bind="nonProjectReasonId"]');
-	check('« لا » → liste « سبب عدم اعتباره مشروعا »', (await page.$$eval('[data-bind="nonProjectReasonId"] option', (o) => o.map((x) => x.textContent))).includes('خارج الاختصاص'));
-	await page.selectOption('[data-bind="nonProjectReasonId"]', { label: 'خارج الاختصاص' });
+	// 1.10.0 : pas de question « مشروع؟ » à la création — message « قرّر لاحقًا من المشاريع ».
+	check('création : pas de « مشروع؟ », message « بعد الحفظ، قرّر… »', !(await page.$('input[name="isProject"]')) && /بعد الحفظ، قرّر/.test(await page.textContent('[data-section="is-project"]')));
+	await fillProject(page, { name: 'طلب أسعار — غير مشروع', company: 'شركة غير مشروع', companyNew: true });
 	await page.click('[data-more="info"] > summary'); // 1.7.0 : ملاحظة المشروع est dans « المزيد »
 	await page.fill('[data-bind="projectNote"]', 'ملاحظة داخلية 1.6.0');
-	await fillProject(page, { name: 'طلب أسعار — غير مشروع', company: 'شركة غير مشروع', companyNew: true });
-	await page.check('input[name="isProject"][value="0"]');
-	await page.waitForSelector('[data-bind="nonProjectReasonId"]');
-	await page.selectOption('[data-bind="nonProjectReasonId"]', { label: 'خارج الاختصاص' });
 	await page.fill('[data-bind="receivedDate"]', '05/10/2026');
 	await page.selectOption('[data-bind="responsibleEmpId"]', { label: 'وليد جدير' });
 	await page.selectOption('[data-bind="followerEmpId"]', { label: 'محمد حسين' });
@@ -1104,6 +1096,16 @@ async function step14(browser) {
 	await page.waitForSelector('.ps-alert--success a[href*="projet?id="]', { timeout: 8000 });
 	const pid = (await page.getAttribute('.ps-alert--success a[href*="projet?id="]', 'href')).match(/id=(\d+)/)[1];
 	await page.waitForTimeout(1500);
+	check('nouveau projet : « ⏳ لم يُحدد بعد »', (await page.evaluate(async (id) => (await PS.api.get('projects/' + id)).projectState, pid)) === 'pending');
+	// Décision depuis la colonne « مشروع؟ » de « المشاريع » : « لا » → سبب.
+	await go(page, '#/projets?isProject=2');
+	await page.waitForSelector('.ps-table--list tbody tr [data-yn="0"]');
+	await page.click(`.ps-table--list tbody tr:has-text("طلب أسعار — غير مشروع") [data-yn="0"]`);
+	await page.waitForSelector('.ps-modal [data-q="reason"]');
+	check('« لا » → liste « سبب عدم اعتباره مشروعا »', (await page.$$eval('.ps-modal [data-q="reason"] option', (o) => o.map((x) => x.textContent))).includes('خارج الاختصاص'));
+	await page.selectOption('.ps-modal [data-q="reason"]', { label: 'خارج الاختصاص' });
+	await page.click('.ps-modal [data-btn=ok]');
+	await page.waitForTimeout(1200);
 	const saved = await page.evaluate(async (id) => ({ p: await PS.api.get('projects/' + id), files: await PS.api.get('projects/' + id + '/files') }), pid);
 	check('enregistré « غير مشروع » + سبب + ملاحظة المشروع, date saisie 05/10/2026', saved.p.isProject === false && saved.p.nonProjectReasonId && saved.p.projectNote === 'ملاحظة داخلية 1.6.0' && saved.p.receivedDate === '2026-10-05', JSON.stringify({ i: saved.p.isProject, n: saved.p.projectNote, d: saved.p.receivedDate }));
 	check('fichier choisi à la création → joint au projet', saved.files.length === 1 && saved.files[0].name === 'cahier-160.pdf');
@@ -1209,14 +1211,12 @@ async function step15(browser) {
 	await page.waitForSelector('[data-section="files"]');
 	const order = await page.$$eval('[data-section="files"], [data-section="is-project"], [data-bind="name"], [data-bind="offerNo"]', (e) => e.map((x) => x.dataset.section || x.dataset.bind));
 	check('fiche : 📎 الملفات ثم مشروع؟ ثم رقم العرض / اسم المشروع', order.join(',') === 'files,is-project,offerNo,name', order.join(','));
-	await page.check('input[name="isProject"][value="0"]');
-	await page.waitForSelector('[data-section="is-project"] [data-bind="nonProjectReasonId"]');
-	check('« لا » : السبب affiché immédiatement sous la case (même bloc)', !!(await page.$('[data-section="is-project"] [data-bind="nonProjectNote"]')));
 	await page.screenshot({ path: SHOTS + '/s15-01-fiche.png', fullPage: true });
-	// Projet existant : fichiers en haut de l'onglet البيانات.
+	// Projet existant (« لا ») : fichiers en haut de l'onglet البيانات ; motif juste sous « مشروع؟ ».
 	const pid = await page.evaluate(async () => (await PS.api.get('projects?q=' + encodeURIComponent('طلب غير مشروع 15'))).rows[0].id);
 	await go(page, '#/projet?id=' + pid);
 	await page.waitForSelector('[data-top-files] [data-file]', { state: 'attached', timeout: 8000 });
+	check('« لا » : السبب affiché immédiatement sous la case (même bloc)', !!(await page.$('[data-section="is-project"] [data-bind="nonProjectReasonId"]')) && !!(await page.$('[data-section="is-project"] [data-bind="nonProjectNote"]')));
 	const topOrder = await page.$$eval('[data-top-files], [data-section="is-project"], [data-bind="name"]', (e) => e.map((x) => x.hasAttribute('data-top-files') ? 'files' : (x.dataset.section || x.dataset.bind)));
 	check('projet existant : الملفات en haut de البيانات, puis مشروع؟, puis le reste', topOrder.join(',') === 'files,is-project,name', topOrder.join(','));
 
@@ -1367,7 +1367,7 @@ async function step16(browser) {
 	// Fiche projet : raccourcis, « المزيد ».
 	await go(page, '#/projet');
 	await page.waitForSelector('.ps-jump');
-	check('fiche : 7 raccourcis de sections', (await page.$$('.ps-jump__a')).length === 7);
+	check('fiche (création) : 6 raccourcis de sections (« مشروع؟ » se décide ensuite dans « المشاريع »)', (await page.$$('.ps-jump__a')).length === 6);
 	check('fiche : champs secondaires repliés (« المزيد »), الوسيط caché', !(await page.isVisible('[data-bind="intermediaryEmpId"]')) && await page.isVisible('[data-more="info"] > summary'));
 	check('fiche : carte d\'intervenant allégée (العنوان dans « المزيد »)', await page.isVisible('[data-bind="parties.owner.phone"]') && !(await page.isVisible('[data-bind="parties.owner.address"]')));
 	await page.click('[data-more="info"] > summary');
@@ -1470,15 +1470,12 @@ async function step17(browser) {
 
 /* Version 1.9.0 : « مشروع؟ » à trois états — « ⏳ لم يُحدد بعد » à la création, décision plus tard depuis la liste. */
 async function step18(browser) {
-	console.log('1.9.0 — «مشروع؟»: لم يُحدد بعد ثم القرار لاحقًا');
+	console.log('1.9.0 / 1.10.0 — «مشروع؟»: لم يُحدد بعد ثم القرار لاحقًا من الجدول');
 	const { ctx, page } = await newPage(browser, 'idara');
 	await go(page, '#/projet');
-	await page.waitForSelector('input[name="isProject"][value="2"]');
-	check('fiche : 3 choix نعم / لا / ⏳ لم يُحدد بعد', (await page.$$('input[name="isProject"]')).length === 3);
+	await page.waitForSelector('[data-section="is-project"]');
+	check('fiche (création) : aucune question « مشروع؟ » + message « قرّر لاحقًا »', !(await page.$('input[name="isProject"]')) && /بعد الحفظ، قرّر/.test(await page.textContent('[data-section="is-project"]')));
 	await fillProject(page, { name: 'طلب جديد — القرار لاحقًا', company: 'شركة القرار', companyNew: true });
-	await page.check('input[name="isProject"][value="2"]');
-	await page.waitForTimeout(200);
-	check('« ⏳ » : explication affichée', /لا يظهر في العروض حتى تختار/.test(await page.textContent('[data-section="is-project"]')));
 	await page.selectOption('[data-bind="responsibleEmpId"]', { label: 'وليد جدير' });
 	await page.selectOption('[data-bind="followerEmpId"]', { label: 'محمد حسين' });
 	await page.selectOption('[data-bind="items.0.employeeId"]', { label: 'محمد حسين' });
@@ -1535,7 +1532,74 @@ async function step18(browser) {
 	await ctx.close();
 }
 
-const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15, step16, step17, step18 };
+/* Version 1.10.0 : suppression de projets par الإدارة (panneau, sélection, corbeille, suppression définitive). */
+async function step19(browser) {
+	console.log('1.10.0 — حذف المشاريع (الإدارة)');
+	const { ctx, page } = await newPage(browser, 'idara');
+	const total = async () => page.evaluate(async () => ({ list: (await PS.api.get('projects?perPage=1')).total, trash: (await PS.api.get('projects?perPage=1&trash=1')).total }));
+	const t0 = await total();
+	await go(page, '#/projets');
+	await page.waitForSelector('.ps-table--list tbody tr[data-open-row]');
+	check('bouton « 🗑 سلة المحذوفات » visible au-dessus de la liste', await page.isVisible('[data-action="trash-open"]'));
+	// 1) Panneau → 🗑 حذف.
+	const no1 = await page.textContent('.ps-table--list tbody tr >> nth=0 >> .ps-pno');
+	await page.click('.ps-table--list tbody tr >> nth=0 >> td:nth-child(6)');
+	await page.waitForSelector('.ps-modal--drawer [data-btn="delete"]');
+	await page.click('.ps-modal--drawer [data-btn="delete"]');
+	await page.waitForSelector('.ps-modal [data-btn="ok"]');
+	await page.click('.ps-modal [data-btn="ok"]');
+	await page.waitForTimeout(1200);
+	let t = await total();
+	check('panneau → 🗑 حذف : projet mis à la corbeille', t.list === t0.list - 1 && t.trash === t0.trash + 1, JSON.stringify(t));
+	// 2) Sélection de 2 projets → « حذف المحدد ».
+	await page.check('.ps-table--list tbody tr >> nth=0 >> [data-check]');
+	await page.check('.ps-table--list tbody tr >> nth=1 >> [data-check]');
+	await page.waitForSelector('[data-action="bulk-trash"]');
+	await page.screenshot({ path: SHOTS + '/s19-01-selection.png' });
+	await page.click('[data-action="bulk-trash"]');
+	await page.click('.ps-modal [data-btn="ok"]');
+	await page.waitForTimeout(1500);
+	t = await total();
+	check('sélection (2) → « حذف المحدد » : 2 de plus dans la corbeille', t.list === t0.list - 3 && t.trash === t0.trash + 3, JSON.stringify(t));
+	// 3) Corbeille : استرجاع / حذف نهائي.
+	await page.click('[data-action="trash-open"]');
+	await page.waitForSelector('[data-purge]');
+	check('corbeille : « ↩ استرجاع » et « ❌ حذف نهائي » sur chaque ligne', (await page.$$('.ps-table--list [data-purge]')).length === 3 && (await page.$$('.ps-table--list [data-restore]')).length === 3);
+	await page.screenshot({ path: SHOTS + '/s19-02-corbeille.png' });
+	await page.click(`.ps-table--list tbody tr:has(.ps-pno:text-is("${no1.trim()}")) [data-purge]`);
+	await page.waitForSelector('.ps-modal [data-q="word"]');
+	await page.click('.ps-modal [data-btn="ok"]');
+	await page.waitForTimeout(300);
+	check('« حذف نهائي » sans taper le mot → refusé (fenêtre ouverte)', !!(await page.$('.ps-modal [data-q="word"]')));
+	await page.fill('.ps-modal [data-q="word"]', 'حذف نهائي');
+	await page.screenshot({ path: SHOTS + '/s19-03-definitif.png' });
+	await page.click('.ps-modal [data-btn="ok"]');
+	await page.waitForSelector('.ps-modal [data-q="word"]', { state: 'detached', timeout: 30000 });
+	await page.waitForTimeout(800);
+	t = await total();
+	check('« حذف نهائي » : projet effacé (corbeille 3 → 2)', t.trash === t0.trash + 2 && t.list === t0.list - 3, JSON.stringify(t));
+	const gone = await page.evaluate(async (n) => (await PS.api.get('projects?trash=1&q=' + encodeURIComponent(n))).total + (await PS.api.get('projects?q=' + encodeURIComponent(n))).total, no1.trim());
+	check('le projet n\'existe plus nulle part', gone === 0);
+	// 4) Restaurer les 2 autres (sélection).
+	await page.check('[data-check-all]');
+	await page.click('[data-action="bulk-restore"]');
+	await page.waitForTimeout(1500);
+	t = await total();
+	check('corbeille : « ↩ استرجاع » de la sélection → projets revenus', t.trash === t0.trash && t.list === t0.list - 1, JSON.stringify(t));
+	await page.click('[data-action="trash-close"]');
+	await page.waitForSelector('[data-action="trash-open"]');
+	await ctx.close();
+	// موظف : aucun bouton de suppression.
+	const e = await newPage(browser, 'mowadhaf');
+	await go(e.page, '#/projets');
+	await e.page.waitForSelector('.ps-table--list tbody tr[data-open-row]');
+	await e.page.click('.ps-table--list tbody tr >> nth=0 >> td:nth-child(5)');
+	await e.page.waitForSelector('.ps-modal--drawer');
+	check('موظف : ni 🗑 dans le panneau, ni corbeille, ni cases à cocher', !(await e.page.$('.ps-modal--drawer [data-btn="delete"]')) && !(await e.page.$('[data-action="trash-open"]')) && !(await e.page.$('[data-check]')));
+	await e.ctx.close();
+}
+
+const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15, step16, step17, step18, step19 };
 
 (async () => {
 	const browser = await chromium.launch();

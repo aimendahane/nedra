@@ -1091,3 +1091,72 @@ function ps_project_set_is_project( int $id, int $state, $reason_id, ?string $no
 		'itemsCount'         => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . ps_table( 'items' ) . ' WHERE project_id = %d', $id ) ), // phpcs:ignore
 	);
 }
+
+/**
+ * 1.10.0 — Mettre plusieurs projets à la corbeille d'un coup (الإدارة, case à cocher de « المشاريع »).
+ * Rien n'est effacé : chaque projet reste restaurable depuis « سلة المحذوفات ».
+ *
+ * @return int Nombre de projets mis à la corbeille.
+ */
+function ps_projects_bulk_trash( array $ids, int $user_id ): int {
+	$n = 0;
+	foreach ( array_unique( array_map( 'intval', $ids ) ) as $id ) {
+		$row = ps_project_row( $id );
+		if ( $row && ! $row['deleted_at'] ) {
+			ps_project_soft_delete( $id, $user_id );
+			++$n;
+		}
+	}
+	return $n;
+}
+
+/**
+ * 1.10.0 — Suppression DÉFINITIVE de projets déjà dans la corbeille (demande du client : « je dois pouvoir supprimer
+ * des projets, en tant qu'admin »). Exception voulue à la règle n°1, encadrée comme l'option « مسح الكل » de l'import :
+ *   - الإدارة seulement (contrôlé par la route), projets de la corbeille seulement (deleted_at non vide) ;
+ *   - sauvegarde JSON complète AVANT (pas de sauvegarde = rien n'est effacé) → restauration possible ;
+ *   - effacés : le projet, ses أصناف, intervenants, concurrents, سجل المتابعة, fiches de fichiers, factures (+ alertes),
+ *     notifications ; les fichiers sur le disque / Drive sont GARDÉS ; les tâches libres liées restent (lien retiré) ;
+ *   - le journal garde une ligne « حذف نهائي » (numéro + nom) pour chaque projet.
+ *
+ * @return array|WP_Error { deleted: int, backup: string }
+ */
+function ps_projects_purge( array $ids, int $user_id ) {
+	global $wpdb;
+	$ids  = array_values( array_filter( array_unique( array_map( 'intval', $ids ) ) ) );
+	$rows = array();
+	foreach ( $ids as $id ) {
+		$row = ps_project_row( $id );
+		if ( $row && $row['deleted_at'] ) {
+			$rows[ $id ] = $row;
+		}
+	}
+	if ( ! $rows ) {
+		return new WP_Error( 'ps_validation', ps__( 'لا يُحذف نهائيًا إلا مشروع موجود في سلة المحذوفات.' ), array( 'status' => 422 ) );
+	}
+	$backup = ps_backup_write_auto( 'before-project-delete' );
+	if ( ! $backup ) {
+		return new WP_Error( 'ps_backup', ps__( 'تعذّر حفظ نسخة احتياطية: لم يُحذف أي شيء.' ), array( 'status' => 500 ) );
+	}
+	$in       = implode( ',', array_map( 'intval', array_keys( $rows ) ) );
+	$invoices = $wpdb->get_col( 'SELECT id FROM ' . ps_table( 'invoices' ) . " WHERE project_id IN ($in)" ); // phpcs:ignore
+	$wpdb->query( 'START TRANSACTION' );
+	try {
+		if ( $invoices ) {
+			$wpdb->query( 'DELETE FROM ' . ps_table( 'alerts' ) . ' WHERE invoice_id IN (' . implode( ',', array_map( 'intval', $invoices ) ) . ')' ); // phpcs:ignore
+		}
+		foreach ( array( 'invoices', 'items', 'project_parties', 'project_competitors', 'followups', 'files', 'notifications' ) as $t ) {
+			$wpdb->query( 'DELETE FROM ' . ps_table( $t ) . " WHERE project_id IN ($in)" ); // phpcs:ignore
+		}
+		$wpdb->query( 'UPDATE ' . ps_table( 'tasks' ) . " SET project_id = NULL WHERE project_id IN ($in)" ); // phpcs:ignore
+		$wpdb->query( 'DELETE FROM ' . ps_table( 'projects' ) . " WHERE id IN ($in) AND deleted_at IS NOT NULL" ); // phpcs:ignore
+		$wpdb->query( 'COMMIT' );
+	} catch ( Throwable $e ) {
+		$wpdb->query( 'ROLLBACK' );
+		return new WP_Error( 'ps_db', $e->getMessage(), array( 'status' => 500 ) );
+	}
+	foreach ( $rows as $id => $row ) {
+		ps_log( $id, 'purge', 'project', $id, null, $row['project_no'] . ' — ' . $row['name'], 'حذف نهائي', $user_id );
+	}
+	return array( 'deleted' => count( $rows ), 'backup' => basename( (string) $backup ) );
+}

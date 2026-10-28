@@ -1212,5 +1212,19 @@
 	"يُسجَّل الطلب الآن، ولا يظهر في العروض حتى تختار «نعم» من «المشاريع» أو من هذه البطاقة.": "The request is saved now; it will not appear in offers until you choose “Yes” in Projects or in this form.",
 	"⏳ بانتظار القرار": "⏳ Awaiting decision",
 	"⏳ لم يُحدد بعد (أقرّر لاحقًا)": "⏳ Not decided yet (decide later)",
-	"جاري الحذف…": "Deleting…"
+	"جاري الحذف…": "Deleting…",
+	"؟ يمكن استرجاعه لاحقًا.": "? It can be restored later.",
+	"اكتب «حذف نهائي» للتأكيد": "Type “Delete permanently” to confirm",
+	"اكتب «حذف نهائي» للتأكيد.": "Type “Delete permanently” to confirm.",
+	"بعد الحفظ، قرّر «مشروع؟» (نعم / لا) من عمود «مشروع؟» في «المشاريع». إلى ذلك الحين لا يظهر الطلب في العروض.": "After saving, decide “Project?” (Yes / No) from the “Project?” column in Projects. Until then the request does not appear in offers.",
+	"تعذّر حفظ نسخة احتياطية: لم يُحذف أي شيء.": "Could not save a backup: nothing was deleted.",
+	"حدّد مشاريع (☐) لحذفها أو تعديلها معًا": "Tick projects (☐) to delete or edit them together",
+	"حذف المحدد": "Delete selected",
+	"حذف نهائي": "Delete permanently",
+	"حُذف نهائيًا:": "Permanently deleted:",
+	"رجوع إلى المشاريع": "Back to projects",
+	"لا يُحذف نهائيًا إلا مشروع موجود في سلة المحذوفات.": "Only a project in the recycle bin can be deleted permanently.",
+	"نقل إلى سلة المحذوفات:": "Move to the recycle bin:",
+	"نُقل إلى سلة المحذوفات:": "Moved to the recycle bin:",
+	"يُحذف المشروع وكل بياناته (الأصناف، المتابعات، الفواتير…) نهائيًا. تُحفظ نسخة احتياطية كاملة قبل الحذف (يمكن التراجع من «استرجاع» في الإعدادات).": "The project and all its data (items, follow-ups, invoices…) are deleted permanently. A full backup is saved first (you can undo it with “Restore” in Settings)."
 }
