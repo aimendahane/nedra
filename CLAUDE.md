@@ -379,6 +379,8 @@ chaque décision prise seul.
   bouton `#ps-lang` n'existe plus. Avatar = icône (la lettre « و » ressemblait à un « g »).
 - **Téléphone** : `#ps-tabbar` (< 900 px) = مهامي, المشاريع, ＋ (إدخال سريع), العروض, المزيد (ouvre le menu).
 - Toasts d'erreur effacés sur `hashchange` seulement (pas sur `PS.router.refresh`).
+- **Vidéo de formation du مسؤول** (demande du client : « une seule vidéo complète ») : 5 min 50, sous-titres arabes, sans voix,
+  PC + téléphone, jeu de démonstration ; script `tools/video/` (la vidéo elle-même n'est pas versionnée).
 
 ### Version 1.11.0 — décisions
 - Libellé « غير مشروع » → « مشروع مُلغى » (valeur 0 inchangée) ; « ملغى » du Recap (toutes أصناف annulées) → « أصناف ملغاة ».
