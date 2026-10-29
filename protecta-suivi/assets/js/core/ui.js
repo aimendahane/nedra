@@ -46,16 +46,43 @@ PS.ui = (function () {
 		return raw(out);
 	}
 
-	function toast(message, type) {
+	/**
+	 * Notification temporaire. 1.12.0 : opts.action + opts.onAction → bouton dans la notification (ex. « تراجع » après
+	 * un changement rapide, 8 s) ; opts.ms = durée d'affichage.
+	 */
+	function toast(message, type, opts) {
 		const box = document.getElementById('ps-toasts');
 		if (!box) return;
+		const o = opts || {};
 		const el = document.createElement('div');
 		el.className = 'ps-toast ps-toast--' + (type || 'info');
 		el.setAttribute('role', type === 'error' ? 'alert' : 'status');
-		el.textContent = message;
+		const txt = document.createElement('span');
+		txt.textContent = message;
+		el.appendChild(txt);
+		if (o.action && o.onAction) {
+			el.classList.add('ps-toast--action');
+			const b = document.createElement('button');
+			b.type = 'button';
+			b.className = 'ps-toast__btn';
+			b.setAttribute('data-toast-action', '');
+			b.textContent = o.action;
+			b.addEventListener('click', function () { el.remove(); o.onAction(); });
+			el.appendChild(b);
+		}
 		box.appendChild(el);
 		while (box.children.length > 3) box.firstChild.remove(); // 3 notifications au plus
-		setTimeout(function () { el.remove(); }, type === 'error' ? 7000 : 4000);
+		setTimeout(function () { el.remove(); }, o.ms || (o.action ? 8000 : (type === 'error' ? 7000 : 4000)));
+	}
+
+	/** 1.12.0 : en changeant de page, les messages d'ERREUR de la page précédente disparaissent (ils prêtaient à confusion). */
+	function clearErrorToasts() {
+		document.querySelectorAll('#ps-toasts .ps-toast--error').forEach(function (t) { t.remove(); });
+	}
+
+	/** 1.12.0 : notification « تم ✔ — تراجع » après un changement rapide (undo() remet l'ancienne valeur). */
+	function undoToast(message, undo) {
+		toast(message, 'success', { action: PS.t('↩ تراجع'), onAction: undo });
 	}
 
 	function empty(icon, text) {
@@ -192,12 +219,17 @@ PS.ui = (function () {
 
 	/* ---------- Erreurs de formulaire ---------- */
 
-	/** Affiche les erreurs sous les éléments [data-key="clé"] ; renvoie le premier élément en erreur. */
+	/**
+	 * Affiche les erreurs sous les éléments [data-key="clé"] ; renvoie le premier élément en erreur.
+	 * 1.12.0 : si le formulaire a une zone [data-errors], elle montre un RÉSUMÉ « ينقص N خانات » dont chaque nom est un
+	 * lien qui amène directement au champ (même s'il est plus bas ou dans « المزيد »).
+	 */
 	function showErrors(root, errors) {
 		root.querySelectorAll('.ps-field__error').forEach(function (e) { e.remove(); });
 		root.querySelectorAll('.ps-field--error').forEach(function (e) { e.classList.remove('ps-field--error'); });
 		let first = null;
 		const general = [];
+		const list = [];
 		Object.keys(errors || {}).forEach(function (key) {
 			const target = root.querySelector('[data-key="' + key.replace(/"/g, '') + '"]');
 			if (!target) { general.push(errors[key]); return; }
@@ -209,18 +241,53 @@ PS.ui = (function () {
 			msg.className = 'ps-field__error';
 			msg.textContent = errors[key];
 			field.appendChild(msg);
+			const lab = field.querySelector('.ps-field__label');
+			const th = !lab && field.closest('td') ? fieldColumnTitle(field) : '';
+			// Champ d'un groupe (ex. « المالك » / « الشركة المنفذة ») : le nom du groupe d'abord.
+			const legend = field.closest('fieldset') && field.closest('fieldset').querySelector('legend');
+			const group = legend ? legend.textContent.replace(/🔗/g, '').trim() + ': ' : '';
+			list.push({ key: key, label: lab ? group + lab.textContent.replace(/[*🔗]/gu, '').trim() : (th || ''), msg: errors[key] });
 			if (!first) first = target;
 		});
 		const box = root.querySelector('[data-errors]');
 		if (box) {
-			box.innerHTML = general.length ? html`<div class="ps-alert ps-alert--error">${general.map(function (g) { return html`<div>${g}</div>`; })}</div>`.html : '';
-			if (general.length && !first) first = box;
+			const n = list.length + general.length;
+			box.innerHTML = n ? html`<div class="ps-alert ps-alert--error ps-errsum" role="alert">
+				<strong>${n === 1 ? PS.t('خانة واحدة تحتاج تصحيحًا:') : PS.t('خانات تحتاج تصحيحًا:') + ' ' + n}</strong>
+				<ul>${general.map(function (g) { return html`<li>${g}</li>`; })}${list.map(function (x) {
+					const text = String(x.msg).indexOf(x.label) === -1 && x.label ? x.label + ' — ' + x.msg : x.msg;
+					return html`<li><button type="button" class="ps-link" data-err-jump="${x.key}">${text}</button></li>`;
+				})}</ul></div>`.html : '';
+			if (!box.dataset.jumpBound) {
+				box.dataset.jumpBound = '1';
+				box.addEventListener('click', function (e) {
+					const b = e.target.closest('[data-err-jump]');
+					if (!b) return;
+					const t = root.querySelector('[data-key="' + b.dataset.errJump.replace(/"/g, '') + '"]');
+					if (!t) return;
+					for (let det = t.closest('details'); det; det = det.parentElement && det.parentElement.closest('details')) det.open = true;
+					t.scrollIntoView({ behavior: 'smooth', block: 'center' });
+					if (t.focus) t.focus({ preventScroll: true });
+				});
+			}
+			if (n && list.length + general.length > 1) first = box; // plusieurs erreurs : on montre d'abord la liste
+			else if (general.length && !first) first = box;
 		}
 		if (first) {
 			first.scrollIntoView({ behavior: 'smooth', block: 'center' });
-			if (first.focus) first.focus({ preventScroll: true });
+			if (first.focus && first !== box) first.focus({ preventScroll: true });
 		}
 		return first;
+	}
+
+	/** Titre de colonne d'un champ placé dans un tableau de saisie (ex. « الأجل المطلوب » d'un صنف). */
+	function fieldColumnTitle(field) {
+		const td = field.closest('td');
+		const table = td && td.closest('table');
+		if (!table) return '';
+		const th = table.querySelectorAll('thead th')[Array.prototype.indexOf.call(td.parentNode.children, td)];
+		const row = Array.prototype.indexOf.call(td.parentNode.parentNode.children, td.parentNode) + 1;
+		return th ? th.textContent.replace(/\*/g, '').trim() + ' (' + row + ')' : '';
 	}
 
 	/* ---------- Divers ---------- */
@@ -294,7 +361,7 @@ PS.ui = (function () {
 		el.setAttribute('inputmode', 'numeric');
 		el.setAttribute('maxlength', '10');
 		el.setAttribute('autocomplete', 'off');
-		el.setAttribute('placeholder', PS.t('يي/شش/سسسس'));
+		el.setAttribute('placeholder', PS.t('يوم/شهر/سنة'));
 		el.classList.add('ps-date');
 		Object.defineProperty(el, 'value', {
 			configurable: true,
@@ -341,13 +408,59 @@ PS.ui = (function () {
 	function enhanceDates(root) {
 		(root || document).querySelectorAll('input[type="date"]:not(.ps-date__native)').forEach(enhanceDate);
 	}
+
+	/* ---------- Zone d'envoi de fichiers en arabe (1.12.0) ---------- */
+
+	/*
+	 * Le bouton du navigateur affiche « Choose Files / No file chosen » (langue du navigateur). Chaque champ fichier
+	 * visible devient une zone « 📎 اسحب الملف هنا أو اضغط للاختيار » qui accepte aussi le glisser-déposer et liste les
+	 * fichiers choisis. Le champ reste le même élément (invisible, posé sur la zone) : le code des pages ne change pas.
+	 */
+	function enhanceFile(el) {
+		if (el.dataset.psFile || el.hidden) return;
+		el.dataset.psFile = '1';
+		const zone = document.createElement('div');
+		zone.className = 'ps-drop';
+		const text = document.createElement('span');
+		text.className = 'ps-drop__text';
+		text.textContent = '📎 ' + (el.multiple ? PS.t('اسحب الملفات هنا أو اضغط للاختيار') : PS.t('اسحب الملف هنا أو اضغط للاختيار'));
+		const names = document.createElement('span');
+		names.className = 'ps-drop__names';
+		names.setAttribute('aria-live', 'polite');
+		el.parentNode.insertBefore(zone, el);
+		zone.appendChild(el);
+		zone.appendChild(text);
+		zone.appendChild(names);
+		el.classList.add('ps-drop__input');
+		el.setAttribute('aria-label', text.textContent);
+		const show = function () {
+			const files = Array.prototype.map.call(el.files || [], function (f) { return f.name; });
+			names.textContent = files.length ? '✔ ' + files.join(PS.t('، ')) : '';
+			zone.classList.toggle('has-files', !!files.length);
+		};
+		el.addEventListener('change', show);
+		['dragenter', 'dragover'].forEach(function (ev) { zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.add('is-over'); }); });
+		['dragleave', 'dragend'].forEach(function (ev) { zone.addEventListener(ev, function () { zone.classList.remove('is-over'); }); });
+		zone.addEventListener('drop', function (e) {
+			e.preventDefault();
+			zone.classList.remove('is-over');
+			if (!e.dataTransfer || !e.dataTransfer.files.length) return;
+			try { el.files = e.dataTransfer.files; } catch (er) { return; }
+			el.dispatchEvent(new Event('change', { bubbles: true }));
+		});
+	}
+
+	function enhanceAll(n) {
+		if (n.matches && n.matches('input[type="date"]:not(.ps-date__native)')) enhanceDate(n);
+		else if (n.matches && n.matches('input[type="file"]')) enhanceFile(n);
+		else if (n.querySelectorAll) {
+			enhanceDates(n);
+			n.querySelectorAll('input[type="file"]').forEach(enhanceFile);
+		}
+	}
 	new MutationObserver(function (list) {
 		list.forEach(function (m) {
-			m.addedNodes.forEach(function (n) {
-				if (n.nodeType !== 1) return;
-				if (n.matches && n.matches('input[type="date"]:not(.ps-date__native)')) enhanceDate(n);
-				else if (n.querySelectorAll) enhanceDates(n);
-			});
+			m.addedNodes.forEach(function (n) { if (n.nodeType === 1) enhanceAll(n); });
 		});
 	}).observe(document.documentElement, { childList: true, subtree: true });
 
@@ -399,5 +512,5 @@ PS.ui = (function () {
 		return value === '' || value === null || value === undefined ? '' : html`<div class="ps-kv"><span class="ps-kv__k">${label}</span><span class="ps-kv__v">${value}</span></div>`;
 	}
 
-	return { esc, html, raw, toast, projectTitle, empty, badge, modal, confirm, autocomplete, showErrors, getPath, setPath, debounce, parseDate, enhanceDates, visibleColumns, chooseColumns, chips, kv };
+	return { esc, html, raw, toast, undoToast, clearErrorToasts, projectTitle, empty, badge, modal, confirm, autocomplete, showErrors, getPath, setPath, debounce, parseDate, enhanceDates, visibleColumns, chooseColumns, chips, kv };
 })();

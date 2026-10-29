@@ -4,7 +4,7 @@
  * Une ligne par صنف (cahier §5) : رقم المشروع، الصنف، الموظف، الأجل، تاريخ تقديم العرض، الحالة،
  * رقم فاتورة العرض، ملاحظات. Ligne ROUGE = offre en retard (قيد الإعداد, أجل dépassé, hors L),
  * VERTE = مقبول (calculé par le serveur).
- * En haut : compteur « لازم قرار » (clic = n'afficher que ces أصناف).
+ * « لازم قرار » : filtre rapide (1.12.0 : plus de deuxième compteur en haut de page, avec « منها X لك »).
  * 1.7.0 : tableau court (8 colonnes importantes, « الأعمدة » pour les autres), filtres rapides par حالة العرض avec
  * compteurs, clic sur une ligne → panneau latéral où l'on modifie toute l'offre (fichiers et factures compris).
  *
@@ -29,7 +29,7 @@ PS.items = (function () {
 	 * 1.7.0 : les questions s'enchaînent (le panneau de détails peut changer plusieurs champs à la fois) ; une
 	 * information déjà fournie dans `changes` (motif, justification, date) n'est pas redemandée.
 	 */
-	function save(row, changes) {
+	function save(row, changes, opts) {
 		const statusId = changes.offerStatusId;
 		const code = statusId ? L.code(Number(statusId)) : null;
 		const steps = [];
@@ -89,7 +89,9 @@ PS.items = (function () {
 		return ask.then(function (ch) {
 			if (!ch) return null;
 			return PS.api.put('items/' + row.id, ch).then(function (updated) {
-				ui.toast(PS.t('تم الحفظ'), 'success');
+				// 1.12.0 : changement rapide depuis un tableau → « تم ✔ — ↩ تراجع » pendant 8 s.
+				if (opts && opts.undo) ui.undoToast(PS.t('تم الحفظ ✔'), opts.undo);
+				else ui.toast(PS.t('تم الحفظ'), 'success');
 				PS.router.refreshCounts();
 				return updated;
 			}).catch(function (e) {
@@ -100,7 +102,31 @@ PS.items = (function () {
 		});
 	}
 
-	return { save: save };
+	/**
+	 * 1.12.0 — « تراجع » après un changement rapide de حالة (Suivi Offres / Livraison) : remet l'ancienne valeur
+	 * (et l'ancien motif de « لم يُرسل », gardé par le serveur) ; c'est une modification normale, journalisée.
+	 */
+	function undoFor(row, field, after) {
+		const prev = row[field];
+		return function () {
+			const ch = {};
+			ch[field] = prev;
+			if (field === 'offerStatusId' && row.notSentReasonId) ch.notSentReasonId = row.notSentReasonId;
+			const back = Object.assign({}, row, field === 'offerStatusId' ? { projectSentDate: row.projectSentDate || PS.config.today } : {});
+			save(back, ch).then(function () { if (after) after(); });
+		};
+	}
+
+	/**
+	 * 1.12.0 — note « 🔒 للعرض فقط » d'un panneau : POURQUOI on ne peut pas modifier et QUI peut le faire.
+	 * who = [noms] (vides ignorés).
+	 */
+	function readOnlyNote(who) {
+		const names = (who || []).filter(Boolean);
+		return html`<div class="ps-ro-note" data-ro-note><span aria-hidden="true">🔒</span><span><strong>${PS.t('للعرض فقط.')}</strong> ${PS.t('يعدّله:')} ${names.concat([PS.t('الإدارة')]).join(PS.t('، '))}.</span></div>`;
+	}
+
+	return { save: save, undoFor: undoFor, readOnlyNote: readOnlyNote };
 })();
 
 (function () {
@@ -136,6 +162,8 @@ PS.items = (function () {
 
 	/** 📎 fichiers de l'offre : icône + nombre (1.6.1 : colonne à part). */
 	function filesCell(r) {
+		// 1.12.0 : rien quand il n'y a pas de fichier (moins de « 📎 0 ») ; on ajoute un fichier depuis le panneau.
+		if (!r.filesCount) return '';
 		return html`<button type="button" class="ps-btn ps-btn--small ps-nowrap" data-offer-files title="${PS.t('ملفات العرض')}" aria-label="${PS.t('ملفات العرض')}">📎 ${r.filesCount || 0}</button>`;
 	}
 
@@ -199,7 +227,7 @@ PS.items = (function () {
 		const f = (st.data && st.data.facets) || { all: 0, late: 0 };
 		const items = [
 			{ value: '', label: PS.t('الكل'), count: f.all },
-			{ value: 'late', label: '⚠ ' + PS.t('لازم قرار'), count: f.late, tone: f.late ? 'danger' : '' },
+			{ value: 'late', label: '⚠ ' + PS.t('لازم قرار') + (PS.config.user.employeeId && st.data && st.data.needDecisionMine ? ' (' + PS.t('منها') + ' ' + st.data.needDecisionMine + ' ' + PS.t('لك') + ')' : ''), count: f.late, tone: f.late ? 'danger' : '' },
 		].concat(L.values('offer_status').map(function (v) { return { value: v.code, label: v.label, count: f[v.code] || 0 }; }));
 		return ui.chips('offer', items, chipValue());
 	}
@@ -207,8 +235,6 @@ PS.items = (function () {
 	function renderRows() {
 		const d = st.data;
 		const box = st.main.querySelector('[data-results]');
-		const counter = st.main.querySelector('[data-decision]');
-		counter.innerHTML = html`<button type="button" class="ps-decision ${d.needDecisionAll ? 'is-on' : ''}" data-action="only-late">⚠ ${PS.t('لازم قرار:')} <strong>${d.needDecisionAll}</strong>${PS.config.user.employeeId ? html` <span class="ps-muted">(${PS.t('منها')} ${d.needDecisionMine} ${PS.t('لك')})</span>` : ''}</button>`.html;
 		const head = html`<div class="ps-list-head">${chipsHtml()}<button type="button" class="ps-btn ps-btn--ghost ps-btn--small ps-desktop-only" data-action="columns">▦ ${PS.t('الأعمدة')}</button></div>`;
 		if (!d.rows.length) {
 			box.innerHTML = html`${head}${ui.empty('📨', PS.t('لا توجد أصناف تطابق الفلاتر.'))}`.html;
@@ -238,6 +264,7 @@ PS.items = (function () {
 				${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo }, { numberFirst: true })}
 				<div class="ps-drawer__badges">${L.offerBadge(r.offerStatusCode)} ${L.badge(r.urgencyId)} ${r.computed.late ? html`<span class="ps-badge ps-badge--danger">${PS.t('لازم قرار')}</span>` : ''}</div>
 			</div>
+			${ro && !r.canAssign ? PS.items.readOnlyNote([L.label(r.employeeId) && PS.t('موظف الصنف') + ' (' + L.label(r.employeeId) + ')', L.label(r.responsibleEmpId) && PS.t('المسؤول عن المشروع') + ' (' + L.label(r.responsibleEmpId) + ')']) : ''}
 			<div class="ps-kvs">
 				${ui.kv(PS.t('الصنف'), html`${L.label(r.itemTypeId)}${r.quantity ? html` ×${F.number(r.quantity)}` : ''}`)}
 				${ui.kv(PS.t('موظف الصنف'), L.label(r.employeeId))}
@@ -337,7 +364,8 @@ PS.items = (function () {
 		const field = el.dataset.field;
 		const ch = {};
 		ch[field] = el.value === '' ? null : (field.slice(-2) === 'Id' ? Number(el.value) : el.value);
-		PS.items.save(row, ch).then(function (updated) {
+		const undo = PS.items.undoFor(Object.assign({}, row), field, load);
+		PS.items.save(row, ch, { undo: undo }).then(function (updated) {
 			if (updated && updated.id) Object.assign(row, updated);
 			load();
 		});
@@ -401,7 +429,8 @@ PS.items = (function () {
 	}
 
 	function render() {
-		st.main.innerHTML = html`<div class="ps-page-head"><h1>${PS.t('متابعة العروض')}</h1><div data-decision class="ps-page-head__actions"></div></div>
+		// 1.12.0 : « لازم قرار » n'apparaît plus deux fois (seulement dans les filtres rapides, avec « منها X لك »).
+		st.main.innerHTML = html`<div class="ps-page-head"><h1>${PS.t('متابعة العروض')}</h1></div>
 			${filters()}<div data-results><div class="ps-loading">${PS.t('جاري التحميل…')}</div></div>`.html;
 		bind();
 		return load();

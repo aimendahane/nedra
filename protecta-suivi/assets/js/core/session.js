@@ -56,6 +56,9 @@ PS.session = (function () {
 	function showThemeIcon(theme) {
 		const icon = document.getElementById('ps-theme-icon');
 		if (icon) icon.innerHTML = PS.icons.svg(THEME_ICONS[theme] || THEME_ICONS.auto);
+		// 1.12.0 : dans la « قائمة الحساب », le bouton dit en clair le mode actuel.
+		const label = document.getElementById('ps-theme-label');
+		if (label) label.textContent = PS.t('المظهر:') + ' ' + THEME_LABELS[theme];
 		const btn = document.getElementById('ps-theme-toggle');
 		if (btn) btn.title = THEME_LABELS[theme] + PS.t(' — اضغط للتغيير');
 	}
@@ -71,27 +74,39 @@ PS.session = (function () {
 
 	/* ---- Langue de l'interface (1.3.0) ---- */
 	function initLang() {
-		const btn = document.getElementById('ps-lang');
 		const panel = document.getElementById('ps-lang-panel');
-		if (!btn || !panel) return;
-		btn.addEventListener('click', function (e) {
-			e.stopPropagation();
-			panel.hidden = !panel.hidden;
-			btn.setAttribute('aria-expanded', String(!panel.hidden));
-		});
+		if (!panel) return;
 		panel.addEventListener('click', function (e) {
 			const b = e.target.closest('[data-lang]');
-			if (!b || b.dataset.lang === PS.i18n.lang) { panel.hidden = true; return; }
+			if (!b || b.dataset.lang === PS.i18n.lang) return;
 			// Enregistré sur le compte, puis rechargement : textes, sens d'écriture et graphiques changent ensemble.
 			PS.api.post('me/prefs', { lang: b.dataset.lang }).then(function () { window.location.reload(); })
 				.catch(function (er) { PS.ui.toast(er.message, 'error'); });
 		});
-		document.addEventListener('click', function () { panel.hidden = true; btn.setAttribute('aria-expanded', 'false'); });
+	}
+
+	/* ---- « قائمة الحساب » (1.12.0) : اللغة، المظهر، الخروج ---- */
+	function initUserMenu() {
+		const btn = document.getElementById('ps-usermenu');
+		const panel = document.getElementById('ps-usermenu-panel');
+		if (!btn || !panel) return;
+		const close = function () { panel.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
+		btn.addEventListener('click', function (e) {
+			e.stopPropagation();
+			panel.hidden = !panel.hidden;
+			btn.setAttribute('aria-expanded', String(!panel.hidden));
+			if (!panel.hidden) { const f = panel.querySelector('button'); if (f) f.focus(); }
+		});
+		panel.addEventListener('click', function (e) { e.stopPropagation(); });
+		document.addEventListener('click', close);
+		document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panel.hidden) { close(); btn.focus(); } });
+		window.addEventListener('hashchange', close);
 	}
 
 	function init() {
 		watch();
 		initLang();
+		initUserMenu();
 		const btnLogout = document.getElementById('ps-logout');
 		if (btnLogout) btnLogout.addEventListener('click', logout);
 		const btnTheme = document.getElementById('ps-theme-toggle');

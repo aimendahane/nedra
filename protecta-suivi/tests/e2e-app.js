@@ -245,9 +245,13 @@ async function step3(browser) {
 	const { ctx, page } = await newPage(browser, 'mowadhaf2');
 	await go(page, '#/taches');
 	await page.waitForSelector('.ps-task');
-	// 1.0.1 : le 1er bloc est « مهام مُسندة » (vide ici) ; les blocs §7 suivent.
-	const counts = await page.$$eval('.ps-task__count', (e) => e.map((x) => Number(x.textContent)));
-	check('مهامي : 0 مهام مُسندة, 3 عروض متأخرة, 2 متابعات, 2 تسليمات (tableau §7)', counts[0] === 0 && counts[1] === 3 && counts[2] === 2 && counts[4] === 2, counts.join(','));
+	// 1.12.0 : blocs pleins d'abord (du plus urgent), blocs vides regroupés dans une ligne « ✔ لا شيء في: … ».
+	const counts = await page.$$eval('[data-block]', (e) => Object.fromEntries(e.map((x) => [x.dataset.block, Number(x.querySelector('.ps-task__count').textContent)])));
+	check('مهامي : 3 عروض متأخرة, 2 متابعات, 2 تسليمات (tableau §7) ; « مهام مُسندة » vide → ligne regroupée', counts.lateOffers === 3 && counts.followupsDue === 2 && counts.deliveries === 2 && !counts.assigned && /مهام مُسندة/.test(await page.textContent('[data-task-empty]')), JSON.stringify(counts));
+	const today = (await page.textContent('[data-today]')).replace(/\s+/g, ' ');
+	check('ligne « اليوم: » : 3 عروض متأخرة · 2 متابعات · 2 تسليمات', /3 عروض متأخرة/.test(today) && /2 متابعات/.test(today) && /2 تسليمات/.test(today), today);
+	const order = await page.$$eval('[data-block]', (e) => e.map((x) => x.dataset.block));
+	check('le bloc le plus urgent en premier (عروض متأخرة)', order[0] === 'lateOffers', order.join(','));
 	await page.waitForTimeout(600);
 	const menuCount = await page.$eval('a[href="#/offres"] .ps-nav__count', (e) => e.textContent).catch(() => '');
 	check('compteur « لازم قرار » sur le menu : 3', menuCount === '3', menuCount);
@@ -258,8 +262,8 @@ async function step3(browser) {
 	await page.waitForSelector('.ps-table--list tbody tr');
 	// Toutes années confondues : 6 retards en 2026 + E06 (2025) = 7.
 	check('lignes rouges (en retard) : 7, vertes (مقبول) ≥ 7', (await page.$$('tr.is-late')).length === 7 && (await page.$$('tr.is-done')).length >= 7);
-	const decision = (await page.textContent('[data-decision]')).replace(/\s+/g, ' ');
-	check('compteur en haut : « لازم قرار: 7 (منها 3 لك) »', decision.includes('7') && decision.includes('3 لك'), decision);
+	const decision = (await page.textContent('[data-chip="offer"][data-value="late"]')).replace(/\s+/g, ' ');
+	check('« لازم قرار » une seule fois (filtre rapide) : 7 (منها 3 لك)', decision.includes('7') && decision.includes('3 لك') && !(await page.$('[data-decision]')), decision);
 	await page.screenshot({ path: SHOTS + '/s3-02-suivi-offres.png', fullPage: true });
 	await page.click('[data-chip="offer"][data-value="late"]');
 	await page.waitForTimeout(800);
@@ -374,6 +378,7 @@ async function step4(browser) {
 
 	await go(page, '#/recap?year=2026');
 	await page.waitForSelector('#ch-month');
+	await page.click('#ps-usermenu');
 	await page.click('#ps-theme-toggle'); // nuit
 	await page.waitForTimeout(500);
 	const tickColor = await page.$eval('#ch-month', (c) => Chart.getChart(c).options.scales.x.ticks.color);
@@ -844,7 +849,7 @@ async function step9(browser) {
 		await page.screenshot({ path: SHOTS + '/s9-07-fiche-en.png', fullPage: true });
 
 		// Passage en français depuis le menu de l'en-tête.
-		await page.click('#ps-lang');
+		await page.click('#ps-usermenu');
 		await Promise.all([page.waitForNavigation(), page.click('#ps-lang-panel [data-lang=fr]')]);
 		await page.waitForSelector('.ps-nav__link');
 		check('menu de l\'en-tête → Français : <html lang="fr" dir="ltr">', await page.evaluate(() => document.documentElement.lang === 'fr' && document.documentElement.dir === 'ltr'));
@@ -853,7 +858,7 @@ async function step9(browser) {
 		await go(page, '#/recap');
 		await page.waitForTimeout(1500);
 		await page.screenshot({ path: SHOTS + '/s9-08-recap-fr.png', fullPage: true });
-		await page.click('#ps-lang');
+		await page.click('#ps-usermenu');
 		await Promise.all([page.waitForNavigation(), page.click('#ps-lang-panel [data-lang=ar]')]);
 		await page.waitForSelector('.ps-nav__link');
 		check('retour à العربية : dir="rtl"', await page.evaluate(() => document.documentElement.dir === 'rtl' && document.documentElement.lang === 'ar'));
@@ -1247,7 +1252,9 @@ async function step15(browser) {
 	check('Suivi Offres : رقم المشروع | رقم فاتورة العرض | المسؤول | المتابع | تاريخ الإرسال | حالة العرض | 📎 | ملاحظة العرض', so.slice(0, 8).join('|') === 'رقم المشروع|رقم فاتورة العرض|المسؤول عن المشروع|الموظف المتابع|تاريخ الإرسال|حالة العرض|📎|ملاحظة العرض', so.join('|'));
 	const firstCell = await page.$eval('.ps-table tbody tr td .ps-ptitle', (a) => a.firstElementChild.className);
 	check('Suivi Offres : le NUMÉRO du projet d\'abord (nom en petit)', firstCell === 'ps-ptitle__num', firstCell);
-	check('Suivi Offres : 📎 avec le nombre de fichiers ; « غير مشروع » absent', /📎 \d+/.test(await page.textContent('.ps-table tbody tr td:nth-child(7)')) && !/طلب غير مشروع 15/.test(await page.textContent('.ps-table')));
+	// 1.12.0 : 📎 seulement quand l'offre a des fichiers (plus de « 📎 0 »).
+	const clipCells = await page.$$eval('.ps-table tbody tr td:nth-child(7)', (t) => t.map((x) => x.textContent.trim()));
+	check('Suivi Offres : 📎 avec le nombre de fichiers (vide si aucun) ; « غير مشروع » absent', clipCells.every((t) => t === '' || /📎 [1-9]/.test(t)) && !/طلب غير مشروع 15/.test(await page.textContent('.ps-table')), clipCells.slice(0, 5).join(','));
 	await page.screenshot({ path: SHOTS + '/s15-03-offres.png' });
 
 	// Factures.
@@ -1287,7 +1294,7 @@ async function step15(browser) {
 	await go(m.page, '#/offres');
 	await m.page.waitForSelector('.ps-icard');
 	const ok = await m.page.$eval('.ps-icard', (c) => [...c.querySelectorAll('.ps-kv__k')].map((k) => k.textContent.trim()).join('|'));
-	check('téléphone (العروض) : رقم فاتورة العرض، المسؤول، المتابع، تاريخ الإرسال puis حالة العرض / 📎', ok === 'رقم فاتورة العرض|المسؤول عن المشروع|الموظف المتابع|تاريخ الإرسال' && !!(await m.page.$('.ps-icard [data-offer-files]')), ok);
+	check('téléphone (العروض) : رقم فاتورة العرض، المسؤول، المتابع، تاريخ الإرسال puis حالة العرض / 📎', ok === 'رقم فاتورة العرض|المسؤول عن المشروع|الموظف المتابع|تاريخ الإرسال' && !!(await m.page.$('.ps-icard [data-invoices]')), ok);
 	await m.page.screenshot({ path: SHOTS + '/s15-06-mobile-offres.png', fullPage: true });
 	await m.ctx.close();
 }
@@ -1350,7 +1357,9 @@ async function step16(browser) {
 	await page.waitForSelector('.ps-modal--drawer', { state: 'detached', timeout: 8000 });
 	const note = await page.evaluate(async (id) => (await PS.api.get('items?view=offers&perPage=500')).rows.find((r) => String(r.id) === id).offerNotes, rid);
 	check('panneau de l\'offre : ملاحظة العرض enregistrée', note === 'ملاحظة من اللوحة 1.7.0', note);
-	check('ملاحظة العرض visible dans le tableau', /ملاحظة من اللوحة 1\.7\.0/.test(await page.textContent(`tr[data-open-row="${rid}"]`)));
+	// Le tableau se recharge après l'enregistrement : attendre la nouvelle version de la ligne.
+	const shown = await page.waitForFunction((id) => { const tr = document.querySelector(`tr[data-open-row="${id}"]`); return tr && /ملاحظة من اللوحة 1\.7\.0/.test(tr.textContent); }, rid, { timeout: 8000 }).then(() => true, () => false);
+	check('ملاحظة العرض visible dans le tableau', shown);
 
 	// Factures : chips + panneau.
 	await page.evaluate(async (id) => { await PS.api.post('items/' + id + '/invoices', { invoiceNo: 'FAC-170-1', sentDate: '2026-09-01' }); }, rid);
@@ -1656,7 +1665,137 @@ async function step20(browser) {
 	await p2.ctx.close();
 }
 
-const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15, step16, step17, step18, step19, step20 };
+/* 1.12.0 — expérience utilisateur (revue UX choisie par Claude, le client lui a laissé le choix). */
+async function step21(browser) {
+	console.log('1.12.0 — إدخال سريع, résumé des erreurs, تراجع, résumé en lecture seule, Recap, fichiers');
+	const { ctx, page } = await newPage(browser, 'masoul');
+	// 1. « ⚡ إدخال سريع » : 4 خانات, résumé des erreurs avec liens.
+	await go(page, '#/projets');
+	check('« المشاريع » : boutons ⚡ إدخال سريع + النموذج الكامل', !!(await page.$('[data-quick-add]')));
+	await page.click('[data-quick-add]');
+	await page.waitForSelector('[data-quick]');
+	const fields = await page.$$eval('[data-quick] [data-key]', (e) => e.map((x) => x.dataset.key));
+	check('إدخال سريع : 4 خانات (+ نص الطلب اختياري)', ['name', 'parties.owner.company', 'received_date', 'responsible_emp_id'].every((k) => fields.includes(k)) && fields.length === 5, fields.join(','));
+	await page.fill('[data-bind="receivedDate"]', '');
+	await page.click('[data-action=save]');
+	await page.waitForSelector('.ps-errsum');
+	check('résumé des erreurs : « خانات تحتاج تصحيحًا: 3 » avec un lien par خانة', /3/.test(await page.textContent('.ps-errsum strong')) && (await page.$$('.ps-errsum [data-err-jump]')).length === 3);
+	await page.click('.ps-errsum [data-err-jump="parties.owner.company"]');
+	await page.waitForTimeout(600);
+	check('clic sur un nom → curseur dans la خانة', await page.evaluate(() => document.activeElement && document.activeElement.dataset.key === 'parties.owner.company'));
+	await page.screenshot({ path: SHOTS + '/s21-01-quick-errors.png', fullPage: true });
+	await page.fill('[data-bind="name"]', 'طلب سريع 1.12');
+	await page.fill('[data-company="owner"]', 'شركة الطلب السريع');
+	await page.fill('[data-bind="receivedDate"]', '18/10/2026');
+	await page.click('[data-action=save]');
+	await page.waitForSelector('.ps-alert--success');
+	const quick = await page.evaluate(async () => (await PS.api.get('projects?q=' + encodeURIComponent('طلب سريع 1.12'))).rows[0]);
+	check('demande enregistrée « ⏳ لم يُحدد بعد », reçue le 18/10/2026', quick && quick.projectState === 'pending' && quick.receivedDate === '2026-10-18', JSON.stringify(quick && { s: quick.projectState, d: quick.receivedDate }));
+	await page.screenshot({ path: SHOTS + '/s21-02-quick-saved.png', fullPage: true });
+	// « نعم » depuis la liste → message « أكمل في بطاقة المشروع » + bouton.
+	await go(page, '#/projets?isProject=2');
+	await page.click(`.ps-table--list [data-pid="${quick.id}"][data-yn="1"]`);
+	await page.waitForSelector('.ps-toast [data-toast-action]');
+	check('« نعم » sur une demande rapide → « فتح البطاقة » pour compléter', /فتح البطاقة/.test(await page.textContent('.ps-toast--action')));
+	await page.click('.ps-toast [data-toast-action]');
+	await page.waitForTimeout(800);
+	check('… le bouton ouvre la fiche du projet', (await page.evaluate(() => location.hash)).includes('id=' + quick.id));
+
+	// 2. « ↩ تراجع » après « مشروع؟ » depuis la liste.
+	await go(page, '#/projets?isProject=1');
+	await page.waitForSelector('.ps-table--list [data-yn="2"]');
+	const pid = await page.$eval('.ps-table--list [data-yn="2"]', (b) => b.dataset.pid);
+	await page.click(`.ps-table--list [data-pid="${pid}"][data-yn="2"]`);
+	await page.waitForSelector('.ps-toast [data-toast-action]');
+	check('changement rapide → « ↩ تراجع » dans le message', /تراجع/.test(await page.textContent('.ps-toast [data-toast-action]')));
+	await page.click('.ps-toast [data-toast-action]');
+	await page.waitForTimeout(1200);
+	check('« تراجع » : « مشروع؟ » revient à « نعم »', (await page.evaluate(async (id) => (await PS.api.get('projects/' + id)).projectState, pid)) === 'yes');
+
+	// 3. Suivi Offres : « تراجع » d'une حالة, 📎 seulement s'il y a un fichier.
+	await go(page, '#/offres?offerStatus=preparing');
+	await page.waitForSelector('.ps-table--list tbody tr [data-field="offerStatusId"]');
+	const row = await page.$eval('.ps-table--list tbody tr', (tr) => tr.dataset.row);
+	const cancelled = await page.evaluate(() => PS.lists.byCode('offer_status', 'cancelled').id);
+	await page.selectOption(`.ps-table--list tr[data-row="${row}"] [data-field="offerStatusId"]`, String(cancelled));
+	await page.waitForSelector('.ps-toast [data-toast-action]');
+	await page.click('.ps-toast [data-toast-action]');
+	await page.waitForTimeout(1500);
+	const back = await page.evaluate(async (id) => (await PS.api.get('items?view=offers&perPage=300')).rows.find((r) => String(r.id) === id).offerStatusCode, row);
+	check('Suivi Offres : « ملغى » puis « تراجع » → « قيد الإعداد »', back === 'preparing', back);
+	await go(page, '#/offres');
+	await page.waitForSelector('.ps-table--list tbody tr');
+	const clips = await page.$$eval('.ps-table--list [data-offer-files]', (b) => b.map((x) => x.textContent.trim()));
+	check('Suivi Offres : pas de « 📎 0 »', clips.every((t) => !/📎\s*0$/.test(t)), clips.join(','));
+	check('« لازم قرار » une seule fois sur la page', (await page.$$('[data-chip="offer"][data-value="late"]')).length === 1 && !(await page.$('.ps-decision')));
+
+	// 4. Message d'erreur effacé en changeant de page ; zone d'envoi en arabe ; date « يوم/شهر/سنة ».
+	await go(page, '#/projet');
+	await page.evaluate(() => PS.ui.toast('خطأ تجريبي', 'error'));
+	await page.click('a.ps-nav__link[href="#/projets"]');
+	await page.waitForTimeout(500);
+	check('changement de page : les messages d\'erreur précédents disparaissent', !(await page.$('.ps-toast--error')));
+	await go(page, '#/projet');
+	await page.waitForSelector('.ps-drop');
+	check('fichiers : zone « اسحب الملفات هنا أو اضغط للاختيار »', /اسحب الملفات هنا/.test(await page.textContent('.ps-drop')));
+	await page.setInputFiles('[data-new-files]', { name: 'عرض.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 test') });
+	await page.waitForTimeout(400);
+	check('… le fichier choisi est listé', /عرض\.pdf/.test(await page.textContent('[data-section="files"]')));
+	check('dates : indication « يوم/شهر/سنة »', (await page.getAttribute('[data-bind="sentDate"]', 'placeholder')) === 'يوم/شهر/سنة');
+	// Formulaire complet : résumé des erreurs, nom du groupe (المالك…) devant les خانات des intervenants.
+	await page.fill('[data-bind="name"]', '');
+	await page.click('[data-action=save]');
+	await page.waitForSelector('.ps-errsum');
+	const errs = await page.$$eval('.ps-errsum [data-err-jump]', (b) => b.map((x) => x.textContent.trim()));
+	check('formulaire complet : une ligne par خانة manquante, avec le groupe (المالك: …)', errs.length >= 5 && errs.some((t) => /^المالك: /.test(t)), errs.slice(0, 6).join(' | '));
+	await page.screenshot({ path: SHOTS + '/s21-03-full-errors.png' });
+	// Menu du compte.
+	await page.click('#ps-usermenu');
+	check('قائمة الحساب : nom, اللغة, المظهر, تسجيل الخروج', /وليد جدير/.test(await page.textContent('#ps-usermenu-panel')) && (await page.$$('#ps-usermenu-panel [data-lang]')).length === 3 && /المظهر/.test(await page.textContent('#ps-theme-toggle')));
+	await page.screenshot({ path: SHOTS + '/s21-04-usermenu.png' });
+	await page.keyboard.press('Escape');
+	await ctx.close();
+
+	// 5. موظف : projet non modifiable → résumé + actions permises ; panneau « 🔒 للعرض فقط » avec qui peut modifier.
+	const e = await newPage(browser, 'mowadhaf');
+	const ro = await e.page.evaluate(async () => (await PS.api.get('projects?perPage=100')).rows.find((r) => !r.canEdit && r.projectState === 'yes'));
+	await go(e.page, '#/projet?id=' + ro.id);
+	await e.page.waitForSelector('[data-ro-summary]');
+	check('موظف : résumé lisible au lieu d\'une fiche grisée, + متابعة / + ملف en haut', !!(await e.page.$('[data-ro-summary] [data-tab="followups"]')) && !!(await e.page.$('[data-ro-summary] [data-tab="files"]')) && !(await e.page.$('[data-action="save"]')));
+	check('… la fiche complète reste consultable (« كل الخانات »)', !!(await e.page.$('[data-all-fields] [data-bind="name"]')) && !(await e.page.isVisible('[data-all-fields] [data-bind="name"]')));
+	await e.page.screenshot({ path: SHOTS + '/s21-05-summary.png', fullPage: true });
+	await e.page.click('[data-ro-summary] [data-tab="followups"]');
+	await e.page.waitForTimeout(600);
+	check('« + متابعة » ouvre سجل المتابعة', (await e.page.getAttribute('.ps-tab[data-tab="followups"]', 'aria-selected')) === 'true');
+	await go(e.page, '#/offres');
+	await e.page.waitForSelector('.ps-table--list tbody tr');
+	const roRow = await e.page.evaluate(async () => (await PS.api.get('items?view=offers&perPage=300')).rows.find((r) => !r.canEdit && !r.canAssign).id);
+	await e.page.click(`.ps-table--list tr[data-row="${roRow}"] td:nth-child(3)`);
+	await e.page.waitForSelector('.ps-modal [data-ro-note]');
+	check('panneau en lecture seule : « 🔒 للعرض فقط — يعدّله: … »', /للعرض فقط/.test(await e.page.textContent('[data-ro-note]')) && /الإدارة/.test(await e.page.textContent('[data-ro-note]')));
+	await e.page.screenshot({ path: SHOTS + '/s21-06-ro-drawer.png' });
+	await e.ctx.close();
+
+	// 6. Recap : 4 grands chiffres en haut.
+	const a = await newPage(browser, 'idara');
+	await go(a.page, '#/recap?year=2026');
+	await a.page.waitForSelector('[data-kpis-main]');
+	const main = await a.page.$$eval('[data-kpis-main] .ps-kpi__label', (e) => e.map((x) => x.textContent.trim()));
+	check('Recap : 4 grands chiffres (عدد المشاريع، المؤكدة، نسبة النجاح، العروض المتأخرة)', main.join('|') === 'عدد المشاريع|المؤكدة|نسبة النجاح|العروض المتأخرة', main.join('|'));
+	await a.page.screenshot({ path: SHOTS + '/s21-07-recap.png' });
+	await a.ctx.close();
+
+	// 7. Téléphone : barre du bas avec le compteur de مهامي.
+	const m = await newPage(browser, 'mowadhaf2', true);
+	await go(m.page, '#/taches');
+	await m.page.waitForTimeout(800);
+	check('téléphone : barre du bas visible, compteur sur « مهامي »', await m.page.isVisible('#ps-tabbar') && /\d/.test(await m.page.textContent('#ps-tabbar a[href="#/taches"]')));
+	check('téléphone : pas de défilement horizontal', await m.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
+	await m.page.screenshot({ path: SHOTS + '/s21-08-mobile.png' });
+	await m.ctx.close();
+}
+
+const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15, step16, step17, step18, step19, step20, step21 };
 
 (async () => {
 	const browser = await chromium.launch();

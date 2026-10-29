@@ -42,13 +42,14 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 1.9.0 | Accord client : « مشروع؟ » 3e état « ⏳ لم يُحدد بعد » (décider plus tard), مهامي + Recap | ✅ terminée, tests verts | 1.9.0 · base v7 |
 | 1.9.1 | Décision laissée à Claude : demandes « بانتظار القرار » dans le compteur مهامي + résumé du matin (e-mail, Telegram) | ✅ terminée, tests verts | 1.9.1 · base v7 |
 | 1.10.0 | Demande client : plus de « مشروع؟ » à la création (décision dans le tableau), suppression de projets par la الإدارة (lot, corbeille, définitive) | ✅ terminée, tests verts | 1.10.0 · base v7 |
-| 1.11.0 | Demande client : « مشروع مُلغى », factures par offre entière, آخر أجل saisi + rappel tous les 15 j, tableau factures complet, vitesse (gzip, cache, préchargement) | ✅ terminée, tests verts | **1.11.0** · base v8 |
+| 1.11.0 | Demande client : « مشروع مُلغى », factures par offre entière, آخر أجل saisi + rappel tous les 15 j, tableau factures complet, vitesse (gzip, cache, préchargement) | ✅ terminée, tests verts | 1.11.0 · base v8 |
+| 1.12.0 | Revue UX (rapport 17 points, choix laissé à Claude) : إدخال سريع, مهامي, résumé lecture seule, erreurs, barre du bas, تراجع, menu du compte, Recap | ✅ terminée, tests verts | **1.12.0** · base v8 |
 
-### Tests (dernier passage complet, version 1.11.0) — détail : `docs/TEST-RESULTS.txt`
-- `sh protecta-suivi/tests/run-all.sh` → **1001 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
-  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0 + step12 = 1.5.2 + step13 = 1.5.3 + step14 = 1.6.0 + step15 = 1.6.1/1.6.2 + step16 = 1.7.0 + step17 = 1.8.0 + step18 = 1.9.0 + step19 = 1.10.0 + step20 = 1.11.0) passés.
-- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.11.0.zip $PWD/dist/protecta-suivi-1.10.0.zip` (chemins absolus) →
-  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.10.0 → 1.11.0 avec données (migration 8) : **aucune perte**.
+### Tests (dernier passage complet, version 1.12.0) — détail : `docs/TEST-RESULTS.txt`
+- `sh protecta-suivi/tests/run-all.sh` → **1018 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
+  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0 + step12 = 1.5.2 + step13 = 1.5.3 + step14 = 1.6.0 + step15 = 1.6.1/1.6.2 + step16 = 1.7.0 + step17 = 1.8.0 + step18 = 1.9.0 + step19 = 1.10.0 + step20 = 1.11.0 + step21 = 1.12.0) passés.
+- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.12.0.zip $PWD/dist/protecta-suivi-1.11.0.zip` (chemins absolus) →
+  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.11.0 → 1.12.0 avec données (aucune migration) : **aucune perte**.
 
 ### Prochaines actions
 1. Dès que l'accès GitHub est rétabli : `git push -u origin claude/sweet-hopper-le9393` puis
@@ -357,6 +358,27 @@ chaque décision prise seul.
 - مهامي : `pendingDecision` (المسؤول ou المتابع, plus ancien d'abord), affiché seulement s'il n'est pas vide.
   1.9.1 (le client a laissé Claude décider) : compté dans le compteur مهامي du menu et dans le résumé du matin
   (e-mail + Telegram) — c'est une tâche à faire.
+
+### Version 1.12.0 — revue UX (le client a répondu « choisis » : décisions prises seul)
+- Rapport artifact « مراجعة تجربة الاستعمال » (17 points). Réalisés : 1-8, 10, 11, 14, 15. Non réalisés : 9 (recherche
+  générale), 12 (change l'ordre de colonnes validé → à demander au client), 13, 16, 17 (aide, après la vidéo).
+- **إدخال سريع** : `POST /projects` avec `quick: true` → seuls name, receivedDate, responsibleEmpId (المتابع = même),
+  note, parties.owner sont pris ; état FORCÉ « لم يُحدد بعد » ; obligatoires = `ps_quick_required()` (remplacent les
+  règles de الإعدادات pour CE mode seulement). La fiche complète réapplique les règles normales à chaque enregistrement.
+  Doublons vérifiés comme d'habitude. Adresse `#/projet?quick=1` (brouillon séparé `…_quick`).
+- « نعم » depuis la liste : non bloquant ; la réponse contient `missing` (`ps_project_missing`, libellés des خانات
+  obligatoires manquantes + « صنف واحد على الأقل ») → message + bouton « فتح البطاقة ».
+- **تراجع** : `PS.ui.undoToast` (8 s) ; l'annulation = un nouvel appel normal (journalisé), pas d'annulation serveur.
+  Liste des projets : `nonProjectNote` renvoyé pour rétablir « لا » avec son سبب et sa note.
+- **Résumé lecture seule** : fiche d'un projet non modifiable = résumé + « كل الخانات » (ancienne fiche grisée repliée).
+- **Erreurs** : `PS.ui.showErrors` remplit `[data-errors]` avec une liste de liens (groupe `legend` + libellé) ; s'il y a
+  plusieurs erreurs, on défile vers la liste. `scroll-padding-bottom` pour ne pas cacher un champ sous la barre حفظ.
+- **Fichiers** : tout `<input type=file>` visible est enveloppé automatiquement (`.ps-drop`, MutationObserver, comme les
+  dates) ; le champ reste le même élément (pages inchangées, tests `setInputFiles` OK).
+- **En-tête** : `#ps-usermenu` (nom, langues `#ps-lang-panel [data-lang]`, `#ps-theme-toggle`, `#ps-logout`) ; l'ancien
+  bouton `#ps-lang` n'existe plus. Avatar = icône (la lettre « و » ressemblait à un « g »).
+- **Téléphone** : `#ps-tabbar` (< 900 px) = مهامي, المشاريع, ＋ (إدخال سريع), العروض, المزيد (ouvre le menu).
+- Toasts d'erreur effacés sur `hashchange` seulement (pas sur `PS.router.refresh`).
 
 ### Version 1.11.0 — décisions
 - Libellé « غير مشروع » → « مشروع مُلغى » (valeur 0 inchangée) ; « ملغى » du Recap (toutes أصناف annulées) → « أصناف ملغاة ».

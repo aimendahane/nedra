@@ -864,7 +864,7 @@ function ps_projects_list( array $args ): array {
 	$pt    = ps_table( 'projects' );
 	$trash = ! empty( $args['trash'] );
 	$rows  = $wpdb->get_results(
-		"SELECT id, project_no, seq, offer_no, name, received_date, sent_date, month, responsible_emp_id, follower_emp_id, intermediary_emp_id, place_id, category_id, urgency_id, importance_kind_id, importance_size_id, followup_status_id, source_id, offer_amount, offer_currency_id, files_link, note, created_by, created_at, deleted_at, legacy_id, legacy_raw, is_project, non_project_reason_id FROM $pt WHERE deleted_at IS " . ( $trash ? 'NOT NULL' : 'NULL' ), // phpcs:ignore
+		"SELECT id, project_no, seq, offer_no, name, received_date, sent_date, month, responsible_emp_id, follower_emp_id, intermediary_emp_id, place_id, category_id, urgency_id, importance_kind_id, importance_size_id, followup_status_id, source_id, offer_amount, offer_currency_id, files_link, note, created_by, created_at, deleted_at, legacy_id, legacy_raw, is_project, non_project_reason_id, non_project_note FROM $pt WHERE deleted_at IS " . ( $trash ? 'NOT NULL' : 'NULL' ), // phpcs:ignore
 		ARRAY_A
 	);
 	if ( ! $rows ) {
@@ -1000,6 +1000,7 @@ function ps_projects_list( array $args ): array {
 			'isProject'         => ps_project_state_api( $r['is_project'] ),
 			'projectState'      => ps_project_state_code( $r['is_project'] ), // 1.9.0
 			'nonProjectReasonId'=> $r['non_project_reason_id'] ? (int) $r['non_project_reason_id'] : null,
+			'nonProjectNote'    => $r['non_project_note'] ?? null,
 			'canEdit'           => null !== ps_project_edit_reason( $r, $uid ), // 1.8.0 : « مشروع؟ » modifiable dans la liste
 			'filesLink'         => $r['files_link'],
 			'deletedAt'         => $r['deleted_at'],

@@ -45,7 +45,7 @@
 	 * Brouillon
 	 * ================================================================== */
 
-	function draftKey() { return 'ps_draft_project_' + PS.config.user.id; }
+	function draftKey() { return 'ps_draft_project_' + PS.config.user.id + (state && state.quick ? '_quick' : ''); }
 
 	function emptyDraft() {
 		const me = PS.config.user.employeeId;
@@ -372,12 +372,118 @@
 	}
 
 	/* =====================================================================
+	 * 1.12.0 — « ⚡ إدخال سريع » : 4 خانات, demande « ⏳ لم يُحدد بعد »
+	 * ================================================================== */
+
+	function quickHtml() {
+		const d = state.draft;
+		const owner = d.parties.owner || {};
+		return html`<form class="ps-form ps-quick" novalidate data-form data-quick>
+			<div data-errors></div>
+			<section class="ps-card">
+				<p class="ps-muted">${PS.t('سجّل الطلب الآن في 4 خانات. يُحفظ «⏳ لم يُحدد بعد»، وتُكمِل باقي البيانات لاحقًا من بطاقة المشروع (عند اختيار «نعم» في «المشاريع»).')}</p>
+				<div class="ps-grid">
+					${fieldWrap(PS.t('اسم المشروع'), null, html`<input data-bind="name" data-key="name" value="${d.name || ''}" autocomplete="off">`, 'ps-field--required ps-span-2')}
+					${fieldWrap(PS.t('الشركة (المالك)'), null, html`<input data-bind="parties.owner.companyName" data-key="parties.owner.company" data-company="owner" value="${owner.companyName || ''}">`, 'ps-field--required ps-span-2')}
+					${fieldWrap(PS.t('تاريخ استلام الطلب'), null, html`<input type="date" data-bind="receivedDate" data-key="received_date" value="${d.receivedDate || ''}">`, 'ps-field--required')}
+					${fieldWrap(PS.t('المسؤول عن المشروع'), null, html`<select data-bind="responsibleEmpId" data-key="responsible_emp_id" data-list="employee">${ui.raw(L.options('employee', d.responsibleEmpId))}</select>`, 'ps-field--required')}
+				</div>
+				<details class="ps-more ps-mt" ${d.note ? ui.raw('open') : ''}><summary>${PS.t('نص الطلب (اختياري)')}</summary>
+					<textarea rows="3" data-bind="note" data-key="note">${d.note || ''}</textarea></details>
+			</section>
+			<div class="ps-form-actions">
+				<button type="button" class="ps-btn ps-btn--primary" data-action="save">💾 ${PS.t('حفظ الطلب')}</button>
+				<button type="button" class="ps-btn" data-action="reset">${PS.t('تفريغ')}</button>
+				<a class="ps-btn ps-btn--ghost" href="#/projet">${PS.t('النموذج الكامل ←')}</a>
+			</div>
+		</form>`;
+	}
+
+	function quickErrors() {
+		const d = state.draft;
+		const owner = d.parties.owner || {};
+		const errs = {};
+		const empty = function (v) { return v === null || v === undefined || String(v).trim() === ''; };
+		if (empty(d.name)) errs.name = PS.t('خانة إجبارية');
+		if (empty(owner.companyName) && !owner.companyId) errs['parties.owner.company'] = PS.t('خانة إجبارية');
+		if (empty(d.receivedDate)) errs.received_date = PS.t('خانة إجبارية');
+		if (empty(d.responsibleEmpId)) errs.responsible_emp_id = PS.t('خانة إجبارية');
+		return errs;
+	}
+
+	function quickBody(confirmDuplicates) {
+		const d = state.draft;
+		const owner = d.parties.owner || {};
+		return {
+			quick: true, name: d.name, receivedDate: d.receivedDate, responsibleEmpId: d.responsibleEmpId, followerEmpId: d.responsibleEmpId,
+			note: d.note, parties: { owner: { companyId: owner.companyId || null, companyName: owner.companyName || '' } },
+			confirmDuplicates: !!confirmDuplicates,
+		};
+	}
+
+	/* =====================================================================
+	 * 1.12.0 — Résumé « للقراءة » (projet que l'utilisateur ne peut pas modifier)
+	 * ================================================================== */
+
+	/*
+	 * Au lieu d'une longue fiche aux خانات grisées : les informations utiles en lignes claires + en haut les actions
+	 * permises à tous (متابعة، ملف، فواتير). La fiche complète reste consultable dans « كل الخانات ».
+	 */
+	function summaryHtml() {
+		const p = state.project;
+		const kv = ui.kv;
+		const owner = (p.parties || {}).owner || {};
+		const direct = (p.parties || {}).direct || {};
+		const items = p.items || [];
+		const money = p.offerAmount !== null && p.offerAmount !== undefined && p.offerAmount !== '' ? PS.format.money(p.offerAmount, L.code(p.offerCurrencyId)) : '';
+		return html`<section class="ps-card ps-summary" data-ro-summary>
+			<div class="ps-summary__actions">
+				<button type="button" class="ps-btn ps-btn--primary" data-tab="followups">📞 ${PS.t('+ متابعة')}</button>
+				<button type="button" class="ps-btn" data-tab="files">📎 ${PS.t('+ ملف')}</button>
+				${p.isProject === true ? html`<a class="ps-btn" href="#/factures?q=${encodeURIComponent(p.projectNo)}">🧾 ${PS.t('الفواتير')}</a>` : ''}
+				${PS.router.can('ps_assign_tasks') && !p.deletedAt ? html`<button type="button" class="ps-btn ps-btn--ghost" data-action="new-task">📌 ${PS.t('مهمة')}</button>` : ''}
+			</div>
+			<div class="ps-summary__grid">
+				<div class="ps-kvs">
+					${kv(PS.t('رقم العرض'), p.offerNo ? html`<span dir="ltr">${p.offerNo}</span>` : '')}
+					${kv(PS.t('تاريخ استلام الطلب'), PS.format.date(p.receivedDate))}
+					${kv(PS.t('تاريخ إرسال العرض'), PS.format.date(p.sentDate))}
+					${kv(PS.t('المسؤول عن المشروع'), L.label(p.responsibleEmpId))}
+					${kv(PS.t('الموظف المتابع'), L.label(p.followerEmpId))}
+					${kv(PS.t('الموظف الوسيط'), L.label(p.intermediaryEmpId))}
+					${kv(PS.t('درجة الاستعجال'), L.label(p.urgencyId))}
+					${kv(PS.t('مصدر الطلب'), L.label(p.sourceId))}
+					${kv(PS.t('المكان'), L.label(p.placeId))}
+					${kv(PS.t('التصنيف'), L.label(p.categoryId))}
+				</div>
+				<div class="ps-kvs">
+					${kv(PS.t('المالك'), [owner.companyName, owner.person].filter(Boolean).join(' — '))}
+					${kv(PS.t('الهاتف'), owner.phone ? html`<span dir="ltr">${owner.phone}</span>` : '')}
+					${kv(PS.t('الإيميل'), owner.email ? html`<span dir="ltr">${owner.email}</span>` : '')}
+					${kv(PS.t('الشخص المباشر'), [direct.person, direct.phone].filter(Boolean).join(' · '))}
+					${kv(PS.t('مبلغ العرض'), money)}
+					${kv(PS.t('رابط ملف المشاريع'), p.filesLink ? html`<a href="${p.filesLink}" target="_blank" rel="noopener noreferrer">🔗 ${PS.t('فتح')}</a>` : '')}
+				</div>
+			</div>
+			${p.note ? html`<div class="ps-summary__note"><span class="ps-kv__k">${PS.t('NOTE / نص الطلب')}</span><p>${p.note}</p></div>` : ''}
+			${items.length ? html`<h3 class="ps-mt">${PS.t('الأصناف المطلوبة')}</h3><div class="ps-table-wrap"><table class="ps-table">
+				<thead><tr><th>${PS.t('الصنف')}</th><th>${PS.t('الكمية')}</th><th>${PS.t('الموظف المسؤول')}</th><th>${PS.t('الأجل المطلوب')}</th><th>${PS.t('حالة العرض')}</th></tr></thead>
+				<tbody>${items.map(function (it) { return html`<tr><td>${L.label(it.itemTypeId)}</td><td>${it.quantity === null || it.quantity === '' ? '' : PS.format.number(it.quantity)}</td><td>${L.label(it.employeeId)}</td><td>${PS.format.date(it.dueDate)}</td><td>${it.offerStatusCode ? L.offerBadge(it.offerStatusCode) : ''}</td></tr>`; })}</tbody></table></div>` : ''}
+		</section>`;
+	}
+
+	function allFieldsHtml() {
+		return html`<details class="ps-more ps-mt" data-all-fields><summary>${PS.t('كل الخانات (للعرض فقط)')}</summary>${formHtml()}</details>`;
+	}
+
+	/* =====================================================================
 	 * Page
 	 * ================================================================== */
 
 	function header() {
 		if (state.mode === 'create') {
-			return html`<div class="ps-page-head"><h1>${PS.t('إدخال مشروع جديد')}</h1></div>${state.lastSaved ? html`<div class="ps-alert ps-alert--success" role="status">✔ ${PS.t('تم حفظ المشروع')} <strong>${state.lastSaved.projectNo}</strong> — <a href="#/projet?id=${state.lastSaved.id}">${PS.t('عرض المشروع')}</a></div>` : ''}${state.restored ? html`<div class="ps-alert ps-alert--info">${PS.t('تم استرجاع مسودة غير محفوظة.')} <button type="button" class="ps-btn ps-btn--small" data-action="reset">${PS.t('بدء مشروع جديد')}</button></div>` : ''}`;
+			const sw = state.quick ? '' : html`<div class="ps-page-head__actions"><a class="ps-btn" href="#/projet?quick=1">⚡ ${PS.t('إدخال سريع (4 خانات)')}</a></div>`;
+			return html`<div class="ps-page-head"><h1>${state.quick ? '⚡ ' + PS.t('إدخال سريع') : PS.t('إدخال مشروع جديد')}</h1>${sw}</div>${state.lastSaved ? html`<div class="ps-alert ps-alert--success" role="status">✔ ${PS.t('تم حفظ المشروع')} <strong>${state.lastSaved.projectNo}</strong> — <a href="#/projet?id=${state.lastSaved.id}">${state.quick ? PS.t('فتح البطاقة لإكمال البيانات') : PS.t('عرض المشروع')}</a></div>` : ''}${state.restored ? html`<div class="ps-alert ps-alert--info">${PS.t('تم استرجاع مسودة غير محفوظة.')} <button type="button" class="ps-btn ps-btn--small" data-action="reset">${PS.t('بدء مشروع جديد')}</button></div>` : ''}`;
 		}
 		const p = state.project;
 		const perm = p.permissions;
@@ -409,7 +515,9 @@
 
 	function render() {
 		let body = '';
-		if (state.mode === 'create' || state.tab === 'data') body = html`${jumpNav()}${sectionFilesTop()}${formHtml()}`;
+		if (state.mode === 'create' && state.quick) body = quickHtml();
+		else if (state.mode === 'edit' && state.tab === 'data' && readOnly()) body = html`${summaryHtml()}${sectionFilesTop()}${allFieldsHtml()}`;
+		else if (state.mode === 'create' || state.tab === 'data') body = html`${jumpNav()}${sectionFilesTop()}${formHtml()}`;
 		else body = html`<div data-tab-body><div class="ps-loading">${PS.t('جاري التحميل…')}</div></div>`;
 		state.main.innerHTML = html`${header()}${tabs()}${body}`.html;
 		bindForm();
@@ -659,7 +767,7 @@
 	function save(confirmDuplicates) {
 		if (state.saving) return;
 		const form = state.main.querySelector('[data-form]');
-		const errs = clientErrors();
+		const errs = state.quick ? quickErrors() : clientErrors();
 		if (Object.keys(errs).length) {
 			ui.showErrors(form, errs);
 			ui.toast(PS.t('يرجى تعبئة الخانات الإجبارية'), 'error');
@@ -669,7 +777,7 @@
 		state.saving = true;
 		const btn = form.querySelector('[data-action="save"]');
 		if (btn) btn.disabled = true;
-		const body = Object.assign({}, state.draft, { confirmDuplicates: !!confirmDuplicates });
+		const body = state.quick ? quickBody(confirmDuplicates) : Object.assign({}, state.draft, { confirmDuplicates: !!confirmDuplicates });
 		const req = state.mode === 'create' ? PS.api.post('projects', body) : PS.api.put('projects/' + state.project.id, body);
 		req.then(function (p) {
 			state.saving = false;
@@ -784,8 +892,10 @@
 						render();
 					});
 				}
+				state = { main: main, mode: 'create', quick: params.quick === '1', tab: 'data' };
 				const saved = loadDraftLocal();
-				state = { main: main, mode: 'create', draft: saved || emptyDraft(), restored: !!saved, tab: 'data' };
+				state.draft = saved || emptyDraft();
+				state.restored = !!saved && !state.quick;
 				state.draft.isProject = 'pending'; // 1.10.0 : décision ensuite, depuis « المشاريع » (même pour un ancien brouillon)
 				render();
 			});

@@ -3,6 +3,32 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.12.0 — 2026-10-29 · base v8 — Expérience utilisateur (revue UX)
+
+Revue complète de l'expérience (employé, مسؤول, الإدارة ; PC et téléphone) : rapport de 17 points, le client a laissé
+Claude choisir → 12 points réalisés (1-8, 10, 11, 14, 15). Aucune migration, aucune donnée modifiée.
+- **⚡ إدخال سريع** (« المشاريع », barre du bas, fiche) : 4 خانات — اسم المشروع، الشركة، تاريخ الاستلام، المسؤول
+  (+ نص الطلب facultatif). La demande est enregistrée « ⏳ لم يُحدد بعد » ; le formulaire complet reste inchangé.
+  En choisissant « نعم » dans « المشاريع », un message dit ce qu'il reste à compléter (+ bouton « فتح البطاقة »).
+- **مهامي** : ligne « اليوم: … » en haut (clic = aller au bloc) ; les blocs qui ont des tâches d'abord, du plus urgent
+  au moins urgent ; les blocs vides regroupés en une ligne « ✔ لا شيء في: … ».
+- **Projet en lecture seule** : résumé clair (dates, intervenants, أصناف, montant) avec en haut « + متابعة »،
+  « + ملف »، « الفواتير » ; la fiche complète reste consultable dans « كل الخانات ».
+- **Erreurs de saisie** : liste « خانات تحتاج تصحيحًا: N » en haut du formulaire, chaque nom amène à la خانة (même
+  dans « المزيد ») ; la barre « حفظ » ne cache plus les champs.
+- **Téléphone** : barre du bas مهامي · المشاريع · ＋ إدخال · العروض · المزيد (avec compteurs).
+- Zone d'envoi de fichiers en arabe (« اسحب الملف هنا أو اضغط للاختيار », glisser-déposer) ; dates « يوم/شهر/سنة ».
+- Suivi Offres : « لازم قرار » une seule fois (filtre, « منها X لك ») ; 📎 seulement quand il y a un fichier.
+- Panneaux en lecture seule : « 🔒 للعرض فقط — يعدّله: … » (qui peut modifier).
+- **« ↩ تراجع »** 8 s après un changement rapide (« مشروع؟ », حالة العرض, حالة التسليم) ; c'est une modification
+  normale, journalisée.
+- En-tête : une « قائمة الحساب » (nom, اللغة، المظهر، تسجيل الخروج) au lieu d'icônes sans nom ; icône de personne.
+- Recap : 4 grands chiffres (عدد المشاريع، المؤكدة، نسبة النجاح، العروض المتأخرة), les autres plus petits.
+- Les messages d'erreur d'une page disparaissent en changeant de page.
+- Non réalisés (proposés) : 9 recherche générale, 12 colonne « سبب عدم الاعتبار » (change l'ordre validé), 13 bulles
+  d'aide, 16 résumé par employé, 17 page d'aide (après la vidéo).
+- Tests : tests/test-1120.php ; step21 ; smoke (menu du compte, barre du bas) ; step3 adapté.
+
 ## 1.11.0 — 2026-10-28 · base v8 — Factures par offre, آخر أجل saisi, « مشروع مُلغى », vitesse
 
 Demande du client : « غير مشروع » → « مشروع مُلغى » ; « آخر أجل للرد » à saisir + rappel tous les 15 jours ; factures

@@ -139,10 +139,15 @@ function ps_is_valid_phone( string $phone ): bool {
  * @param array|null $existing Projet existant (modification) : ['fields' => ligne brute, 'items' => [...]]
  * @return array Erreurs « clé » => « message ».
  */
-function ps_validate_project( array $in, ?array $existing = null ): array {
+function ps_validate_project( array $in, ?array $existing = null, bool $quick = false ): array {
 	global $wpdb;
 	$rules    = ps_validation_rules();
 	$required = array_flip( (array) ( $rules['required'] ?? array() ) );
+	if ( $quick ) {
+		// 1.12.0 « إدخال سريع » : une demande « ⏳ لم يُحدد بعد » avec 4 خانات seulement ; le reste se complète ensuite
+		// dans la fiche (les règles complètes s'appliquent à chaque enregistrement de la fiche).
+		$required = array_flip( ps_quick_required() );
+	}
 	$labels   = ps_validation_fields();
 	$f        = $in['fields'];
 	$old      = $existing['fields'] ?? array();
@@ -321,6 +326,41 @@ function ps_validate_project( array $in, ?array $existing = null ): array {
 	}
 
 	return $errors;
+}
+
+/**
+ * 1.12.0 — خانات « الإدخال السريع » (toujours obligatoires dans ce mode, quelles que soient les règles de الإعدادات).
+ */
+function ps_quick_required(): array {
+	return array( 'name', 'received_date', 'responsible_emp_id', 'owner.company' );
+}
+
+/**
+ * 1.12.0 — Ce qu'il manque à un projet pour être une offre complète (règles « obligatoire » de الإعدادات), en libellés.
+ * Sert après « مشروع؟ = نعم » depuis la liste (demande saisie en « إدخال سريع ») : rien n'est bloqué, on informe.
+ */
+function ps_project_missing( int $id ): array {
+	$p = ps_project_load( $id );
+	if ( ! $p ) {
+		return array();
+	}
+	$f               = $p['fields'];
+	$f['is_project'] = 1;
+	$parties         = array();
+	foreach ( $p['parties'] as $role => $r ) {
+		$parties[ $role ] = $r;
+	}
+	$errors = ps_validate_project( array( 'fields' => $f, 'parties' => $parties, 'items' => $p['items'], 'competitors' => array() ), $p );
+	$req    = ps__( 'خانة إجبارية: ' );
+	$out    = array();
+	foreach ( $errors as $key => $msg ) {
+		if ( str_starts_with( $msg, $req ) ) {
+			$out[] = substr( $msg, strlen( $req ) );
+		} elseif ( 'items' === $key ) {
+			$out[] = ps__( 'صنف واحد على الأقل' );
+		}
+	}
+	return array_values( array_unique( $out ) );
 }
 
 /**

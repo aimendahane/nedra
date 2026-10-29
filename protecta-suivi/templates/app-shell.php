@@ -49,23 +49,29 @@ endif;
 			<button type="button" class="ps-icon-btn ps-bell__btn" id="ps-bell" aria-haspopup="true" aria-expanded="false" aria-controls="ps-bell-panel" aria-label="<?php ps_e( 'الإشعارات' ); ?>" title="<?php ps_e( 'الإشعارات' ); ?>"><svg class="ps-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="ps-bell__count" id="ps-bell-count" hidden></span></button>
 			<div class="ps-bell__panel" id="ps-bell-panel" hidden></div>
 		</div>
-		<div class="ps-langmenu">
-			<button type="button" class="ps-icon-btn ps-lang-btn" id="ps-lang" aria-haspopup="true" aria-expanded="false" title="<?php ps_e( 'اللغة' ); ?>"><?php echo esc_html( strtoupper( ps_lang() ) ); ?></button>
-			<div class="ps-langmenu__panel" id="ps-lang-panel" hidden>
-				<?php foreach ( ps_languages() as $ps_code => $ps_l ) : ?>
-					<button type="button" data-lang="<?php echo esc_attr( $ps_code ); ?>" lang="<?php echo esc_attr( $ps_code ); ?>" <?php echo ps_lang() === $ps_code ? 'aria-current="true"' : ''; ?>><?php echo esc_html( $ps_l['label'] ); ?></button>
-				<?php endforeach; ?>
+		<?php /* 1.12.0 : une seule « قائمة الحساب » (langue, mode nuit, خروج) au lieu de petites icônes sans nom. */ ?>
+		<div class="ps-usermenu">
+			<button type="button" class="ps-user ps-usermenu__btn" id="ps-usermenu" aria-haspopup="true" aria-expanded="false" aria-controls="ps-usermenu-panel" title="<?php ps_e( 'قائمة الحساب' ); ?>">
+				<?php /* 1.12.0 : icône de personne (une lettre arabe isolée, ex. « و », ressemblait à une lettre latine). */ ?>
+				<span class="ps-avatar" aria-hidden="true"><svg class="ps-svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>
+				<span class="ps-user__text">
+					<span class="ps-user__name"><?php echo esc_html( $ps_user['name'] ); ?></span>
+					<span class="ps-user__role"><?php echo esc_html( $ps_user['role'] ); ?></span>
+				</span>
+				<svg class="ps-svg ps-usermenu__caret" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
+			</button>
+			<div class="ps-usermenu__panel" id="ps-usermenu-panel" hidden>
+				<div class="ps-usermenu__who"><strong><?php echo esc_html( $ps_user['name'] ); ?></strong><span><?php echo esc_html( $ps_user['role'] ); ?></span></div>
+				<div class="ps-usermenu__label"><?php ps_e( 'اللغة' ); ?></div>
+				<div class="ps-usermenu__langs" id="ps-lang-panel">
+					<?php foreach ( ps_languages() as $ps_code => $ps_l ) : ?>
+						<button type="button" data-lang="<?php echo esc_attr( $ps_code ); ?>" lang="<?php echo esc_attr( $ps_code ); ?>" <?php echo ps_lang() === $ps_code ? 'aria-current="true"' : ''; ?>><?php echo esc_html( $ps_l['label'] ); ?></button>
+					<?php endforeach; ?>
+				</div>
+				<button type="button" class="ps-usermenu__item" id="ps-theme-toggle"><span aria-hidden="true" id="ps-theme-icon" class="ps-icon-slot"></span><span id="ps-theme-label"><?php ps_e( 'الوضع الليلي' ); ?></span></button>
+				<button type="button" class="ps-usermenu__item ps-usermenu__item--danger ps-logout" id="ps-logout"><svg class="ps-svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg><span class="ps-logout__label"><?php ps_e( 'تسجيل الخروج' ); ?></span></button>
 			</div>
 		</div>
-		<button type="button" class="ps-icon-btn" id="ps-theme-toggle" aria-label="<?php ps_e( 'الوضع الليلي' ); ?>" title="<?php ps_e( 'الوضع الليلي / النهاري' ); ?>"><span aria-hidden="true" id="ps-theme-icon" class="ps-icon-slot"></span></button>
-		<span class="ps-user">
-			<span class="ps-avatar" aria-hidden="true"><?php echo esc_html( mb_substr( trim( $ps_user['name'] ), 0, 1 ) ); ?></span>
-			<span class="ps-user__text">
-				<span class="ps-user__name"><?php echo esc_html( $ps_user['name'] ); ?></span>
-				<span class="ps-user__role"><?php echo esc_html( $ps_user['role'] ); ?></span>
-			</span>
-		</span>
-		<button type="button" class="ps-btn ps-btn--ghost ps-logout" id="ps-logout" title="<?php ps_e( 'تسجيل الخروج' ); ?>"><svg class="ps-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg><span class="ps-logout__label"><?php ps_e( 'خروج' ); ?></span></button>
 	</div>
 </header>
 
@@ -76,6 +82,9 @@ endif;
 		<div class="ps-loading" role="status"><?php ps_e( 'جاري التحميل…' ); ?></div>
 	</main>
 </div>
+
+<?php /* 1.12.0 : barre du bas sur téléphone (remplie par router.js). */ ?>
+<nav class="ps-tabbar" id="ps-tabbar" aria-label="<?php ps_e( 'التنقل السريع' ); ?>"></nav>
 
 <footer class="ps-footer">
 	<img src="<?php echo esc_url( PS_URL . '/assets/img/logo-marques.png' ); ?>" alt="RELLI, inim, VDS, legrand, ELAN, FADINI" class="ps-brands">

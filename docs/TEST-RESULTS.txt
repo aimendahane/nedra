@@ -1,6 +1,6 @@
 ######## Tests PHP ########
 Site de test installé (thème : protecta-suivi)
-Thème v1.11.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
+Thème v1.12.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 
 == Activation : base de données ==
   ✔ ps_db_version = dernière migration
@@ -794,9 +794,9 @@ Thème v1.11.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ inc/i18n/en.json : JSON valide
   ✔ inc/i18n/fr.json : JSON valide
   ✔ en.json et fr.json ont exactement les mêmes clés
-  ✔ en : chaque texte de l'interface a sa traduction (1212 textes)
+  ✔ en : chaque texte de l'interface a sa traduction (1241 textes)
   ✔ en : traductions non vides, sans arabe, mêmes %s / %d que l'original
-  ✔ fr : chaque texte de l'interface a sa traduction (1212 textes)
+  ✔ fr : chaque texte de l'interface a sa traduction (1241 textes)
   ✔ fr : traductions non vides, sans arabe, mêmes %s / %d que l'original
 
 == Langues : traduction côté serveur ==
@@ -1221,8 +1221,31 @@ Thème v1.11.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ journal : changement de آخر أجل enregistré
   ✔ nouvelle échéance (01/11) : pas en retard au 25/10
 
+== 1.12.0 : إدخال سريع (4 خانات) ==
+  ✔ vide → les 4 خانات demandées
+  ✔ les autres règles (رقم العرض، المكان، صنف…) ne s'appliquent pas
+  ✔ enregistré « ⏳ لم يُحدد بعد »
+  ✔ seuls les champs du formulaire court sont pris (pas de صنف, pas de رقم العرض)
+  ✔ المتابع = المسؤول ; الشركة et NOTE gardés
+  ✔ la société est ajoutée à l'annuaire
+  ✔ même demande (même société, nom proche) → avertissement de doublon
+  ✔ … enregistrée après confirmation
+  ✔ موظف : إدخال سريع autorisé (droit de création)
+
+== 1.12.0 : « نعم » depuis la liste → ce qu'il reste à compléter ==
+  ✔ décision « نعم » enregistrée (non bloquante)
+  ✔ missing : رقم العرض, صنف… (pas le nom, déjà saisi)
+  ✔ projet complet : rien à compléter
+  ✔ « لم يُحدد بعد » : pas de liste
+  ✔ fiche complète : رقم العرض & co redeviennent obligatoires
+
+== 1.12.0 : note du « مشروع مُلغى » dans la liste (« ↩ تراجع ») ==
+  ✔ liste : سبب + ملاحظة renvoyés
+  ✔ « تراجع » : l'ancien choix et son سبب reviennent
+  ✔ chaque changement (et le retour en arrière) est journalisé
+
 ----------------------------------------
-Résultat : 1001 réussis, 0 échoués
+Résultat : 1018 réussis, 0 échoués
 
 ######## Navigateur : fondations (étape 1) ########
 Page de connexion
@@ -1242,6 +1265,7 @@ Employé (موظف)
   ✔ menu complet (9 pages, dont الفواتير en 1.6.0)  [مهامي | إدخال مشروع | المشاريع | متابعة العروض | متابعة التسليم | الفواتير | Recap | الشركات والمنافسون | الإعدادات]
   ✔ الإعدادات : 15 listes (1.6.0 : سبب عدم اعتباره مشروعا)  [15]
   ✔ مصدر « غير محدد » présent et réservé à l'import
+  ✔ قائمة الحساب : اللغة، المظهر، تسجيل الخروج
   ✔ mode nuit activé
   ✔ fond sombre en mode nuit  [rgb(10, 15, 26)]
   ✔ mode nuit mémorisé après rechargement
@@ -1250,6 +1274,9 @@ Mobile
   ✔ menu caché par défaut sur mobile
   ✔ bouton ☰ ouvre le menu
   ✔ pas de défilement horizontal
+  ✔ téléphone : barre du bas à 5 boutons  [مهامي | المشاريع | ＋إدخال | العروض | ☰المزيد]
+  ✔ barre du bas : une touche → المشاريع
+  ✔ « المزيد » ouvre le menu complet
 Limitation des tentatives de connexion
   ✔ après 5 échecs, même le bon mot de passe est refusé  [محاولات كثيرة. حاول مرة أخرى بعد 15 دقيقة.]
 
@@ -1297,11 +1324,13 @@ Tous les contrôles navigateur sont passés.
 
 ######## Navigateur : step3 (jeu de démonstration) ########
 Étape 3 — مهامي (محمد حسين, jeu de démonstration)
-  ✔ مهامي : 0 مهام مُسندة, 3 عروض متأخرة, 2 متابعات, 2 تسليمات (tableau §7)
+  ✔ مهامي : 3 عروض متأخرة, 2 متابعات, 2 تسليمات (tableau §7) ; « مهام مُسندة » vide → ligne regroupée
+  ✔ ligne « اليوم: » : 3 عروض متأخرة · 2 متابعات · 2 تسليمات
+  ✔ le bloc le plus urgent en premier (عروض متأخرة)
   ✔ compteur « لازم قرار » sur le menu : 3
 Étape 3 — Suivi Offres
   ✔ lignes rouges (en retard) : 7, vertes (مقبول) ≥ 7
-  ✔ compteur en haut : « لازم قرار: 7 (منها 3 لك) »
+  ✔ « لازم قرار » une seule fois (filtre rapide) : 7 (منها 3 لك)
   ✔ filtre « لازم قرار فقط » : 7 lignes
   ✔ « لم يُرسل » : motif obligatoire (fenêtre reste ouverte)
   ✔ après « لم يُرسل » : 6 lignes « لازم قرار »
@@ -1521,7 +1550,7 @@ Tous les contrôles navigateur sont passés.
   ✔ filtre « مشروع؟ = لا » → seulement les « غير مشروع »
   ✔ Suivi Offres : رقم المشروع | رقم فاتورة العرض | المسؤول | المتابع | تاريخ الإرسال | حالة العرض | 📎 | ملاحظة العرض
   ✔ Suivi Offres : le NUMÉRO du projet d'abord (nom en petit)
-  ✔ Suivi Offres : 📎 avec le nombre de fichiers ; « غير مشروع » absent
+  ✔ Suivi Offres : 📎 avec le nombre de fichiers (vide si aucun) ; « غير مشروع » absent
   ✔ Factures : رقم الفاتورة | رقم المشروع | تاريخ الإرسال | آخر أجل | جواب الحريف | المبلغ والعملة | 📎 | ملاحظة الفاتورة
   ✔ Factures : 📎 1 + ملاحظة الفاتورة affichés
   ✔ 📎 de la facture → ouvre la facture (ses fichiers)
@@ -1545,7 +1574,7 @@ Tous les contrôles navigateur sont passés.
   ✔ Suivi Offres : 8 colonnes par défaut
   ✔ filtre rapide « لازم قرار » : nombre de lignes = compteur
   ✔ panneau de l'offre : ملاحظة العرض enregistrée
-  ✔ ملاحظة العرض visible dans le tableau
+  ✘ ملاحظة العرض visible dans le tableau
   ✔ Factures : filtres rapides avec compteurs (متأخرة 1)
   ✔ clic sur une facture → panneau latéral (formulaire)
   ✔ fiche (création) : 6 raccourcis de sections (« مشروع؟ » se décide ensuite dans « المشاريع »)
@@ -1556,7 +1585,8 @@ Tous les contrôles navigateur sont passés.
   ✔ téléphone : carte → panneau plein écran
   ✔ téléphone (الفواتير) : cartes, sans défilement horizontal
 
-Tous les contrôles navigateur sont passés.
+1 échec(s)
+✘ ÉCHEC : navigateur step16
 
 ######## Navigateur : step17 (jeu de démonstration) ########
 1.8.0 — «مشروع؟» من الجدول، متابعة التسليم
@@ -1624,6 +1654,36 @@ Tous les contrôles navigateur sont passés.
 
 Tous les contrôles navigateur sont passés.
 
+######## Navigateur : step21 (jeu de démonstration) ########
+1.12.0 — إدخال سريع, résumé des erreurs, تراجع, résumé en lecture seule, Recap, fichiers
+  ✔ « المشاريع » : boutons ⚡ إدخال سريع + النموذج الكامل
+  ✔ إدخال سريع : 4 خانات (+ نص الطلب اختياري)
+  ✔ résumé des erreurs : « خانات تحتاج تصحيحًا: 3 » avec un lien par خانة
+  ✔ clic sur un nom → curseur dans la خانة
+  ✔ demande enregistrée « ⏳ لم يُحدد بعد », reçue le 18/10/2026
+  ✔ « نعم » sur une demande rapide → « فتح البطاقة » pour compléter
+  ✔ … le bouton ouvre la fiche du projet
+  ✔ changement rapide → « ↩ تراجع » dans le message
+  ✔ « تراجع » : « مشروع؟ » revient à « نعم »
+  ✔ Suivi Offres : « ملغى » puis « تراجع » → « قيد الإعداد »
+  ✔ Suivi Offres : pas de « 📎 0 »
+  ✔ « لازم قرار » une seule fois sur la page
+  ✔ changement de page : les messages d'erreur précédents disparaissent
+  ✔ fichiers : zone « اسحب الملفات هنا أو اضغط للاختيار »
+  ✔ … le fichier choisi est listé
+  ✔ dates : indication « يوم/شهر/سنة »
+  ✔ formulaire complet : une ligne par خانة manquante, avec le groupe (المالك: …)
+  ✔ قائمة الحساب : nom, اللغة, المظهر, تسجيل الخروج
+  ✔ موظف : résumé lisible au lieu d'une fiche grisée, + متابعة / + ملف en haut
+  ✔ … la fiche complète reste consultable (« كل الخانات »)
+  ✔ « + متابعة » ouvre سجل المتابعة
+  ✔ panneau en lecture seule : « 🔒 للعرض فقط — يعدّله: … »
+  ✔ Recap : 4 grands chiffres (عدد المشاريع، المؤكدة، نسبة النجاح، العروض المتأخرة)
+  ✔ téléphone : barre du bas visible, compteur sur « مهامي »
+  ✔ téléphone : pas de défilement horizontal
+
+Tous les contrôles navigateur sont passés.
+
 ######## Navigateur : step10 = 1.4.0 (import Excel, comptes, Telegram) ########
 1.4.0 — import Excel, numéros P…, هامش الربح, ورقة الحسابات, Telegram à la connexion
   ✔ connexion : fenêtre « اربط حسابك بـ Telegram » (compte non lié)
@@ -1637,4 +1697,10 @@ Tous les contrôles navigateur sont passés.
 
 Tous les contrôles navigateur sont passés.
 
-=== TOUS LES TESTS SONT PASSÉS ===
+=== ÉCHECS : voir ci-dessus ===
+
+######## Nouveau passage step16 (attente du rechargement du tableau ajoutée au test) ########
+Tous les contrôles navigateur sont passés. (2 passages)
+
+######## release-check 1.11.0 → 1.12.0 ########
+AUCUNE PERTE — Contrôles de livraison : tout est passé. === LIVRAISON VÉRIFIÉE ===

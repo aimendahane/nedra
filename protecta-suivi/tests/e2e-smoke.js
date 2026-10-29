@@ -88,6 +88,9 @@ async function navTitles(page) {
 		check('مصدر « غير محدد » présent et réservé à l\'import', sources.includes('غير محدد') && (await page.textContent('.ps-table')).includes('للاستيراد فقط'));
 		await page.screenshot({ path: SHOTS + '/03-parametres-pc.png', fullPage: true });
 
+		// 1.12.0 : langue, mode nuit et خروج sont dans la « قائمة الحساب ».
+		await page.click('#ps-usermenu');
+		check('قائمة الحساب : اللغة، المظهر، تسجيل الخروج', await page.isVisible('#ps-usermenu-panel [data-lang=fr]') && await page.isVisible('#ps-theme-toggle') && await page.isVisible('#ps-logout'));
 		await page.click('#ps-theme-toggle'); // auto → nuit
 		await page.waitForTimeout(300);
 		check('mode nuit activé', (await page.getAttribute('html', 'data-theme')) === 'dark');
@@ -97,6 +100,7 @@ async function navTitles(page) {
 		await page.reload();
 		await page.waitForSelector('.ps-nav__link');
 		check('mode nuit mémorisé après rechargement', (await page.getAttribute('html', 'data-theme')) === 'dark');
+		await page.click('#ps-usermenu');
 		await page.click('#ps-theme-toggle'); // nuit → jour
 		await page.click('#ps-theme-toggle'); // jour → auto
 		await page.waitForTimeout(300);
@@ -123,6 +127,19 @@ async function navTitles(page) {
 		await page.screenshot({ path: SHOTS + '/07-menu-mobile.png' });
 		const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
 		check('pas de défilement horizontal', !overflow);
+		// 1.12.0 : barre du bas (مهامي · المشاريع · ＋ · العروض · المزيد).
+		await page.click('#ps-nav-backdrop').catch(() => {});
+		await page.waitForTimeout(300);
+		const tabs = await page.$$eval('#ps-tabbar .ps-tabbar__a', (a) => a.map((x) => x.textContent.trim()));
+		check('téléphone : barre du bas à 5 boutons', tabs.length === 5 && tabs[0].includes('مهامي') && tabs[4].includes('المزيد'), tabs.join(' | '));
+		await page.click('#ps-tabbar a[href="#/projets"]');
+		await page.waitForTimeout(500);
+		check('barre du bas : une touche → المشاريع', (await page.evaluate(() => location.hash)) === '#/projets' && (await page.getAttribute('#ps-tabbar a[href="#/projets"]', 'aria-current')) === 'page');
+		await page.click('#ps-tabbar [data-tab-more]');
+		await page.waitForTimeout(350);
+		check('« المزيد » ouvre le menu complet', await page.isVisible('#ps-nav.is-open'));
+		await page.click('#ps-tabbar [data-tab-more]');
+		await page.waitForTimeout(350);
 		await ctx.close();
 	}
 

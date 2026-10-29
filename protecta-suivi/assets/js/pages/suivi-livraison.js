@@ -123,6 +123,7 @@
 				${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo }, { numberFirst: true })}
 				<div class="ps-drawer__badges">${statusBadge(r)} ${r.computed.delayDays > 0 ? html`<span class="ps-badge ps-badge--danger">${PS.t('تأخير (أيام)')}: ${r.computed.delayDays}</span>` : ''}</div>
 			</div>
+			${ro ? PS.items.readOnlyNote([L.label(r.employeeId) && PS.t('موظف الصنف') + ' (' + L.label(r.employeeId) + ')', L.label(r.responsibleEmpId) && PS.t('المسؤول عن المشروع') + ' (' + L.label(r.responsibleEmpId) + ')']) : ''}
 			<div class="ps-kvs">
 				${ui.kv(PS.t('الصنف'), L.label(r.itemTypeId))}
 				${ui.kv(PS.t('موظف الصنف'), L.label(r.employeeId))}
@@ -208,7 +209,7 @@
 			const row = st.data.rows.find(function (r) { return String(r.id) === t.closest('[data-row]').dataset.row; });
 			const ch = {};
 			ch[t.dataset.field] = t.value === '' ? null : (t.dataset.field.slice(-2) === 'Id' ? Number(t.value) : t.value);
-			PS.items.save(row, ch).then(load);
+			PS.items.save(row, ch, { undo: PS.items.undoFor(Object.assign({}, row), t.dataset.field, load) }).then(load);
 		});
 		return load();
 	}

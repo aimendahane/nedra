@@ -102,9 +102,23 @@
 		}
 		return ask.then(function (body) {
 			if (!body) return false;
+			const prev = { isProject: Number(STATE_VALUE[stateOf(r)]), nonProjectReasonId: r.nonProjectReasonId || null, nonProjectNote: r.nonProjectNote || '' };
 			return PS.api.post('projects/' + r.id + '/is-project', body).then(function (res) {
-				if (val === '1' && !res.itemsCount) ui.toast(PS.t('أصبح مشروعًا، لكن بدون أصناف: أضف صنفًا من بطاقة المشروع ليظهر في متابعة العروض.'), 'error');
-				else ui.toast(val === '1' ? PS.t('✔ أصبح مشروعًا — يظهر الآن في متابعة العروض') : (val === '0' ? PS.t('تم: ليس مشروعًا') : PS.t('⏳ بانتظار القرار')), 'success');
+				// 1.12.0 : une demande saisie en « إدخال سريع » devient une offre → dire ce qu'il reste à compléter.
+				const missing = res.missing || [];
+				const open = function () { PS.router.go('projet', { id: r.id }); };
+				if (val === '1' && !res.itemsCount) ui.toast(PS.t('أصبح مشروعًا، لكن بدون أصناف: أضف صنفًا من بطاقة المشروع ليظهر في متابعة العروض.'), 'error', { action: PS.t('فتح البطاقة'), onAction: open, ms: 10000 });
+				else if (val === '1' && missing.length) ui.toast(PS.t('أصبح مشروعًا. أكمل في بطاقة المشروع:') + ' ' + missing.join(PS.t('، ')), 'error', { action: PS.t('فتح البطاقة'), onAction: open, ms: 10000 });
+				else {
+					// 1.12.0 : « ↩ تراجع » pendant 8 s (remet l'ancien choix, journalisé comme une modification normale).
+					ui.undoToast(val === '1' ? PS.t('✔ أصبح مشروعًا — يظهر الآن في متابعة العروض') : (val === '0' ? PS.t('تم: ليس مشروعًا') : PS.t('⏳ بانتظار القرار')), function () {
+						PS.api.post('projects/' + r.id + '/is-project', prev).then(function () {
+							ui.toast(PS.t('تم التراجع'), 'success');
+							PS.router.refreshCounts();
+							load();
+						}).catch(function (e) { ui.toast(e.message, 'error'); });
+					});
+				}
 				PS.router.refreshCounts();
 				return load().then(function () { return true; });
 			}).catch(function (e) { ui.toast(e.message, 'error'); return false; });
@@ -502,7 +516,9 @@
 	}
 
 	function renderPage() {
-		st.main.innerHTML = html`<div class="ps-page-head"><h1>${PS.t('المشاريع')}</h1></div>${toolbar()}<div data-results><div class="ps-loading">${PS.t('جاري التحميل…')}</div></div>`.html;
+		// 1.12.0 : « ⚡ إدخال سريع » (4 خانات) à côté du formulaire complet.
+		const add = PS.router.can('ps_create_project') ? html`<div class="ps-page-head__actions"><a class="ps-btn ps-btn--primary" href="#/projet?quick=1" data-quick-add>⚡ ${PS.t('إدخال سريع')}</a><a class="ps-btn" href="#/projet">＋ ${PS.t('النموذج الكامل')}</a></div>` : '';
+		st.main.innerHTML = html`<div class="ps-page-head"><h1>${PS.t('المشاريع')}</h1>${add}</div>${toolbar()}<div data-results><div class="ps-loading">${PS.t('جاري التحميل…')}</div></div>`.html;
 		bind();
 		return load();
 	}

@@ -22,9 +22,9 @@
 	// 1.5.3 : un bloc montre 5 lignes ; le reste derrière « عرض الكل » (la page restait trop longue).
 	const MAX_ROWS = 5;
 
-	function block(icon, title, rows, emptyText, rowFn, more) {
+	function block(icon, title, rows, emptyText, rowFn, more, key) {
 		const n = rows.total || rows.length; // 1.11.0 : le serveur envoie 100 lignes au plus, « total » = le vrai nombre
-		return html`<section class="ps-card ps-task">
+		return html`<section class="ps-card ps-task" ${key ? ui.raw('data-block="' + key + '" id="ps-block-' + key + '"') : ''}>
 			<h2 class="ps-card__title"><span aria-hidden="true">${icon}</span> ${title} <span class="ps-task__count ${n ? 'is-on' : ''}">${n}</span>${more || ''}</h2>
 			${rows.length ? html`<ul class="ps-task__list">${rows.slice(0, MAX_ROWS).map(rowFn)}</ul>` : html`<p class="ps-muted">✔ ${emptyText}</p>`}
 			${rows.length > MAX_ROWS ? html`<ul class="ps-task__list" data-task-more-list hidden>${rows.slice(MAX_ROWS).map(rowFn)}</ul>
@@ -311,7 +311,7 @@
 				<span class="ps-row ps-row--tight"><button type="button" class="ps-btn ps-btn--small ps-btn--primary" data-task-done="${r.id}">✔ ${PS.t('تمت')}</button>${delBtn(r)}</span></div>
 				<span class="ps-small">${dueText(r, data.today)}${r.createdByName ? PS.t(' · من ') + r.createdByName : ''}${who(r, showEmp)}</span>
 				${r.note ? html`<span class="ps-small ps-task__note">${r.note}</span>` : ''}${voicePlayer(r)}</li>`;
-		});
+		}, '', 'assigned');
 	}
 
 	function sentBlock(data) {
@@ -326,7 +326,7 @@
 				<div class="ps-task__row"><span>${done ? '✔ ' : ''}<strong>${r.title}</strong> → ${L.label(r.employeeId)}${r.projectId ? html` · ${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo })}` : ''}</span>
 				<span class="ps-row ps-row--tight">${done ? '' : html`<button type="button" class="ps-btn ps-btn--small" data-task-edit="${r.id}">✎</button><button type="button" class="ps-btn ps-btn--small ps-btn--ghost" data-task-cancel="${r.id}">${PS.t('إلغاء')}</button>`}${delBtn(r)}</span></div>
 				<span class="ps-small">${done ? PS.t('تمت ') + F.date(String(r.doneAt).slice(0, 10)) + (r.doneByName ? ' · ' + r.doneByName : '') : dueText(r, data.today)}</span>${voicePlayer(r)}</li>`;
-		});
+		}, '', 'sent');
 	}
 
 	/** « 🧹 تنظيف المهام » (الإدارة) : effacer les tâches منجزة/ملغاة, ou toutes (mot « مسح الكل »). Sauvegarde avant. */
@@ -412,32 +412,63 @@
 				<div class="ps-tasks">${sentBlock(data)}</div>`.html;
 			return;
 		}
+		/*
+		 * 1.12.0 (« ماذا أفعل اليوم؟ ») : ligne de résumé en haut ; les blocs qui ont des tâches d'abord, du plus urgent au
+		 * moins urgent ; les blocs vides regroupés dans une seule petite ligne « ✔ لا شيء في: … ».
+		 */
+		const blocks = [
+			{ key: 'lateOffers', icon: '⚠️', short: PS.t('عروض متأخرة'), tone: 'danger', rows: data.lateOffers || [], html: function (rows) {
+				return block('⚠️', PS.t('عروض متأخرة — لازم قرار'), rows, '', function (r) {
+					return html`<li class="ps-task__item is-danger">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo })} <span class="ps-small">${L.label(r.itemTypeId)}</span>
+						<span class="ps-small">${PS.t('الأجل')} ${F.date(r.dueDate)} · <strong>${PS.t('متأخر')} ${r.daysLate} ${PS.t('يوم')}</strong>${who(r, showEmp)}</span></li>`;
+				}, html` <a class="ps-btn ps-btn--small ps-btn--ghost" href="#/offres?late=1${data.employeeId ? '&employeeId=' + data.employeeId : ''}">${PS.t('فتح في العروض ←')}</a>`, 'lateOffers');
+			} },
+			{ key: 'assigned', icon: '📌', short: PS.t('مهام مُسندة'), tone: (data.assigned || []).some(function (r) { return r.late; }) ? 'danger' : 'warning', rows: data.assigned || [], html: function () { return assignedBlock(data, showEmp); } },
+			{ key: 'followupsDue', icon: '📞', short: PS.t('متابعات'), tone: 'warning', rows: data.followupsDue || [], html: function (rows) {
+				return block('📞', PS.t('متابعات مبرمجة اليوم أو فائتة'), rows, '', function (r) {
+					const overdue = r.nextDate < data.today;
+					return html`<li class="ps-task__item ${overdue ? 'is-danger' : 'is-warning'}">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo }, { hash: '&tab=followups' })}
+						<span class="ps-small">${overdue ? PS.t('كانت مبرمجة') : PS.t('اليوم')} ${F.date(r.nextDate)}${r.companyName ? ' · ' + r.companyName : ''}${who(r, showEmp)}</span></li>`;
+				}, '', 'followupsDue');
+			} },
+			{ key: 'deliveries', icon: '🚚', short: PS.t('تسليمات'), tone: (data.deliveries || []).some(function (r) { return r.late; }) ? 'danger' : '', rows: data.deliveries || [], html: function (rows) {
+				return block('🚚', PS.t('تسليمات هذا الأسبوع'), rows, '', function (r) {
+					return html`<li class="ps-task__item ${r.late ? 'is-danger' : ''}">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo })} <span class="ps-small">${L.label(r.itemTypeId)}</span>
+						<span class="ps-small">${PS.t('أجل التسليم')} ${F.date(r.deliveryDueDate)}${r.late ? html` · <strong>${PS.t('متأخر')} ${r.delayDays} ${PS.t('يوم')}</strong>` : ''}${who(r, showEmp)}</span></li>`;
+				}, html` <a class="ps-btn ps-btn--small ps-btn--ghost" href="#/livraison${data.employeeId ? '?employeeId=' + data.employeeId : ''}">${PS.t('فتح في التسليم ←')}</a>`, 'deliveries');
+			} },
+			{ key: 'pendingDecision', icon: '⏳', short: PS.t('بانتظار القرار'), tone: 'warning', rows: data.pendingDecision || [], html: function (rows) {
+				return block('⏳', PS.t('طلبات بانتظار القرار: مشروع أم لا؟'), rows, '', function (r) {
+					return html`<li class="ps-task__item is-warning">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo })}
+						<span class="ps-small">${PS.t('استُلم')} ${F.date(r.receivedDate)} · ${PS.t('منذ')} ${r.daysWaiting} ${PS.t('يوم')}${who(r, showEmp)}</span></li>`;
+				}, html` <a class="ps-btn ps-btn--small ps-btn--ghost" href="#/projets?isProject=2">${PS.t('قرّر في المشاريع ←')}</a>`, 'pendingDecision');
+			} },
+			{ key: 'noFollowup', icon: '🕒', short: PS.t('بدون متابعة'), tone: '', rows: data.noFollowup || [], html: function (rows) {
+				return block('🕒', PS.t('مشاريع بدون متابعة منذ أكثر من 7 أيام'), rows, '', function (r) {
+					return html`<li class="ps-task__item">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo }, { hash: '&tab=followups' })}
+						<span class="ps-small">${r.lastDate ? PS.t('آخر متابعة ') + F.date(r.lastDate) : PS.t('لا توجد متابعة مسجلة')}${who(r, showEmp)}</span></li>`;
+				}, '', 'noFollowup');
+			} },
+		];
+		const count = function (b) { return b.rows.total || b.rows.length; };
+		const full = blocks.filter(count);
+		const empty = blocks.filter(function (b) { return !count(b) && b.key !== 'pendingDecision'; });
+		const today = full.length
+			? html`<span class="ps-today__title">${PS.t('اليوم:')}</span>${full.map(function (b) { return html`<button type="button" class="ps-today__a ${b.tone ? 'is-' + b.tone : ''}" data-jump-block="${b.key}">${b.icon} ${count(b)} ${b.short}</button>`; })}`
+			: html`<span class="ps-today__ok">✔ ${PS.t('لا شيء عاجل اليوم — أحسنت!')}</span>`;
 		main.innerHTML = html`${head}
+			<div class="ps-today" data-today role="status">${today}</div>
 			<div class="ps-tasks">
-			${assignedBlock(data, showEmp)}
-			${block('⚠️', PS.t('عروض متأخرة — لازم قرار'), data.lateOffers, PS.t('لا توجد عروض متأخرة'), function (r) {
-				return html`<li class="ps-task__item is-danger">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo })} <span class="ps-small">${L.label(r.itemTypeId)}</span>
-					<span class="ps-small">${PS.t('الأجل')} ${F.date(r.dueDate)} · <strong>${PS.t('متأخر')} ${r.daysLate} ${PS.t('يوم')}</strong>${who(r, showEmp)}</span></li>`;
-			}, data.lateOffers.length ? html` <a class="ps-btn ps-btn--small ps-btn--ghost" href="#/offres?late=1${data.employeeId ? '&employeeId=' + data.employeeId : ''}">${PS.t('فتح في العروض ←')}</a>` : '')}
-			${(data.pendingDecision || []).length ? block('⏳', PS.t('طلبات بانتظار القرار: مشروع أم لا؟'), data.pendingDecision, '', function (r) {
-				return html`<li class="ps-task__item is-warning">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo })}
-					<span class="ps-small">${PS.t('استُلم')} ${F.date(r.receivedDate)} · ${PS.t('منذ')} ${r.daysWaiting} ${PS.t('يوم')}${who(r, showEmp)}</span></li>`;
-			}, html` <a class="ps-btn ps-btn--small ps-btn--ghost" href="#/projets?isProject=2">${PS.t('قرّر في المشاريع ←')}</a>`) : ''}
-			${block('📞', PS.t('متابعات مبرمجة اليوم أو فائتة'), data.followupsDue, PS.t('لا توجد متابعات مبرمجة اليوم'), function (r) {
-				const overdue = r.nextDate < data.today;
-				return html`<li class="ps-task__item ${overdue ? 'is-danger' : 'is-warning'}">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo }, { hash: '&tab=followups' })}
-					<span class="ps-small">${overdue ? PS.t('كانت مبرمجة') : PS.t('اليوم')} ${F.date(r.nextDate)}${r.companyName ? ' · ' + r.companyName : ''}${who(r, showEmp)}</span></li>`;
-			})}
-			${block('🕒', PS.t('مشاريع بدون متابعة منذ أكثر من 7 أيام'), data.noFollowup, PS.t('كل المشاريع متابعة'), function (r) {
-				return html`<li class="ps-task__item">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo }, { hash: '&tab=followups' })}
-					<span class="ps-small">${r.lastDate ? PS.t('آخر متابعة ') + F.date(r.lastDate) : PS.t('لا توجد متابعة مسجلة')}${who(r, showEmp)}</span></li>`;
-			})}
-			${block('🚚', PS.t('تسليمات هذا الأسبوع'), data.deliveries, PS.t('لا توجد تسليمات هذا الأسبوع'), function (r) {
-				return html`<li class="ps-task__item ${r.late ? 'is-danger' : ''}">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo })} <span class="ps-small">${L.label(r.itemTypeId)}</span>
-					<span class="ps-small">${PS.t('أجل التسليم')} ${F.date(r.deliveryDueDate)}${r.late ? html` · <strong>${PS.t('متأخر')} ${r.delayDays} ${PS.t('يوم')}</strong>` : ''}${who(r, showEmp)}</span></li>`;
-			}, data.deliveries.length ? html` <a class="ps-btn ps-btn--small ps-btn--ghost" href="#/livraison${data.employeeId ? '?employeeId=' + data.employeeId : ''}">${PS.t('فتح في التسليم ←')}</a>` : '')}
+			${full.map(function (b) { return b.html(b.rows); })}
+			${empty.length ? html`<p class="ps-task-empty" data-task-empty>✔ ${PS.t('لا شيء في:')} ${empty.map(function (b) { return b.short; }).join(' · ')}</p>` : ''}
 			${sentBlock(data)}
 			</div>`.html;
+		main.querySelectorAll('[data-jump-block]').forEach(function (b) {
+			b.addEventListener('click', function () {
+				const t = document.getElementById('ps-block-' + b.dataset.jumpBlock);
+				if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			});
+		});
 		const sel = main.querySelector('[data-emp]');
 		if (sel) sel.addEventListener('change', function () { PS.router.go('taches', sel.value ? { employeeId: sel.value } : null); });
 	}

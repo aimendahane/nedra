@@ -63,6 +63,31 @@ PS.router = (function () {
 			const count = counts[p.id] ? html`<span class="ps-nav__count">${counts[p.id]}</span>` : '';
 			return sep + html`<a class="ps-nav__link" href="#/${p.id}" ${PS.ui.raw(p.id === currentId ? 'aria-current="page"' : '')}><span class="ps-nav__icon" aria-hidden="true">${PS.ui.raw(PS.icons.page(p.id) || PS.ui.esc(p.icon))}</span><span>${p.title}</span>${count}</a>`.html;
 		}).join('');
+		renderTabbar(currentId);
+	}
+
+	/*
+	 * 1.12.0 — barre du bas sur téléphone : مهامي · المشاريع · ➕ (إدخال سريع) · العروض · المزيد (ouvre le menu complet).
+	 * Une seule touche pour les pages de tous les jours (avant : ☰ puis la page, deux touches à chaque fois).
+	 */
+	function renderTabbar(currentId) {
+		const bar = document.getElementById('ps-tabbar');
+		if (!bar) return;
+		const html = PS.ui.html;
+		const ids = ['taches', 'projets', 'add', 'offres'];
+		const tabs = ids.map(function (id) {
+			if (id === 'add') {
+				if (!can('ps_create_project')) return '';
+				return html`<a class="ps-tabbar__a ps-tabbar__a--add" href="#/projet?quick=1" ${PS.ui.raw(currentId === 'projet' ? 'aria-current="page"' : '')}><span class="ps-tabbar__plus" aria-hidden="true">＋</span><span>${PS.t('إدخال')}</span></a>`.html;
+			}
+			const p = pages.find(function (x) { return x.id === id && can(x.cap); });
+			if (!p) return '';
+			const count = counts[id] ? html`<span class="ps-tabbar__count">${counts[id]}</span>` : '';
+			const label = id === 'offres' ? PS.t('العروض') : p.title;
+			return html`<a class="ps-tabbar__a" href="#/${id}" ${PS.ui.raw(id === currentId ? 'aria-current="page"' : '')}><span class="ps-tabbar__icon" aria-hidden="true">${PS.ui.raw(PS.icons.page(id) || PS.ui.esc(p.icon))}${count}</span><span>${label}</span></a>`.html;
+		}).join('');
+		const more = ids.indexOf(currentId) === -1 && currentId !== 'projet';
+		bar.innerHTML = tabs + html`<button type="button" class="ps-tabbar__a" data-tab-more ${PS.ui.raw(more ? 'aria-current="page"' : '')} aria-controls="ps-nav"><span class="ps-tabbar__icon" aria-hidden="true">☰</span><span>${PS.t('المزيد')}</span></button>`.html;
 	}
 
 	function setCount(id, n) {
@@ -163,9 +188,12 @@ PS.router = (function () {
 			toggle.setAttribute('aria-expanded', String(open));
 		});
 		backdrop.addEventListener('click', closeMobileNav);
+		const tabbar = document.getElementById('ps-tabbar');
+		if (tabbar) tabbar.addEventListener('click', function (e) { if (e.target.closest('[data-tab-more]')) toggle.click(); });
 
 		PS.session.init();
-		window.addEventListener('hashchange', route);
+		// 1.12.0 : un message d'erreur de la page précédente ne reste pas affiché sur la nouvelle page.
+		window.addEventListener('hashchange', function () { PS.ui.clearErrorToasts(); route(); });
 		route();
 		refreshCounts();
 		setInterval(refreshCounts, 5 * 60 * 1000);

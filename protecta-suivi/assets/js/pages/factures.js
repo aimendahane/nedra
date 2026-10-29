@@ -83,6 +83,7 @@ PS.invoices = (function () {
 			drawer: !!(opts && opts.drawer), // 1.7.0 : panneau latéral depuis la page « الفواتير »
 			body: html`<p class="ps-small ps-muted">${PS.t('العرض')}: <strong>${ctx.projectName || ''}</strong> <span dir="ltr">${ctx.projectNo || ''}</span>${(ctx.itemTypeIds || []).length ? html` · ${PS.t('الأصناف')}: ${ctx.itemTypeIds.map(L.label).join(PS.t('، '))}` : ''}</p>
 				<p class="ps-small ps-muted">${PS.t('الفاتورة تخص العرض كاملًا (كل أصناف المشروع).')}</p>
+				${ro ? PS.items.readOnlyNote([PS.t('المسؤول عن المشروع') + (ctx.responsibleEmpId ? ' (' + L.label(ctx.responsibleEmpId) + ')' : ''), PS.t('الموظف المتابع') + (ctx.followerEmpId ? ' (' + L.label(ctx.followerEmpId) + ')' : ''), PS.t('موظفو أصناف العرض')]) : ''}
 				<div class="ps-grid" data-inv-form>
 					<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('رقم الفاتورة *')}</span><input name="invoiceNo" data-key="invoiceNo" dir="ltr" value="${v.invoiceNo}"${dis}></label>
 					<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('تاريخ إرسال الفاتورة *')}</span><input type="date" name="sentDate" data-key="sentDate" value="${v.sentDate || ''}"${dis}></label>
@@ -185,7 +186,7 @@ PS.invoices = (function () {
 	/** Fiche d'une facture (lien des alertes : #/factures/ID). */
 	function open(id, opts) {
 		return PS.api.get('invoices/' + id).then(function (inv) {
-			return form({ projectName: inv.projectName, projectNo: inv.projectNo, itemTypeIds: inv.itemTypeIds, itemId: inv.itemId }, inv, opts);
+			return form({ projectName: inv.projectName, projectNo: inv.projectNo, itemTypeIds: inv.itemTypeIds, itemId: inv.itemId, responsibleEmpId: inv.responsibleEmpId, followerEmpId: inv.followerEmpId }, inv, opts);
 		}).catch(function (e) { ui.toast(e.message, 'error'); return null; });
 	}
 

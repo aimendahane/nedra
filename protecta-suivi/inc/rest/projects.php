@@ -163,8 +163,8 @@ function ps_rest_project_get( WP_REST_Request $r ) {
  *
  * @return WP_Error|null
  */
-function ps_rest_project_check( array $in, ?array $existing, bool $confirm_duplicates ) {
-	$errors = ps_validate_project( $in, $existing );
+function ps_rest_project_check( array $in, ?array $existing, bool $confirm_duplicates, bool $quick = false ) {
+	$errors = ps_validate_project( $in, $existing, $quick );
 	if ( $errors ) {
 		return new WP_Error( 'ps_validation', ps__( 'يرجى تصحيح الخانات المعلّمة' ), array( 'status' => 422, 'errors' => $errors ) );
 	}
@@ -184,9 +184,25 @@ function ps_rest_project_check( array $in, ?array $existing, bool $confirm_dupli
 }
 
 function ps_rest_project_create( WP_REST_Request $r ) {
-	$body = (array) $r->get_json_params();
-	$in   = ps_project_input( $body );
-	$err  = ps_rest_project_check( $in, null, ! empty( $body['confirmDuplicates'] ) );
+	$body  = (array) $r->get_json_params();
+	$quick = ! empty( $body['quick'] );
+	if ( $quick ) {
+		// 1.12.0 « إدخال سريع » : toujours « ⏳ لم يُحدد بعد » (pas encore une offre) ; seuls les champs du formulaire
+		// court sont pris ; المتابع = المسؤول si absent.
+		$body = array(
+			'name'             => $body['name'] ?? null,
+			'receivedDate'     => $body['receivedDate'] ?? null,
+			'responsibleEmpId' => $body['responsibleEmpId'] ?? null,
+			'followerEmpId'    => $body['followerEmpId'] ?? ( $body['responsibleEmpId'] ?? null ),
+			'note'             => $body['note'] ?? null,
+			'parties'          => array( 'owner' => (array) ( $body['parties']['owner'] ?? array() ) ),
+			'isProject'        => 'pending',
+			'items'            => array(),
+			'confirmDuplicates' => ! empty( $body['confirmDuplicates'] ),
+		);
+	}
+	$in  = ps_project_input( $body );
+	$err = ps_rest_project_check( $in, null, ! empty( $body['confirmDuplicates'] ), $quick );
 	if ( $err ) {
 		return $err;
 	}
@@ -236,6 +252,9 @@ function ps_rest_project_is_project( WP_REST_Request $r ) {
 		return new WP_Error( 'ps_validation', ps__( 'خانة إجبارية: ' ) . ps__( 'مشروع؟' ), array( 'status' => 422 ) );
 	}
 	$res = ps_project_set_is_project( (int) $row['id'], (int) $state, $b['nonProjectReasonId'] ?? null, isset( $b['nonProjectNote'] ) ? (string) $b['nonProjectNote'] : null, $uid );
+	if ( ! is_wp_error( $res ) && PS_PROJECT_YES === (int) $state ) {
+		$res['missing'] = ps_project_missing( (int) $row['id'] ); // 1.12.0 : à compléter dans la fiche (non bloquant)
+	}
 	return is_wp_error( $res ) ? $res : rest_ensure_response( $res );
 }
 
