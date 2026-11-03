@@ -10,3 +10,22 @@ ffmpeg -i /tmp/psx/video/raw-desktop/*.webm -i /tmp/psx/video/raw-mobile/*.webm 
   -map "[v]" -c:v libx264 -crf 24 -movflags +faststart video.mp4
 ```
 La vidéo (~6 min, 10 Mo) n'est pas versionnée ; elle est envoyée au client. À refaire après un changement d'interface important.
+
+## Version 2 (03/11, demande du client : « avec la voix, et bien meilleure »)
+
+- Voix arabe (homme, fusha) : moteur hors ligne sherpa-onnx (PyPI, 1.12.40) + voix libre Piper « ar_JO-kareem-medium »
+  (version sherpa-onnx, release GitHub k2-fsa). Texte ENTIÈREMENT vocalisé à la main (`narration.py`), chaque phrase
+  vérifiée par reconnaissance vocale (Whisper small, même moteur) : `voice.py` affiche le texte reconnu et un score.
+  Rien de cela n'entre dans le thème (outils de fabrication de la vidéo seulement).
+- Capture HD par CDP screencast (`record2.js`), une scène par phrase (la scène dure le temps de la voix) ; zoom suivi
+  de l'élément expliqué et projecteur ; messages du site déplacés en haut pendant le tournage (pas sous les sous-titres).
+- Montage `assemble.py` (Pillow + ffmpeg) : 30 i/s, caméra lissée, sous-titres en PNG (`captions.js`), voix placée au
+  début de chaque scène, partie téléphone sur fond aux couleurs de la marque. ~6 min 50, 1920×1080, 39 Mo.
+- Données réalistes : jeu de démonstration + `demo-realistic.php` (noms de projets plausibles, numéros d'offre, factures).
+
+```sh
+cd /srv/wp && sudo -u www-data env PS_TEST=1 DEMO=1 php …/tests/e2e-setup.php && sudo -u www-data env PS_TEST=1 php tools/video/demo-realistic.php
+python voice.py                      # voix + contrôle (venv avec sherpa-onnx==1.12.40, soundfile, numpy, pillow)
+node record2.js /tmp/v /tmp/psx/tts/scenes.json && node captions.js /tmp/v /tmp/psx/tts/scenes.json
+python assemble.py /tmp/v /tmp/psx/tts/out /tmp/v/video.mp4
+```

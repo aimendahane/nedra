@@ -410,6 +410,9 @@ chaque décision prise seul.
 - Toasts d'erreur effacés sur `hashchange` seulement (pas sur `PS.router.refresh`).
 - **Vidéo de formation du مسؤول** (demande du client : « une seule vidéo complète ») : 5 min 50, sous-titres arabes, sans voix,
   PC + téléphone, jeu de démonstration ; script `tools/video/` (la vidéo elle-même n'est pas versionnée).
+  **v2 (03/11, « besoin de la voix, bien meilleure »)** : voix arabe hors ligne (sherpa-onnx + Piper ar_JO-kareem, texte
+  vocalisé à la main, vérifié par Whisper), zoom suivi + projecteur, HD 1080p, données de démo réalistes ; 6 min 50.
+  Voir tools/video/README.md (outils seulement, rien dans le thème).
 
 ### Version 1.11.0 — décisions
 - Libellé « غير مشروع » → « مشروع مُلغى » (valeur 0 inchangée) ; « ملغى » du Recap (toutes أصناف annulées) → « أصناف ملغاة ».
