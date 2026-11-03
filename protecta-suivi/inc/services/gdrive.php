@@ -373,25 +373,4 @@ add_action(
 	2
 );
 
-/* ---------------------------------------------------------------------- */
-/* Envoi en arrière-plan                                                   */
-/* ---------------------------------------------------------------------- */
-
-/**
- * Fin de requête : s'il reste des fichiers sur le serveur, en envoie quelques-uns (au plus toutes les 10 min),
- * après avoir rendu la réponse au navigateur.
- */
-add_action(
-	'shutdown',
-	static function () {
-		if ( defined( 'PS_TESTING' ) || ! ps_gdrive_connected() || get_transient( 'ps_gdrive_bg' ) ) {
-			return;
-		}
-		set_transient( 'ps_gdrive_bg', 1, 10 * MINUTE_IN_SECONDS );
-		if ( function_exists( 'fastcgi_finish_request' ) ) {
-			fastcgi_finish_request();
-		}
-		ps_gdrive_sync( 3, 20.0 );
-	},
-	20
-);
+/* Envoi en arrière-plan : voir inc/services/storage.php (1.14.0, commun à OneDrive et Google Drive). */

@@ -23,7 +23,7 @@ function ps_register_gdrive_routes(): void {
 		array(
 			'methods'             => 'POST',
 			'permission_callback' => $perm,
-			'callback'            => static fn() => rest_ensure_response( ps_gdrive_sync( 20, 25.0 ) + array( 'status' => ps_gdrive_status() ) ),
+			'callback'            => static fn() => rest_ensure_response( ps_storage_sync( 20, 25.0 ) + array( 'status' => ps_gdrive_status() ) ),
 		)
 	);
 	register_rest_route(

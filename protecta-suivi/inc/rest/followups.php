@@ -221,6 +221,26 @@ function ps_rest_file_download( WP_REST_Request $r ) {
 		return new WP_Error( 'ps_forbidden', ps__( 'ليس لديك صلاحية لهذا الملف.' ), array( 'status' => 403 ) );
 	}
 	$tmp = null;
+	$inline = preg_match( '#^(image/(png|jpeg|gif|webp)|application/pdf)$#', (string) $f['mime'] );
+	if ( 'onedrive' === ( $f['storage'] ?? 'local' ) ) {
+		// 1.14.0 : fichier dans OneDrive → lien temporaire de Microsoft, transmis au fil de l'eau (aucun lien montré).
+		$src = ps_onedrive_source( $f );
+		if ( is_wp_error( $src ) ) {
+			return $src;
+		}
+		while ( ob_get_level() > 0 ) {
+			ob_end_clean();
+		}
+		nocache_headers();
+		header( 'Content-Type: ' . $f['mime'] );
+		if ( (int) $f['size'] > 0 ) {
+			header( 'Content-Length: ' . (int) $f['size'] );
+		}
+		header( 'X-Content-Type-Options: nosniff' );
+		header( 'Content-Disposition: ' . ( $inline ? 'inline' : 'attachment' ) . "; filename*=UTF-8''" . rawurlencode( ps_file_download_name( $f ) ) );
+		ps_stream_remote( $src );
+		exit;
+	}
 	if ( 'drive' === ( $f['storage'] ?? 'local' ) ) {
 		// 1.5.0 : fichier dans Google Drive → récupéré par le serveur (jamais de lien Drive public).
 		$tmp = ps_gdrive_fetch( $f );
@@ -238,8 +258,7 @@ function ps_rest_file_download( WP_REST_Request $r ) {
 	while ( ob_get_level() > 0 ) {
 		ob_end_clean();
 	}
-	// Seuls images (hors SVG) et PDF s'ouvrent dans le navigateur ; tout le reste est téléchargé.
-	$inline = preg_match( '#^(image/(png|jpeg|gif|webp)|application/pdf)$#', (string) $f['mime'] );
+	// Seuls images (hors SVG) et PDF s'ouvrent dans le navigateur ($inline) ; tout le reste est téléchargé.
 	nocache_headers();
 	header( 'Content-Type: ' . $f['mime'] );
 	header( 'Content-Length: ' . filesize( $real ) );

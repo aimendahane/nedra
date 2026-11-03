@@ -1846,7 +1846,45 @@ async function step22(browser) {
 	await ctx.close();
 }
 
-const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15, step16, step17, step18, step19, step20, step21, step22 };
+/* 1.14.0 — OneDrive (Microsoft 365) + vitesse. */
+async function step23(browser) {
+	console.log('1.14.0 — تخزين الملفات (OneDrive), vitesse');
+	const { ctx, page } = await newPage(browser, 'idara');
+	const scripts = await page.$$eval('script[src]', (s) => s.map((x) => x.src));
+	check('vitesse : un seul fichier JS pour l\'application (au lieu de 22)', scripts.filter((u) => /\/ps-cache\/app-[0-9a-f]+\.js/.test(u)).length === 1 && !scripts.some((u) => /assets\/js\/(core|pages)\//.test(u)), scripts.map((u) => u.split('/').pop()).join(', '));
+	check('vitesse : Chart.js non chargé hors Recap', !scripts.some((u) => /chart\.umd/.test(u)) && !(await page.evaluate(() => !!window.Chart)));
+	await go(page, '#/recap?year=2026');
+	await page.waitForSelector('#ch-month');
+	await page.waitForTimeout(800);
+	check('Recap : Chart.js chargé à la demande, graphiques dessinés', await page.evaluate(() => !!window.Chart && !!Chart.getChart(document.querySelector('#ch-month'))));
+	await go(page, '#/parametres?tab=general');
+	await page.waitForSelector('[data-storage] [data-od-save]');
+	const txt = await page.textContent('[data-storage]');
+	check('الإعدادات : « تخزين الملفات » — OneDrive (Microsoft 365) avec les étapes, Google Drive toujours là', /OneDrive/.test(txt) && /entra\.microsoft\.com/.test(txt) && /Files\.ReadWrite\.All/.test(txt) && !!(await page.$('[data-storage] [data-gdrive] [data-gd-save]')));
+	check('choix de l\'emplacement : OneDrive / Google Drive grisés tant qu\'ils ne sont pas reliés', await page.isDisabled('[name=st-provider][value=onedrive]') && await page.isChecked('[name=st-provider][value=local]'));
+	await page.fill('[data-od-form] [name=tenantId]', 'abc');
+	await page.click('[data-od-save]');
+	await page.waitForSelector('[data-od-form] .ps-field--error');
+	check('identifiants mal formés : erreurs sous les خانات (Tenant ID, Client ID, Secret, بريد)', (await page.$$('[data-od-form] .ps-field--error')).length >= 3);
+	await page.check('[data-od-form] [name=targetType][value=site]');
+	check('« موقع SharePoint » : la خانة demande l\'adresse du site', /SharePoint/.test(await page.textContent('[data-od-target-label]')));
+	await (await page.$('[data-storage]')).screenshot({ path: SHOTS + '/s23-01-stockage.png' });
+	const pid = await page.evaluate(async () => (await PS.api.get('projects?perPage=5')).rows[0].id);
+	await page.evaluate(async (id) => { const fd = new FormData(); fd.append('file', new Blob(['%PDF-1.4 test'], { type: 'application/pdf' }), 'test.pdf'); await PS.api.post('projects/' + id + '/files', fd); }, pid);
+	await go(page, '#/projet?id=' + pid + '&tab=files');
+	await page.waitForSelector('[data-tab-body] .ps-table');
+	check('الإدارة : colonne « المكان » (🖥 الخادم / ☁ OneDrive) visible', (await page.$$eval('[data-tab-body] .ps-table thead th', (t) => t.map((x) => x.textContent.trim()))).includes('المكان'));
+	await ctx.close();
+	// Les employés ne voient aucune différence : pas de colonne « المكان » dans les fichiers.
+	const e = await newPage(browser, 'mowadhaf');
+	await go(e.page, '#/projet?id=' + pid + '&tab=files');
+	await e.page.waitForSelector('[data-tab-body] .ps-table');
+	const heads = await e.page.$$eval('[data-tab-body] .ps-table thead th', (t) => t.map((x) => x.textContent.trim()));
+	check('موظف : fichiers comme avant, sans colonne « المكان » (serveur / OneDrive invisible)', heads.length && !heads.includes('المكان') && !(await e.page.$('[data-storage]')), heads.join('|'));
+	await e.ctx.close();
+}
+
+const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15, step16, step17, step18, step19, step20, step21, step22, step23 };
 
 (async () => {
 	const browser = await chromium.launch();

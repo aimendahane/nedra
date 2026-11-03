@@ -40,17 +40,22 @@ function ps_enqueue_assets(): void {
 		return; // Page de connexion : CSS seulement.
 	}
 
-	$prev = array();
-	foreach ( ps_core_scripts() as $name ) {
-		$handle = 'ps-core-' . $name;
-		wp_enqueue_script( $handle, PS_URL . '/assets/js/core/' . $name . '.js', $prev, $v, true );
-		$prev = array( $handle );
-	}
-	$router = $prev;
-	// Chart.js (fichier inclus dans le thème, aucun CDN) : nécessaire à la page Recap.
-	wp_enqueue_script( 'ps-chartjs', PS_URL . '/assets/vendor/chart.umd.min.js', array(), '4.5.1', true );
-	foreach ( ps_page_scripts() as $name ) {
-		wp_enqueue_script( 'ps-page-' . $name, PS_URL . '/assets/js/pages/' . $name . '.js', 'recap' === $name ? array_merge( $router, array( 'ps-chartjs' ) ) : $router, $v, true );
+	// 1.14.0 (vitesse) : un seul fichier JS (cœur + pages, concaténés et mis en cache) au lieu de 22 requêtes ;
+	// Chart.js n'est plus chargé ici : la page Recap le charge quand elle s'ouvre (PS.loadChart).
+	$bundle = ps_js_bundle_url();
+	if ( $bundle ) {
+		wp_enqueue_script( 'ps-core-i18n', $bundle, array(), null, true ); // même identifiant : la configuration s'y attache
+	} else {
+		// Secours (dossier uploads non inscriptible) : un fichier par module, comme avant.
+		$prev = array();
+		foreach ( ps_core_scripts() as $name ) {
+			$handle = 'ps-core-' . $name;
+			wp_enqueue_script( $handle, PS_URL . '/assets/js/core/' . $name . '.js', $prev, $v, true );
+			$prev = array( $handle );
+		}
+		foreach ( ps_page_scripts() as $name ) {
+			wp_enqueue_script( 'ps-page-' . $name, PS_URL . '/assets/js/pages/' . $name . '.js', $prev, $v, true );
+		}
 	}
 
 	wp_add_inline_script( 'ps-core-i18n', 'window.PS = window.PS || {}; PS.config = ' . wp_json_encode( ps_client_config(), JSON_UNESCAPED_UNICODE ) . ';', 'before' );
@@ -88,8 +93,73 @@ function ps_client_config(): array {
 		'invoiceAnswers' => ps_invoice_answers(), // 1.6.0 : pending / yes / no
 		'partyRoles' => ps_party_roles(),
 		'today'      => ps_today(),
-		'preload'    => array( 'lists' => ps_lists_payload() ), // 1.11.0 : un appel de moins à l'ouverture
+		'chartUrl'   => esc_url_raw( PS_URL . '/assets/vendor/chart.umd.min.js?ver=4.5.1' ), // 1.14.0 : chargé par Recap
+		// 1.11.0 : listes ; 1.14.0 : compteurs du menu, notifications non lues, état Telegram → 3 appels de moins.
+		'preload'    => array(
+			'lists'    => ps_lists_payload(),
+			'counters' => ps_counters( get_current_user_id() ),
+			'unread'   => ps_notifications_unread( get_current_user_id() ),
+			'telegram' => array(
+				'enabled' => ps_tg_enabled(),
+				'bot'     => ps_tg_bot(),
+				'linked'  => '' !== ps_tg_chat_id( get_current_user_id() ),
+			),
+		),
 	);
+}
+
+/**
+ * 1.14.0 — Fichier JS unique : cœur + pages concaténés dans l'ordre (uploads/ps-cache/app-<empreinte>.js).
+ * L'empreinte change avec la version et la date des fichiers → le navigateur garde le fichier en cache sans risque.
+ * Rien n'est « construit » : les sources restent les fichiers de assets/js. Renvoie '' si l'écriture est impossible.
+ */
+function ps_js_bundle_url(): string {
+	if ( defined( 'PS_NO_BUNDLE' ) && PS_NO_BUNDLE ) {
+		return '';
+	}
+	$files = array();
+	foreach ( ps_core_scripts() as $name ) {
+		$files[] = PS_DIR . '/assets/js/core/' . $name . '.js';
+	}
+	foreach ( ps_page_scripts() as $name ) {
+		$files[] = PS_DIR . '/assets/js/pages/' . $name . '.js';
+	}
+	$sig = PS_VERSION;
+	foreach ( $files as $f ) {
+		$sig .= '|' . $f . '|' . (int) @filemtime( $f ) . '|' . (int) @filesize( $f ); // phpcs:ignore
+	}
+	$name = 'app-' . substr( md5( $sig ), 0, 12 ) . '.js';
+	$up   = wp_upload_dir( null, false );
+	if ( ! empty( $up['error'] ) ) {
+		return '';
+	}
+	$dir  = trailingslashit( $up['basedir'] ) . 'ps-cache';
+	$path = $dir . '/' . $name;
+	if ( ! is_file( $path ) ) {
+		if ( ! wp_mkdir_p( $dir ) ) {
+			return '';
+		}
+		if ( ! is_file( $dir . '/.htaccess' ) ) {
+			// Cache long (le nom change à chaque version) + compression, si l'hébergeur a ces modules.
+			file_put_contents( $dir . '/.htaccess', "<IfModule mod_expires.c>\nExpiresActive On\nExpiresByType application/javascript \"access plus 1 year\"\nExpiresByType text/javascript \"access plus 1 year\"\n</IfModule>\n<IfModule mod_deflate.c>\nAddOutputFilterByType DEFLATE application/javascript text/javascript\n</IfModule>\n" ); // phpcs:ignore
+		}
+		$js = "/* Protecta Suivi " . PS_VERSION . " — fichier généré (sources : assets/js/core, assets/js/pages) */\n";
+		foreach ( $files as $f ) {
+			$js .= "\n/* " . basename( dirname( $f ) ) . '/' . basename( $f ) . " */\n" . (string) file_get_contents( $f ) . "\n;\n";
+		}
+		$tmp = $path . '.' . wp_generate_password( 6, false ) . '.tmp';
+		if ( false === file_put_contents( $tmp, $js ) || ! rename( $tmp, $path ) ) { // phpcs:ignore
+			@unlink( $tmp ); // phpcs:ignore
+			return is_file( $path ) ? trailingslashit( $up['baseurl'] ) . 'ps-cache/' . $name : '';
+		}
+		// Anciennes versions du fichier : effacées (elles ne servent plus).
+		foreach ( (array) glob( $dir . '/app-*.js' ) as $old ) {
+			if ( $old !== $path && filemtime( $old ) < time() - DAY_IN_SECONDS ) {
+				@unlink( $old ); // phpcs:ignore
+			}
+		}
+	}
+	return trailingslashit( $up['baseurl'] ) . 'ps-cache/' . $name;
 }
 
 /**

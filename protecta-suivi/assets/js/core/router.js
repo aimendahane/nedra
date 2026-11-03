@@ -100,7 +100,10 @@ PS.router = (function () {
 	 * Rafraîchis au démarrage, toutes les 5 minutes et après chaque modification d'un صنف.
 	 */
 	function refreshCounts() {
-		return PS.api.get('counters', { passive: true }).then(function (c) {
+		// 1.14.0 : à l'ouverture, les compteurs viennent de la page elle-même (un appel de moins).
+		const pre = PS.config.preload && PS.config.preload.counters;
+		if (pre) delete PS.config.preload.counters;
+		return (pre ? Promise.resolve(pre) : PS.api.get('counters', { passive: true })).then(function (c) {
 			counts.offres = c.offres || 0;
 			counts.livraison = c.livraison || 0;
 			counts.taches = c.taches || 0;

@@ -85,6 +85,8 @@ PS.projectTabs = (function () {
 	/* ------------------------------------------------------------------ */
 
 	function files(box, project) {
+		// 1.14.0 : l'emplacement (serveur / OneDrive / Drive) n'intéresse que la الإدارة — les autres ne voient aucune différence.
+		const where = PS.router.can('ps_manage_settings');
 		PS.api.get('projects/' + project.id + '/files').then(function (rows) {
 			const canAdd = project.permissions.canAddFollowup && !project.deletedAt;
 			box.innerHTML = html`<section class="ps-card">
@@ -95,10 +97,10 @@ PS.projectTabs = (function () {
 					📎 ${PS.t('اضغط أو اسحب الملفات هنا (كل الأنواع ما عدا البرامج والسكربتات — الحد الأقصى')} ${F.size(PS.config.settings.maxUpload)})
 				</label><div data-progress></div>` : ''}
 				${rows.length ? html`<div class="ps-table-wrap"><table class="ps-table">
-					<thead><tr><th>${PS.t('الملف')}</th><th>${PS.t('الحجم')}</th><th>${PS.t('رفعه')}</th><th>${PS.t('التاريخ')}</th><th>${PS.t('المكان')}</th><th></th></tr></thead>
+					<thead><tr><th>${PS.t('الملف')}</th><th>${PS.t('الحجم')}</th><th>${PS.t('رفعه')}</th><th>${PS.t('التاريخ')}</th>${where ? html`<th>${PS.t('المكان')}</th>` : ''}<th></th></tr></thead>
 					<tbody>${rows.map(function (f) {
 						return html`<tr><td><a href="${f.url}" target="_blank" rel="noopener"><strong>${fileIcon(f.mime)} ${f.name}</strong></a>${f.originalName && f.originalName !== f.name ? html`<div class="ps-small ps-muted" dir="auto">${f.originalName}</div>` : ''}</td><td>${F.size(f.size)}</td><td>${f.author}</td><td>${F.dateTime(f.createdAt)}</td>
-							<td>${f.storage === 'drive' ? html`<span class="ps-small" title="${PS.t('محفوظ في Google Drive')}">☁ Drive</span>` : html`<span class="ps-small ps-muted" title="${PS.t('على الخادم (يُرسل إلى Google Drive عند ربطه)')}">🖥 ${PS.t('الخادم')}</span>`}</td>
+							${where ? html`<td>${f.storage === 'onedrive' ? html`<span class="ps-small" title="${PS.t('محفوظ في OneDrive')}">☁ OneDrive</span>` : f.storage === 'drive' ? html`<span class="ps-small" title="${PS.t('محفوظ في Google Drive')}">☁ Drive</span>` : html`<span class="ps-small ps-muted" title="${PS.t('على الخادم (يُرسل إلى التخزين السحابي عند ربطه)')}">🖥 ${PS.t('الخادم')}</span>`}</td>` : ''}
 							<td>${f.canDelete ? html`<button type="button" class="ps-icon-btn ps-icon-btn--sm" data-del-file="${f.id}" aria-label="${PS.t('حذف')}">🗑</button>` : ''}</td></tr>`;
 					})}</tbody></table></div>` : ui.empty('📂', PS.t('لا توجد ملفات.'))}
 			</section>`.html;

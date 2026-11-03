@@ -517,6 +517,25 @@
 	window.addEventListener('ps:theme', redrawIfVisible);
 	window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawIfVisible);
 	window.addEventListener('beforeprint', function () { charts.forEach(function (c) { c.resize(); }); });
+	/**
+	 * 1.14.0 (vitesse) : Chart.js (69 Ko) n'est chargé qu'à la première ouverture de Recap — les autres pages et les
+	 * comptes sans Recap ne le téléchargent jamais.
+	 */
+	let chartPromise = null;
+	function loadChart() {
+		if (window.Chart) return Promise.resolve();
+		if (!chartPromise) {
+			chartPromise = new Promise(function (resolve, reject) {
+				const s = document.createElement('script');
+				s.src = PS.config.chartUrl;
+				s.onload = resolve;
+				s.onerror = function () { chartPromise = null; reject(new Error(PS.t('تعذّر تحميل الرسوم البيانية، أعد المحاولة.'))); };
+				document.head.appendChild(s);
+			});
+		}
+		return chartPromise;
+	}
+
 	window.addEventListener('afterprint', function () { charts.forEach(function (c) { c.resize(); }); });
 
 	PS.router.register({
@@ -528,7 +547,7 @@
 		group: 'analysis',
 		render: function (main, params) {
 			destroyCharts();
-			return L.load().then(function () {
+			return Promise.all([L.load(), loadChart()]).then(function () {
 				st = { main: main, params: Object.assign({}, params), data: null };
 				return load();
 			});

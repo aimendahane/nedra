@@ -1,6 +1,6 @@
 ######## Tests PHP ########
 Site de test installé (thème : protecta-suivi)
-Thème v1.13.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
+Thème v1.14.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 
 == Activation : base de données ==
   ✔ ps_db_version = dernière migration
@@ -794,9 +794,9 @@ Thème v1.13.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ inc/i18n/en.json : JSON valide
   ✔ inc/i18n/fr.json : JSON valide
   ✔ en.json et fr.json ont exactement les mêmes clés
-  ✔ en : chaque texte de l'interface a sa traduction (1247 textes)
+  ✔ en : chaque texte de l'interface a sa traduction (1296 textes)
   ✔ en : traductions non vides, sans arabe, mêmes %s / %d que l'original
-  ✔ fr : chaque texte de l'interface a sa traduction (1247 textes)
+  ✔ fr : chaque texte de l'interface a sa traduction (1296 textes)
   ✔ fr : traductions non vides, sans arabe, mêmes %s / %d que l'original
 
 == Langues : traduction côté serveur ==
@@ -960,7 +960,7 @@ Thème v1.13.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ secrets absents de la sauvegarde JSON
 
 == 1.5.0 : Google Drive (simulé) — envoi, vérification, lecture ==
-  ✔ nouveau fichier envoyé tout de suite dans Drive (empreinte MD5 vérifiée)
+  ✔ nouveau fichier envoyé dans Drive (empreinte MD5 vérifiée)
   ✔ copie du serveur effacée APRÈS vérification (espace libéré)
   ✔ contenu identique dans Drive, nommé avec le nom d'affichage
   ✔ un dossier par projet (« nom — numéro ») dans « Protecta Suivi »
@@ -1261,8 +1261,55 @@ Thème v1.13.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ fenêtre 🧾 d'un صنف : toutes les factures du projet (avec الأصناف de chacune)
   ✔ ligne صنف 1 : numéro de la facture du صنف 2 du même projet (otherNos, affiché en petit)
 
+== 1.14.0 : empreinte quickXorHash (Microsoft) ==
+  ✔ implémentation rapide = implémentation bit à bit (vide, 1 octet, 13, 159, 183, 1000, 4133 octets aléatoires)
+  ✔ fichier vide : 20 octets nuls
+  ✔ fichier de 1 Mo + 333 octets : par blocs = en une fois
+
+== 1.14.0 : liaison OneDrive (Microsoft simulé) ==
+  ✔ identifiants mal formés → erreurs sous chaque خانة
+  ✔ موظف : aucun accès aux réglages de stockage
+  ✔ mauvais secret → refus clair (« انسخ Value وليس Secret ID »)
+  ✔ … et rien n'est relié
+  ✔ autorisation manquante → explique « Files.ReadWrite.All + Grant admin consent »
+  ✔ liaison OK : OneDrive de archive@protecta.ly
+  ✔ OneDrive devient l'emplacement des nouveaux fichiers
+  ✔ test d'écriture fait pendant la liaison (petit fichier créé puis effacé)
+  ✔ le secret n'est jamais renvoyé au navigateur
+  ✔ … ni écrit dans la sauvegarde JSON
+  ✔ secret laissé vide = secret enregistré conservé
+
+== 1.14.0 : envoi des fichiers vers OneDrive (aucune perte) ==
+  ✔ à l'ajout : enregistré sur le serveur, envoi prévu APRÈS la réponse (l'usager n'attend pas)
+  ✔ envoi vers OneDrive
+  ✔ vérifié (taille + quickXorHash) → copie du serveur libérée
+  ✔ adresse d'envoi de Microsoft : appelée sans jeton (exigence Microsoft)
+  ✔ envoi par morceaux (multiples de 320 Kio, exigence Microsoft ; 5 Mo en vrai)
+  ✔ rangé dans « Protecta Suivi / رقم المشروع — اسم المشروع / » (caractères interdits retirés)
+  ✔ API : emplacement connu de la الإدارة
+  ✔ empreinte non concordante mais fichier relu identique → accepté
+  ✔ contenu différent dans OneDrive → le fichier reste sur le serveur (erreur notée)
+  ✔ OneDrive injoignable → le fichier attend sur le serveur
+  ✔ synchronisation : les fichiers en attente partent (« نقل الملفات الآن » / Cron)
+  ✔ lecture : lien temporaire demandé à Microsoft au moment du clic
+  ✔ transmission au fil de l'eau (cURL) d'un fichier distant
+  ✔ موظف : aucun identifiant ni lien OneDrive dans l'API (lien du site seulement)
+
+== 1.14.0 : choix du service, sites déjà reliés à Google Drive ==
+  ✔ Google Drive non relié → ne peut pas être choisi
+  ✔ « الخادم فقط » : plus aucun envoi
+  ✔ site relié à Google Drive avant 1.14.0 (aucun choix enregistré) → continue avec Google Drive
+  ✔ la الإدارة passe à OneDrive
+  ✔ فك الربط : plus d'envoi, les fichiers déjà dans OneDrive restent (aucune suppression)
+
+== 1.14.0 : vitesse — un seul fichier JS, Chart.js à la demande, données préchargées ==
+  ✔ fichier JS unique créé (uploads/ps-cache), nom lié à la version
+  ✔ il contient le cœur et toutes les pages, pas Chart.js
+  ✔ même version → même fichier (cache du navigateur)
+  ✔ page : compteurs, notifications et Telegram préchargés ; Chart.js chargé par Recap seulement
+
 ----------------------------------------
-Résultat : 1031 réussis, 0 échoués
+Résultat : 1068 réussis, 0 échoués
 
 ######## Navigateur : fondations (étape 1) ########
 Page de connexion
@@ -1659,7 +1706,7 @@ Tous les contrôles navigateur sont passés.
 1.11.0 — الفواتير حسب العرض، آخر أجل يدوي، السرعة
   ✔ offre de démonstration avec ≥ 2 أصناف
   ✔ formulaire : « آخر أجل للرد » est un champ à saisir (proposé +15 j)
-  ✘ formulaire : « الفاتورة تخص العرض كاملًا »
+  ✔ formulaire : « الفاتورة تخص » — العرض كاملًا (par défaut) ou هذا الصنف فقط (1.13.0)
   ✔ la date proposée suit la date d'envoi (16/10/2026)
   ✔ facture enregistrée pour l'offre entière (visible depuis chaque صنف), آخر أجل = 20/10
   ✔ الفواتير : les 10 colonnes visibles (… الأصناف، الموظف المتابع)
@@ -1668,8 +1715,7 @@ Tous les contrôles navigateur sont passés.
   ✔ vitesse : réponses JSON compressées (gzip)
   ✔ vitesse : les listes viennent de la page (pas d'appel /lists)
 
-1 échec(s)
-✘ ÉCHEC : navigateur step20
+Tous les contrôles navigateur sont passés.
 
 ######## Navigateur : step21 (jeu de démonstration) ########
 1.12.0 — إدخال سريع, résumé des erreurs, تراجع, résumé en lecture seule, Recap, fichiers
@@ -1713,6 +1759,20 @@ Tous les contrôles navigateur sont passés.
 
 Tous les contrôles navigateur sont passés.
 
+######## Navigateur : step23 (jeu de démonstration) ########
+1.14.0 — تخزين الملفات (OneDrive), vitesse
+  ✔ vitesse : un seul fichier JS pour l'application (au lieu de 22)
+  ✔ vitesse : Chart.js non chargé hors Recap
+  ✔ Recap : Chart.js chargé à la demande, graphiques dessinés
+  ✔ الإعدادات : « تخزين الملفات » — OneDrive (Microsoft 365) avec les étapes, Google Drive toujours là
+  ✔ choix de l'emplacement : OneDrive / Google Drive grisés tant qu'ils ne sont pas reliés
+  ✔ identifiants mal formés : erreurs sous les خانات (Tenant ID, Client ID, Secret, بريد)
+  ✔ « موقع SharePoint » : la خانة demande l'adresse du site
+  ✔ الإدارة : colonne « المكان » (🖥 الخادم / ☁ OneDrive) visible
+  ✔ موظف : fichiers comme avant, sans colonne « المكان » (serveur / OneDrive invisible)
+
+Tous les contrôles navigateur sont passés.
+
 ######## Navigateur : step10 = 1.4.0 (import Excel, comptes, Telegram) ########
 1.4.0 — import Excel, numéros P…, هامش الربح, ورقة الحسابات, Telegram à la connexion
   ✔ connexion : fenêtre « اربط حسابك بـ Telegram » (compte non lié)
@@ -1726,13 +1786,10 @@ Tous les contrôles navigateur sont passés.
 
 Tous les contrôles navigateur sont passés.
 
-=== ÉCHECS : voir ci-dessus ===
+=== TOUS LES TESTS SONT PASSÉS ===
 
-######## Nouveau passage step20 (contrôle adapté au choix « الفاتورة تخص ») ########
-Tous les contrôles navigateur sont passés.
-
-######## release-check 1.12.0 → 1.13.0 ########
+######## release-check 1.13.0 → 1.14.0 ########
 AUCUNE PERTE — === LIVRAISON VÉRIFIÉE ===
 
-######## Sauvegarde réelle du client (1.10.0, 179 projets / 198 أصناف / 24 factures) → 1.13.0 ########
+######## Sauvegarde réelle du client (1.10.0 : 179 projets / 198 أصناف / 24 factures / 67 fichiers) → 1.14.0 ########
 AUCUNE PERTE : projets, أصناف, intervenants, sociétés, suivis, fichiers, journal, listes, réglages et comptes identiques

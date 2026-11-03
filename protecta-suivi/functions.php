@@ -30,6 +30,8 @@ require_once __DIR__ . '/inc/mail.php';
 require_once __DIR__ . '/inc/services/voice-ogg.php';
 require_once __DIR__ . '/inc/services/telegram.php';
 require_once __DIR__ . '/inc/services/gdrive.php';
+require_once __DIR__ . '/inc/services/onedrive.php'; // 1.14.0
+require_once __DIR__ . '/inc/services/storage.php'; // 1.14.0 : OneDrive / Google Drive, envoi après la réponse
 require_once __DIR__ . '/inc/services/digest.php';
 require_once __DIR__ . '/inc/services/notifications.php';
 require_once __DIR__ . '/inc/services/importer.php';
@@ -61,4 +63,5 @@ require_once __DIR__ . '/inc/rest/tasks.php';
 require_once __DIR__ . '/inc/rest/notifications.php';
 require_once __DIR__ . '/inc/rest/telegram.php';
 require_once __DIR__ . '/inc/rest/gdrive.php';
+require_once __DIR__ . '/inc/rest/onedrive.php'; // 1.14.0
 require_once __DIR__ . '/inc/rest/invoices.php';

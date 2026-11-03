@@ -27,6 +27,9 @@ PS.notifications = (function () {
 	}
 
 	function refresh() {
+		// 1.14.0 : nombre de non lues fourni par la page à l'ouverture (un appel de moins).
+		const pre = PS.config.preload && PS.config.preload.unread;
+		if (pre !== undefined && pre !== null) { delete PS.config.preload.unread; setCount(pre); return Promise.resolve(); }
 		return PS.api.get('notifications?limit=0', { passive: true }).then(function (r) { setCount(r.unread); }).catch(function () {});
 	}
 
@@ -108,11 +111,18 @@ PS.notifications = (function () {
 	 * 1.4.0 (demande du client) : à la connexion, tant que le compte n'est pas lié à Telegram (et que Telegram
 	 * est activé), une fenêtre propose « ربط الآن ». Une fois par session ; elle revient à la connexion suivante.
 	 */
+	/** État Telegram : celui de la page à la 1re demande (1.14.0), ensuite redemandé au serveur. */
+	function tgStatus() {
+		const pre = PS.config.preload && PS.config.preload.telegram;
+		if (pre) { delete PS.config.preload.telegram; return Promise.resolve(pre); }
+		return PS.api.get('me/telegram', { passive: true });
+	}
+
 	function promptTelegram() {
 		let seen = false;
 		try { seen = sessionStorage.getItem('ps_tg_prompt') === '1'; } catch (e) { /* stockage indisponible */ }
 		if (seen) return;
-		PS.api.get('me/telegram', { passive: true }).then(function (r) {
+		tgStatus().then(function (r) {
 			tg = r;
 			if (!r.enabled || r.linked) return;
 			try { sessionStorage.setItem('ps_tg_prompt', '1'); } catch (e) { /* idem */ }

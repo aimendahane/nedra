@@ -44,14 +44,15 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 1.10.0 | Demande client : plus de « مشروع؟ » à la création (décision dans le tableau), suppression de projets par la الإدارة (lot, corbeille, définitive) | ✅ terminée, tests verts | 1.10.0 · base v7 |
 | 1.11.0 | Demande client : « مشروع مُلغى », factures par offre entière, آخر أجل saisi + rappel tous les 15 j, tableau factures complet, vitesse (gzip, cache, préchargement) | ✅ terminée, tests verts | 1.11.0 · base v8 |
 | 1.12.0 | Revue UX (rapport 17 points, choix laissé à Claude) : إدخال سريع, مهامي, résumé lecture seule, erreurs, barre du bas, تراجع, menu du compte, Recap | ✅ terminée, tests verts | 1.12.0 · base v8 |
-| 1.13.0 | Demande client : barre de défilement en haut + tableau à hauteur d'écran, tri par numéro croissant, facture par offre OU par صنف, numéros visibles par ligne | ✅ terminée, tests verts | **1.13.0** · base v8 |
+| 1.13.0 | Demande client : barre de défilement en haut + tableau à hauteur d'écran, tri par numéro croissant, facture par offre OU par صنف, numéros visibles par ligne | ✅ terminée, tests verts | 1.13.0 · base v8 |
+| 1.14.0 | Demande client : fichiers dans OneDrive (Microsoft 365, invisible pour les employés), transfert des fichiers existants, vitesse (JS en 1 fichier, Chart.js à la demande, préchargement, envoi après réponse) | ✅ terminée, tests verts | **1.14.0** · base v8 |
 
-### Tests (dernier passage complet, version 1.13.0) — détail : `docs/TEST-RESULTS.txt`
-- `sh protecta-suivi/tests/run-all.sh` → **1031 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
-  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0 + step12 = 1.5.2 + step13 = 1.5.3 + step14 = 1.6.0 + step15 = 1.6.1/1.6.2 + step16 = 1.7.0 + step17 = 1.8.0 + step18 = 1.9.0 + step19 = 1.10.0 + step20 = 1.11.0 + step21 = 1.12.0 + step22 = 1.13.0) passés.
-- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.13.0.zip $PWD/dist/protecta-suivi-1.12.0.zip` (chemins absolus) →
-  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.12.0 → 1.13.0 avec données (aucune migration) : **aucune perte** ; + sauvegarde RÉELLE du client
-  (1.10.0, 179 projets) restaurée puis mise à jour en 1.13.0 : **aucune perte** (fichier gardé hors dépôt).
+### Tests (dernier passage complet, version 1.14.0) — détail : `docs/TEST-RESULTS.txt`
+- `sh protecta-suivi/tests/run-all.sh` → **1068 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
+  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0 + step12 = 1.5.2 + step13 = 1.5.3 + step14 = 1.6.0 + step15 = 1.6.1/1.6.2 + step16 = 1.7.0 + step17 = 1.8.0 + step18 = 1.9.0 + step19 = 1.10.0 + step20 = 1.11.0 + step21 = 1.12.0 + step22 = 1.13.0 + step23 = 1.14.0) passés.
+- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.14.0.zip $PWD/dist/protecta-suivi-1.13.0.zip` (chemins absolus) →
+  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.13.0 → 1.14.0 avec données (aucune migration) : **aucune perte** ; + sauvegarde RÉELLE du client
+  (1.10.0, 179 projets) restaurée puis mise à jour en 1.14.0 : **aucune perte** (fichier gardé hors dépôt).
 
 ### Prochaines actions
 1. Dès que l'accès GitHub est rétabli : `git push -u origin claude/sweet-hopper-le9393` puis
@@ -360,6 +361,22 @@ chaque décision prise seul.
 - مهامي : `pendingDecision` (المسؤول ou المتابع, plus ancien d'abord), affiché seulement s'il n'est pas vide.
   1.9.1 (le client a laissé Claude décider) : compté dans le compteur مهامي du menu et dans le résumé du matin
   (e-mail + Telegram) — c'est une tâche à faire.
+
+### Version 1.14.0 — décisions (questionnaire du 03/11 : Microsoft 365, transfert des fichiers existants, Google Drive gardé)
+- **OneDrive** (`inc/services/onedrive.php`, routes `inc/rest/onedrive.php`) : Microsoft Graph en « client credentials »
+  (application Entra, Files.ReadWrite.All Application + admin consent) — pas de jeton utilisateur qui expire. Cible =
+  `/users/{email}/drive` ou `/sites/{host}:{path}` → `/drive`. Option `ps_onedrive` hors JSON. Envoi : createUploadSession
+  par chemin (`Protecta Suivi/<project_no — nom>/<nom>`, conflit → rename), morceaux de 16 × 320 Kio ; vérif taille +
+  quickXorHash (`ps_quickxor_*`, testé contre une implémentation bit à bit), sinon relecture + MD5 ; `storage = 'onedrive'`,
+  `drive_id` = id de l'élément. Lecture : `@microsoft.graph.downloadUrl` transmis par `ps_stream_remote()` (cURL, au fil
+  de l'eau). Aucune suppression côté OneDrive (corbeille du site = rien dans OneDrive).
+- **`inc/services/storage.php`** : `ps_storage_provider()` (option `ps_storage_provider` ; vide + Google relié → gdrive pour les
+  anciens sites), `ps_storage_push/sync/queue/status`. Le crochet `shutdown` de gdrive est remplacé par celui-ci (envoi des
+  fichiers de la requête APRÈS `fastcgi_finish_request`, + 3 anciens toutes les 10 min). Cron → `ps_storage_sync`.
+- Colonne « المكان » des fichiers : الإدارة seulement (`ps_manage_settings`).
+- **Vitesse** : `ps_js_bundle_url()` concatène `ps_core_scripts()` + `ps_page_scripts()` dans `uploads/ps-cache/app-<md5>.js`
+  (sources inchangées, pas de « build » ; secours = fichiers séparés ; `PS_NO_BUNDLE` pour désactiver). Chart.js : `loadChart()`
+  de recap.js (`PS.config.chartUrl`). `PS.config.preload` : counters, unread, telegram (consommés une fois).
 
 ### Version 1.13.0 — décisions (questionnaire du 03/11 : le client a choisi les options recommandées)
 - **Défilement** : `.ps-table-wrap` qui contient `.ps-table--list` → classe `ps-table-wrap--list` (hauteur max = écran,

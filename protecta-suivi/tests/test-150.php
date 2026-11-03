@@ -41,7 +41,12 @@ ps_test_section( '1.5.0 : fichiers joints — types, taille, nom d\'affichage' )
 $tmp  = wp_tempnam( 'ps' );
 $up   = function ( string $name, string $content, int $user, ?string $display = null ) use ( $pid, $tmp ) {
 	file_put_contents( $tmp, $content );
-	return ps_file_store( $pid, array( 'name' => $name, 'tmp_name' => $tmp, 'size' => strlen( $content ), 'error' => 0 ), $user, $display );
+	$id = ps_file_store( $pid, array( 'name' => $name, 'tmp_name' => $tmp, 'size' => strlen( $content ), 'error' => 0 ), $user, $display );
+	// 1.14.0 : l'envoi vers Drive se fait en fin de requête (après la réponse) — simulé ici.
+	if ( is_int( $id ) && in_array( $id, ps_storage_queue(), true ) ) {
+		ps_storage_push( ps_file_get( $id ) );
+	}
+	return $id;
 };
 $http = function ( string $name, string $content ) use ( $pid, $tmp ) {
 	file_put_contents( $tmp, $content );
@@ -195,7 +200,7 @@ $content = "%PDF-1.4 dans drive " . str_repeat( 'x', 2000 ) . "\n%%EOF";
 $fid     = $up( 'offre-finale.pdf', $content, $e1, 'العرض النهائي' );
 $f       = ps_file_get( $fid );
 $local   = ps_storage_dir( 'files/' . $f['stored_name'] );
-ps_assert( 'drive' === $f['storage'] && $f['drive_id'] && md5( $content ) === $f['md5'], 'nouveau fichier envoyé tout de suite dans Drive (empreinte MD5 vérifiée)' );
+ps_assert( 'drive' === $f['storage'] && $f['drive_id'] && md5( $content ) === $f['md5'], 'nouveau fichier envoyé dans Drive (empreinte MD5 vérifiée)' );
 ps_assert( ! file_exists( $local ), 'copie du serveur effacée APRÈS vérification (espace libéré)' );
 $sent = $gd['files'][ $f['drive_id'] ];
 ps_assert( $content === $sent['body'] && 'العرض النهائي.pdf' === $sent['meta']['name'], 'contenu identique dans Drive, nommé avec le nom d\'affichage' );

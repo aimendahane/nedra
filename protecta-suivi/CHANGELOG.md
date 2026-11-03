@@ -3,6 +3,31 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.14.0 — 2026-11-03 · base v8 — Fichiers dans OneDrive (Microsoft 365), vitesse
+
+Demande du client : « plus de performance ; les fichiers doivent être enregistrés dans OneDrive, mais l'utilisateur
+ne doit rien remarquer : il entre dans l'app et voit tout comme d'habitude ». Choix au questionnaire : Microsoft 365
+de la société, fichiers existants transférés, Google Drive gardé en option (réglage réservé à la الإدارة). Aucune migration.
+- **OneDrive / SharePoint** (الإعدادات ← عام ← « 📁 تخزين الملفات ») : application Microsoft Entra (Files.ReadWrite.All,
+  type Application) → Tenant ID + Client ID + Client Secret ; destination = OneDrive d'un compte de la société ou
+  bibliothèque d'un site SharePoint ; étapes expliquées en arabe ; liaison vérifiée tout de suite (test d'écriture) avec
+  des messages clairs (mauvais secret, autorisation manquante, compte introuvable). Secret jamais renvoyé ni sauvegardé.
+- Rangement : « Protecta Suivi / رقم المشروع — اسم المشروع / ». Envoi par morceaux de 5 Mo ; la copie du serveur n'est
+  effacée qu'après vérification (taille + empreinte quickXorHash de Microsoft, sinon relecture et comparaison MD5).
+  En cas d'échec, le fichier reste sur le serveur et repart plus tard.
+- **Fichiers existants** : transférés automatiquement (fin de requête, Cron, bouton « نقل الملفات الآن »).
+- **Les employés ne voient aucune différence** : ajout et ouverture dans le site comme avant ; la colonne « المكان »
+  n'est plus montrée qu'à la الإدارة ; aucun lien OneDrive n'est donné (le site transmet le fichier).
+- Choix de l'emplacement des nouveaux fichiers : OneDrive / Google Drive / serveur ; un site déjà relié à Google Drive
+  continue avec Google Drive tant que la الإدارة ne choisit pas OneDrive.
+- **Vitesse** :
+  - JS de l'application en UN fichier (cœur + pages, concaténés et mis en cache dans uploads/ps-cache) : 22 requêtes → 1 ;
+  - Chart.js (69 Ko) chargé seulement à l'ouverture de Recap ;
+  - compteurs du menu, notifications non lues et état Telegram fournis avec la page : 3 appels de moins à l'ouverture ;
+  - ajout d'un fichier : réponse immédiate, l'envoi vers le cloud se fait APRÈS la réponse ;
+  - ouverture d'un fichier du cloud : transmis au fil de l'eau (le téléchargement commence tout de suite).
+- Tests : tests/test-1140.php (Microsoft simulé, quickXorHash vérifié par une 2e implémentation), step23, test-150 adapté.
+
 ## 1.13.0 — 2026-11-03 · base v8 — Tableaux larges, tri par numéro, factures par صنف
 
 Demande du client (captures + sauvegarde du 03/11) ; choix faits par le client via questionnaire. Aucune migration.

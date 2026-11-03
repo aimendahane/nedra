@@ -219,6 +219,113 @@ PS.settingsTabs = PS.settingsTabs || {};
 	}
 
 	/**
+	 * « 📁 تخزين الملفات » (1.14.0, demande du client) : OneDrive (Microsoft 365 de la société) ; Google Drive reste
+	 * possible. Visible par la الإدارة seulement : les employés ajoutent et ouvrent les fichiers dans le site comme avant.
+	 */
+	function storageCard(sec) {
+		PS.api.get('storage').then(draw).catch(function (e) { sec.innerHTML = html`<div class="ps-alert ps-alert--error">${errMsg(e)}</div>`.html; });
+		function draw(d) {
+			const st = d.storage;
+			const od = d.onedrive;
+			const where = { onedrive: 'OneDrive', gdrive: 'Google Drive', '': PS.t('الخادم فقط') }[st.provider] || st.provider;
+			sec.innerHTML = html`<h2 class="ps-card__title">📁 ${PS.t('تخزين الملفات')}</h2>
+				<p class="ps-small">${PS.t('الفريق يضيف ويفتح الملفات من الموقع كالعادة، ولا يرى أي فرق. الملفات نفسها تُحفظ في التخزين السحابي للشركة (مجلد لكل مشروع)، ولا يُعطى أي رابط خارجي: الفتح يمر عبر الموقع بعد التحقق من الصلاحيات.')}</p>
+				<div class="ps-alert ${st.provider ? 'ps-alert--success' : 'ps-alert--warning'}" data-storage-state>
+					${st.provider ? '✔ ' : ''}${PS.t('الملفات الجديدة تُحفظ في:')} <strong>${where}</strong>
+					· ☁ OneDrive: ${st.inOneDrive} · ☁ Drive: ${st.inDrive} · 🖥 ${PS.t('على الخادم في الانتظار:')} ${st.pending} (${F.size(st.localBytes)})
+				</div>
+				${st.lastError ? html`<p class="ps-small ps-text-danger">${PS.t('آخر خطأ:')} ${st.lastError}</p>` : ''}
+				<div class="ps-row" role="radiogroup" aria-label="${PS.t('مكان حفظ الملفات الجديدة')}">
+					<span class="ps-small">${PS.t('مكان حفظ الملفات الجديدة:')}</span>
+					<label class="ps-check"><input type="radio" name="st-provider" value="onedrive" ${st.provider === 'onedrive' ? ui.raw('checked') : ''} ${od.connected ? '' : ui.raw('disabled')}> OneDrive</label>
+					<label class="ps-check"><input type="radio" name="st-provider" value="gdrive" ${st.provider === 'gdrive' ? ui.raw('checked') : ''} ${d.gdrive.connected ? '' : ui.raw('disabled')}> Google Drive</label>
+					<label class="ps-check"><input type="radio" name="st-provider" value="local" ${!st.provider ? ui.raw('checked') : ''}> ${PS.t('الخادم فقط')}</label>
+					${st.provider && st.pending ? html`<button type="button" class="ps-btn ps-btn--small" data-st-sync>🔄 ${PS.t('نقل الملفات الآن')} (${st.pending})</button>` : ''}
+				</div>
+				<p class="ps-small ps-muted">${PS.t('الملفات الموجودة على الخادم تُنقل تلقائيًا (بعد كل استعمال للموقع وكل صباح مع الـ Cron). لا تُحذف نسخة الخادم إلا بعد التأكد أن الملف وصل كاملًا.')}</p>
+
+				<h3 class="ps-mt">☁ OneDrive — Microsoft 365</h3>
+				${od.connected
+					? html`<div class="ps-alert ps-alert--success" data-od-ok>✔ ${PS.t('مربوط بـ OneDrive:')} <span dir="ltr">${od.driveName}</span> · ${PS.t('المجلد:')} «${od.root}»</div>`
+					: html`<div class="ps-alert ps-alert--info">${PS.t('غير مربوط بعد. يقوم به مسؤول Microsoft 365 مرة واحدة (حوالي 10 دقائق):')}</div>`}
+				<details class="ps-more" ${od.connected ? '' : ui.raw('open')}><summary>${PS.t('خطوات الربط')}</summary>
+					<ol class="ps-small ps-gd-steps">
+						<li>${PS.t('افتح')} <a href="https://entra.microsoft.com" target="_blank" rel="noopener" dir="ltr">entra.microsoft.com</a> ${PS.t('بحساب مسؤول Microsoft 365 ← Applications ← App registrations ← New registration ← الاسم «Protecta Suivi» ← Register.')}</li>
+						<li>${PS.t('من صفحة Overview انسخ «Application (client) ID» و «Directory (tenant) ID».')}</li>
+						<li>${PS.t('Certificates & secrets ← New client secret ← المدة 24 شهرًا ← انسخ «Value» فورًا (لا يظهر مرة أخرى).')}</li>
+						<li>${PS.t('API permissions ← Add a permission ← Microsoft Graph ← Application permissions ← Files.ReadWrite.All ← Add ← ثم «Grant admin consent».')}</li>
+						<li>${PS.t('اختر مكان الحفظ: OneDrive لحساب في الشركة (مثلًا archive@…) أو موقع SharePoint، ثم «حفظ وربط OneDrive».')}</li>
+					</ol>
+				</details>
+				<form data-od-form class="ps-mt" novalidate>
+					<div class="ps-grid">
+						<label class="ps-field" data-key="tenantId"><span class="ps-field__label">Directory (tenant) ID</span><input name="tenantId" dir="ltr" value="${od.tenantId || ''}" autocomplete="off"></label>
+						<label class="ps-field" data-key="clientId"><span class="ps-field__label">Application (client) ID</span><input name="clientId" dir="ltr" value="${od.clientId || ''}" autocomplete="off"></label>
+						<label class="ps-field ps-span-2" data-key="clientSecret"><span class="ps-field__label">Client Secret (Value)</span><input name="clientSecret" type="password" dir="ltr" autocomplete="new-password" placeholder="${od.hasSecret ? PS.t('محفوظ — اتركه فارغًا للإبقاء عليه') : ''}"></label>
+					</div>
+					<div class="ps-row ps-mt">
+						<label class="ps-check"><input type="radio" name="targetType" value="user" ${od.targetType !== 'site' ? ui.raw('checked') : ''}> ${PS.t('OneDrive لحساب في الشركة')}</label>
+						<label class="ps-check"><input type="radio" name="targetType" value="site" ${od.targetType === 'site' ? ui.raw('checked') : ''}> ${PS.t('موقع SharePoint')}</label>
+					</div>
+					<label class="ps-field" data-key="target"><span class="ps-field__label" data-od-target-label>${od.targetType === 'site' ? PS.t('رابط موقع SharePoint') : PS.t('بريد الحساب')}</span><input name="target" dir="ltr" value="${od.target || ''}" placeholder="${od.targetType === 'site' ? 'https://societe.sharepoint.com/sites/Archives' : 'archive@societe.com'}"></label>
+				</form>
+				<div class="ps-row">
+					<button type="button" class="ps-btn ps-btn--primary" data-od-save>☁ ${PS.t('حفظ وربط OneDrive')}</button>
+					${od.connected ? html`<button type="button" class="ps-btn ps-btn--danger" data-od-off>${PS.t('فك الربط')}</button>` : ''}
+				</div>
+
+				<details class="ps-more ps-mt" data-gdrive-box ${od.connected && !d.gdrive.connected ? '' : ui.raw('open')}><summary>☁ Google Drive</summary>
+					<div data-gdrive></div>
+				</details>`.html;
+			gdriveCard(sec.querySelector('[data-gdrive]'));
+			const form = sec.querySelector('[data-od-form]');
+			form.onchange = function (e) {
+				if (e.target.name !== 'targetType') return;
+				const site = e.target.value === 'site';
+				sec.querySelector('[data-od-target-label]').textContent = site ? PS.t('رابط موقع SharePoint') : PS.t('بريد الحساب');
+				form.target.placeholder = site ? 'https://societe.sharepoint.com/sites/Archives' : 'archive@societe.com';
+			};
+			sec.querySelectorAll('[name=st-provider]').forEach(function (r) {
+				r.onchange = function () {
+					PS.api.post('storage/provider', { provider: r.value }).then(function (x) { ui.toast(PS.t('تم الحفظ'), 'success'); draw(x); })
+						.catch(function (er) { ui.toast(errMsg(er), 'error'); draw(d); });
+				};
+			});
+			const sync = sec.querySelector('[data-st-sync]');
+			if (sync) sync.onclick = function () {
+				sync.disabled = true;
+				sync.textContent = PS.t('جاري النقل…');
+				PS.api.post('storage/sync').then(function (r) {
+					ui.toast(PS.t('نُقل: ') + r.sent + (r.failed ? ' · ' + PS.t('فشل: ') + r.failed : '') + ' · ' + PS.t('في الانتظار: ') + r.pending, r.failed ? 'error' : 'success');
+					draw(r);
+				}).catch(function (er) { ui.toast(errMsg(er), 'error'); draw(d); });
+			};
+			sec.querySelector('[data-od-save]').onclick = function (e) {
+				const btn = e.currentTarget;
+				const body = { tenantId: form.tenantId.value, clientId: form.clientId.value, clientSecret: form.clientSecret.value, targetType: form.querySelector('[name=targetType]:checked').value, target: form.target.value };
+				btn.disabled = true;
+				btn.textContent = PS.t('جاري التحقق…');
+				PS.api.post('onedrive/config', body).then(function (r) {
+					ui.toast(PS.t('✔ تم ربط OneDrive — تُنقل الملفات إليه تلقائيًا'), 'success');
+					draw(r);
+				}).catch(function (er) {
+					btn.disabled = false;
+					btn.textContent = '☁ ' + PS.t('حفظ وربط OneDrive');
+					if (er.data && er.data.data && er.data.data.errors) ui.showErrors(form, er.data.data.errors);
+					ui.toast(errMsg(er), 'error');
+				});
+			};
+			const off = sec.querySelector('[data-od-off]');
+			if (off) off.onclick = function () {
+				ui.confirm(PS.t('فك ربط OneDrive؟ الملفات الموجودة في OneDrive تبقى هناك، لكن لن تُفتح من الموقع حتى إعادة الربط.'), PS.t('فك الربط'), 'danger').then(function (ok) {
+					if (!ok) return;
+					PS.api.post('onedrive/disconnect').then(draw).catch(function (er) { ui.toast(errMsg(er), 'error'); });
+				});
+			};
+		}
+	}
+
+	/**
 	 * « 📁 تخزين الملفات — Google Drive » (1.5.0) : les fichiers joints sont rangés dans le Drive de la société.
 	 * Deux méthodes : compte Gmail (client OAuth + bouton « ربط ») ou Workspace (compte de service + Drive partagé).
 	 */
@@ -368,7 +475,7 @@ PS.settingsTabs = PS.settingsTabs || {};
 				<p class="ps-muted ps-small">${PS.t('احفظ أولًا ثم جرّب. إذا وصل البريد إلى «Spam»، استعمل SMTP.')}</p>
 				<div data-test-result></div>
 			</form>
-			<section class="ps-card" data-gdrive><p class="ps-muted">${PS.t('جاري التحميل…')}</p></section>
+			<section class="ps-card" data-storage><p class="ps-muted">${PS.t('جاري التحميل…')}</p></section>
 			<section class="ps-card" data-sound-test>
 				<h2 class="ps-card__title">🎙 ${PS.t('اختبار الصوت')}</h2>
 				<p class="ps-small">${PS.t('إذا كانت الرسائل الصوتية بدون صوت: قم بهذا الاختبار على نفس الهاتف، ثم أرسل لقطة شاشة للنتيجة.')}</p>
@@ -423,7 +530,7 @@ PS.settingsTabs = PS.settingsTabs || {};
 					.catch(function (er) { ui.toast(errMsg(er), 'error'); });
 			};
 			soundTest(box.querySelector('[data-sound-test]'));
-			gdriveCard(box.querySelector('[data-gdrive]'));
+			storageCard(box.querySelector('[data-storage]'));
 			box.querySelector('[data-regen]').onclick = function () {
 				ui.confirm(PS.t('تجديد الرمز؟ الرابط القديم يتوقف عن العمل، ويجب تحديث أمر الـ Cron في cPanel.'), PS.t('تجديد'), 'danger').then(function (ok) {
 					if (!ok) return;

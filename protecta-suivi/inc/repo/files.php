@@ -140,8 +140,9 @@ function ps_file_store( int $project_id, array $upload, int $user_id, ?string $d
 	);
 	$id = (int) $wpdb->insert_id;
 	ps_log( $project_id, 'create', 'file', $id, null, null, $display, $user_id );
-	if ( function_exists( 'ps_gdrive_push' ) && ps_gdrive_connected() ) {
-		ps_gdrive_push( ps_file_get( $id ) ); // échec non bloquant : le fichier reste sur le serveur et repartira plus tard
+	// 1.14.0 (vitesse) : envoi vers OneDrive / Google Drive APRÈS la réponse au navigateur (inc/services/storage.php).
+	if ( function_exists( 'ps_storage_provider' ) && ps_storage_provider() ) {
+		ps_storage_queue( $id );
 	}
 	return $id;
 }
