@@ -234,17 +234,32 @@ function ps_items_list( array $args, int $user_id, ?string $today = null ): arra
 	);
 
 	// 1.6.0 : factures et fichiers de chaque offre (compteurs).
-	$inv_count = array();
-	// 1.11.0 : une facture suit l'offre ENTIÈRE → compteurs par projet (chaque صنف de l'offre affiche les mêmes).
-	foreach ( $wpdb->get_results( 'SELECT project_id, answer, sent_date, reply_deadline FROM ' . ps_table( 'invoices' ) . ' WHERE deleted_at IS NULL', ARRAY_A ) as $v ) {
-		$k                = (int) $v['project_id'];
-		$inv_count[ $k ]  = $inv_count[ $k ] ?? array( 'total' => 0, 'pending' => 0, 'late' => 0 );
-		++$inv_count[ $k ]['total'];
-		if ( 'pending' === $v['answer'] ) {
-			++$inv_count[ $k ]['pending'];
-			$inv_count[ $k ]['late'] += ps_calc_invoice_late( 'pending', ps_invoice_deadline( $v ), $today ) ? 1 : 0;
-		}
+	// 1.13.0 (« الاثنان ممكنان ») : une ligne (صنف) compte les factures de l'offre entière (item_id = 0) + les siennes ;
+	// leurs numéros sont renvoyés (invoiceNos) pour être lus directement dans le tableau.
+	$inv_rows = array();
+	foreach ( $wpdb->get_results( 'SELECT project_id, item_id, invoice_no, answer, sent_date, reply_deadline FROM ' . ps_table( 'invoices' ) . ' WHERE deleted_at IS NULL ORDER BY sent_date, id', ARRAY_A ) as $v ) {
+		$inv_rows[ (int) $v['project_id'] ][ (int) $v['item_id'] ][] = $v;
 	}
+	$inv_for = static function ( int $project_id, int $item_id ) use ( $inv_rows, $today ): array {
+		$c = array( 'total' => 0, 'pending' => 0, 'late' => 0, 'nos' => array(), 'otherNos' => array() );
+		// Factures d'un AUTRE صنف du même projet : numéros seulement (affichés en petit, pour s'y retrouver).
+		foreach ( $inv_rows[ $project_id ] ?? array() as $iid => $list ) {
+			if ( $iid && $iid !== $item_id ) {
+				foreach ( $list as $v ) {
+					$c['otherNos'][] = $v['invoice_no'];
+				}
+			}
+		}
+		foreach ( array_merge( $inv_rows[ $project_id ][0] ?? array(), $inv_rows[ $project_id ][ $item_id ] ?? array() ) as $v ) {
+			++$c['total'];
+			$c['nos'][] = $v['invoice_no'];
+			if ( 'pending' === $v['answer'] ) {
+				++$c['pending'];
+				$c['late'] += ps_calc_invoice_late( 'pending', ps_invoice_deadline( $v ), $today ) ? 1 : 0;
+			}
+		}
+		return $c;
+	};
 	$file_count = array();
 	foreach ( $wpdb->get_results( 'SELECT item_id, COUNT(*) AS n FROM ' . ps_table( 'files' ) . ' WHERE deleted_at IS NULL AND item_id IS NOT NULL AND invoice_id IS NULL GROUP BY item_id', ARRAY_A ) as $f ) {
 		$file_count[ (int) $f['item_id'] ] = (int) $f['n'];
@@ -346,7 +361,7 @@ function ps_items_list( array $args, int $user_id, ?string $today = null ): arra
 			'followerEmpId'      => ps_item_effective( $r, $project, 'follower_emp_id' ),
 			'assignOverride'     => ! empty( $r['responsible_emp_id'] ) || ! empty( $r['follower_emp_id'] ),
 			'canAssign'          => ps_item_can_assign( $project, $user_id ),
-			'invoices'           => $inv_count[ (int) $r['project_id'] ] ?? array( 'total' => 0, 'pending' => 0, 'late' => 0 ),
+			'invoices'           => $inv_for( (int) $r['project_id'], (int) $r['id'] ),
 			'filesCount'         => $file_count[ (int) $r['id'] ] ?? 0,
 			'computed'           => array(
 				'late'            => $late,
@@ -358,6 +373,13 @@ function ps_items_list( array $args, int $user_id, ?string $today = null ): arra
 			'canEdit'            => ps_item_can_edit( $r, $project, $user_id ),
 			'mine'               => $me && (int) $r['employee_id'] === $me,
 		);
+	}
+
+	// 1.13.0 (demande du client) : par numéro de projet croissant (P001…, puis PRJ-2026-001…), أصناف d'un même projet
+	// ensemble dans leur ordre ; sort=due garde l'ancien ordre (أجل).
+	if ( 'due' !== ( $args['sort'] ?? '' ) ) {
+		$desc = 'desc' === ( $args['dir'] ?? 'asc' ) ? -1 : 1;
+		usort( $out, static fn( $a, $b ) => ( ps_project_no_cmp( (string) $a['projectNo'], (string) $b['projectNo'] ) * $desc ) ?: ( $a['id'] <=> $b['id'] ) );
 	}
 
 	$total    = count( $out );

@@ -160,6 +160,20 @@ PS.items = (function () {
 			${r.offerStatusCode === 'not_sent' ? html`<button type="button" class="ps-link ps-small" data-reason>${r.notSentReasonId ? L.label(r.notSentReasonId) : PS.t('سبب؟')}</button>` : ''}`;
 	}
 
+	/**
+	 * 1.13.0 (demande du client) : numéros de facture lisibles sur CHAQUE ligne — رقم فاتورة العرض saisi sur le صنف, puis
+	 * les factures 🧾 de ce صنف et celles de l'offre entière (mêmes numéros sur toutes les أصناف du projet).
+	 */
+	function invoiceNos(r) {
+		const nos = [];
+		[r.offerInvoiceNo].concat((r.invoices && r.invoices.nos) || []).forEach(function (n) { if (n && nos.indexOf(n) === -1) nos.push(n); });
+		return nos;
+	}
+	function invoiceNosHtml(r) {
+		const other = ((r.invoices && r.invoices.otherNos) || []).filter(function (n) { return invoiceNos(r).indexOf(n) === -1; });
+		return html`<span class="ps-invnos" dir="ltr">${invoiceNos(r).map(function (n) { return html`<span>${n}</span>`; })}${other.map(function (n) { return html`<span class="ps-invnos__other" title="${PS.t('فاتورة صنف آخر من نفس المشروع')}">${n}</span>`; })}</span>`;
+	}
+
 	/** 📎 fichiers de l'offre : icône + nombre (1.6.1 : colonne à part). */
 	function filesCell(r) {
 		// 1.12.0 : rien quand il n'y a pas de fichier (moins de « 📎 0 ») ; on ajoute un fichier depuis le panneau.
@@ -182,7 +196,7 @@ PS.items = (function () {
 	 */
 	const COLS = [
 		['projectNo', PS.t('رقم المشروع'), function (r) { return html`${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo }, { numberFirst: true })}${r.computed.late ? html` <span class="ps-badge ps-badge--danger">${PS.t('لازم قرار')}</span>` : ''}`; }, true],
-		['offerInvoiceNo', PS.t('رقم فاتورة العرض'), function (r) { return html`<span dir="ltr">${r.offerInvoiceNo || ''}</span>`; }, true],
+		['offerInvoiceNo', PS.t('رقم فاتورة العرض'), invoiceNosHtml, true],
 		['responsibleEmpId', PS.t('المسؤول عن المشروع'), function (r) { return L.label(r.responsibleEmpId); }, true],
 		['followerEmpId', PS.t('الموظف المتابع'), function (r) { return L.label(r.followerEmpId); }, true],
 		['offerDate', PS.t('تاريخ الإرسال'), function (r) { return F.date(r.offerDate); }, true],
@@ -212,7 +226,7 @@ PS.items = (function () {
 		return html`<div class="ps-icard ${rowClass(r)}" data-row="${r.id}" data-open-row="${r.id}" tabindex="0">
 			<div class="ps-pcard__top">${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo }, { numberFirst: true })} ${r.computed.late ? html`<span class="ps-badge ps-badge--danger">${PS.t('لازم قرار')}</span>` : ''}</div>
 			<div class="ps-kvs">
-				${line(PS.t('رقم فاتورة العرض'), r.offerInvoiceNo || '—')}
+				${line(PS.t('رقم فاتورة العرض'), invoiceNos(r).join(' · ') || '—')}
 				${line(PS.t('المسؤول عن المشروع'), L.label(r.responsibleEmpId))}
 				${line(PS.t('الموظف المتابع'), L.label(r.followerEmpId))}
 				${line(PS.t('تاريخ الإرسال'), F.date(r.offerDate) || '—')}

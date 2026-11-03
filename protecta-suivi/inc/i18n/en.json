@@ -1279,5 +1279,11 @@
 	"يعدّله:": "Can be edited by:",
 	"يوم/شهر/سنة": "dd/mm/yyyy",
 	"↩ تراجع": "↩ Undo",
-	"العروض": "Offers"
+	"العروض": "Offers",
+	"اختر الصنف الذي تخصه الفاتورة": "Choose the item this invoice covers",
+	"العرض كاملًا (كل أصناف المشروع)": "The whole offer (all items of the project)",
+	"الفاتورة تخص": "This invoice covers",
+	"الفاتورة تخص الصنف:": "This invoice covers the item:",
+	"هذا الصنف فقط:": "This item only:",
+	"فاتورة صنف آخر من نفس المشروع": "Invoice of another item of the same project"
 }

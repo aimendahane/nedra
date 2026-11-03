@@ -1007,17 +1007,20 @@ function ps_projects_list( array $args ): array {
 		);
 	}
 
-	// Tri (par défaut : du plus récent au plus ancien).
-	$sort = (string) ( $args['sort'] ?? 'receivedDate' );
-	$dir  = 'asc' === ( $args['dir'] ?? 'desc' ) ? 1 : -1;
-	$key  = static function ( $row ) use ( $sort, $lists ) {
+	// Tri — 1.13.0 (demande du client) : par défaut le NUMÉRO du projet, croissant.
+	$sort = (string) ( $args['sort'] ?? 'projectNo' );
+	$dir  = 'desc' === ( $args['dir'] ?? 'asc' ) ? -1 : 1;
+	if ( 'projectNo' === $sort ) {
+		usort( $out, static fn( $a, $b ) => ( ps_project_no_cmp( (string) $a['projectNo'], (string) $b['projectNo'] ) * $dir ) ?: ( $a['id'] <=> $b['id'] ) );
+	}
+	$key = static function ( $row ) use ( $sort, $lists ) {
 		$v = $row[ $sort ] ?? null;
 		if ( str_ends_with( $sort, 'Id' ) && $v ) {
 			return (int) ( $lists[ $v ]['sort_order'] ?? 0 ); // ordre des listes de الإعدادات
 		}
 		return is_string( $v ) ? ps_normalize_text( $v ) : $v;
 	};
-	usort(
+	'projectNo' === $sort || usort(
 		$out,
 		static function ( $a, $b ) use ( $key, $dir ) {
 			$c = $key( $a ) <=> $key( $b );
@@ -1035,6 +1038,13 @@ function ps_projects_list( array $args ): array {
 		'facets'  => array( 'isProject' => $facets ), // 1.7.0 : compteurs des filtres rapides
 		'rows'    => array_slice( $out, ( $page - 1 ) * $per_page, $per_page ),
 	);
+}
+
+/**
+ * 1.13.0 — Ordre « naturel » des numéros de projet : P009 < P010 < P100 < PRJ-2025-001 < PRJ-2026-002 < PRJ-2026-010.
+ */
+function ps_project_no_cmp( string $a, string $b ): int {
+	return strnatcasecmp( $a, $b ) <=> 0;
 }
 
 /**

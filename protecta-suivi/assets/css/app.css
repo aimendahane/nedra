@@ -913,3 +913,20 @@ html { scroll-padding-top: calc(var(--ps-header-h) + 12px); scroll-padding-botto
 .ps-today__a.is-warning { border-color: var(--ps-warning); }
 .ps-today__ok { color: var(--ps-success); font-weight: 700; }
 .ps-task-empty { color: var(--ps-text-muted); font-size: var(--ps-font-size-sm); padding: 4px 4px 0; }
+
+/* ============ 1.13.0 — tableaux larges, numéros de facture ============ */
+/* Listes : hauteur limitée à l'écran → la barre de défilement du bas et les titres des colonnes restent visibles. */
+.ps-table-wrap--list { max-height: calc(100vh - var(--ps-header-h) - 32px); max-height: calc(100dvh - var(--ps-header-h) - 32px); overflow: auto; }
+.ps-table-wrap--list .ps-table th { z-index: 3; }
+/* 2e barre de défilement AU-DESSUS du tableau (synchronisée). */
+.ps-hscroll { overflow-x: auto; overflow-y: hidden; height: 16px; margin-bottom: 4px; scrollbar-width: auto; }
+.ps-hscroll > div { height: 1px; }
+.ps-table-wrap--list, .ps-hscroll { scrollbar-color: var(--ps-border-strong) var(--ps-surface-2); }
+.ps-table-wrap--list::-webkit-scrollbar, .ps-hscroll::-webkit-scrollbar { height: 14px; width: 12px; }
+.ps-table-wrap--list::-webkit-scrollbar-thumb, .ps-hscroll::-webkit-scrollbar-thumb { background: var(--ps-border-strong); border-radius: 8px; border: 3px solid var(--ps-surface-2); }
+.ps-table-wrap--list::-webkit-scrollbar-track, .ps-hscroll::-webkit-scrollbar-track { background: var(--ps-surface-2); border-radius: 8px; }
+/* Numéros de facture d'une ligne (رقم فاتورة العرض + factures 🧾). */
+.ps-invnos { display: inline-flex; flex-direction: column; gap: 2px; font-variant-numeric: tabular-nums; }
+.ps-inv-scope { margin-bottom: 8px; }
+.ps-invnos__other { font-size: 12px; color: var(--ps-text-muted); }
+.ps-invnos__other::before { content: "↳ "; }

@@ -3,6 +3,21 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.13.0 — 2026-11-03 · base v8 — Tableaux larges, tri par numéro, factures par صنف
+
+Demande du client (captures + sauvegarde du 03/11) ; choix faits par le client via questionnaire. Aucune migration.
+- **Tableaux larges** (المشاريع، العروض، التسليم، الفواتير) : une 2e barre de défilement AU-DESSUS du tableau ; le
+  tableau tient dans la hauteur de l'écran → sa barre du bas est toujours visible et les titres des colonnes restent en
+  haut quand on descend.
+- **Tri par numéro de projet croissant** par défaut partout (P001…, puis PRJ-2026-001…) ; « رقم المشروع ▲ » dans
+  « المشاريع » (2e clic = décroissant). Les أصناف d'un même projet restent ensemble dans Suivi Offres / Livraison.
+- **Factures** : « الاثنان ممكنان » — en ajoutant une facture depuis une ligne d'offre, choisir « العرض كاملًا » (défaut)
+  ou « هذا الصنف فقط ». Chaque ligne de Suivi Offres / Livraison affiche les numéros de ses factures (offre entière + son
+  صنف) dans « رقم فاتورة العرض » ; les factures des AUTRES أصناف du même projet apparaissent en petit (↳).
+- Vérifié avec la sauvegarde réelle du client (1.10.0 : 179 projets dont 20 actifs, 198 أصناف, 24 factures) :
+  restauration sur 1.10.0 puis mise à jour 1.13.0 → aucune perte (fichier non versionné, données du client).
+- Tests : tests/test-1130.php ; step22 ; step15 adapté (1er clic de tri = croissant).
+
 ## 1.12.0 — 2026-10-29 · base v8 — Expérience utilisateur (revue UX)
 
 Revue complète de l'expérience (employé, مسؤول, الإدارة ; PC et téléphone) : rapport de 17 points, le client a laissé

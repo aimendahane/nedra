@@ -216,8 +216,9 @@
 	}
 
 	function table(rows) {
-		const sort = st.params.sort || 'receivedDate';
-		const dir = st.params.dir || 'desc';
+		// 1.13.0 (demande du client) : par défaut le numéro du projet, croissant.
+		const sort = st.params.sort || 'projectNo';
+		const dir = st.params.dir || 'asc';
 		const admin = isAdmin(); // cases à cocher aussi dans la corbeille (1.10.0)
 		const allChecked = rows.length && rows.every(function (r) { return st.selected.has(r.id); });
 		const cols = ui.visibleColumns('projets', colDefs()).map(function (d) { return d.col; });
@@ -405,9 +406,9 @@
 			if (yn) { setYesNo(yn.dataset.pid, yn.dataset.yn); return; }
 			const s = e.target.closest('[data-sort]');
 			if (s) {
-				const same = (st.params.sort || 'receivedDate') === s.dataset.sort;
+				const same = (st.params.sort || 'projectNo') === s.dataset.sort;
 				st.params.sort = s.dataset.sort;
-				setParam('dir', same && (st.params.dir || 'desc') === 'desc' ? 'asc' : 'desc');
+				setParam('dir', same && (st.params.dir || 'asc') === 'asc' ? 'desc' : 'asc');
 				return;
 			}
 			const pg = e.target.closest('[data-page]');

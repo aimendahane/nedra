@@ -52,7 +52,7 @@ function ps_register_invoice_routes(): void {
 			'permission_callback' => ps_rest_permission(),
 			'callback'            => static function ( WP_REST_Request $r ) {
 				$item = ps_item_row( (int) $r['id'] );
-				return ps_rest_invoice_create_for( $item ? (int) $item['project_id'] : 0, (array) $r->get_json_params() );
+				return ps_rest_invoice_create_for( $item ? (int) $item['project_id'] : 0, (array) $r->get_json_params(), $item ? (int) $item['id'] : 0 );
 			},
 		)
 	);
@@ -99,8 +99,11 @@ function ps_rest_invoice_context( array $inv ) {
 	return array( $item, $proj );
 }
 
-/** Nouvelle facture pour l'offre entière d'un projet (« مشروع = نعم » seulement). */
-function ps_rest_invoice_create_for( int $project_id, array $body ) {
+/**
+ * Nouvelle facture (« مشروع = نعم » seulement) : pour l'offre entière du projet (défaut, 1.11.0) ou, 1.13.0
+ * (demande du client : « الاثنان ممكنان »), pour UN صنف : scope = 'item' + itemId (ou le صنف de l'adresse /items/{id}).
+ */
+function ps_rest_invoice_create_for( int $project_id, array $body, int $route_item = 0 ) {
 	$proj = $project_id ? ps_project_row( $project_id ) : null;
 	if ( ! $proj || $proj['deleted_at'] ) {
 		return new WP_Error( 'ps_not_found', ps__( 'المشروع غير موجود' ), array( 'status' => 404 ) );
@@ -112,7 +115,15 @@ function ps_rest_invoice_create_for( int $project_id, array $body ) {
 	if ( PS_PROJECT_YES !== (int) $proj['is_project'] ) { // « لا » ou « لم يُحدد بعد »
 		return new WP_Error( 'ps_validation', ps__( 'هذا الطلب مسجّل «مشروع مُلغى»: لا عروض ولا فواتير.' ), array( 'status' => 422 ) );
 	}
-	$id = ps_invoice_create( $proj, $body, $uid );
+	$item_id = 0;
+	if ( 'item' === ( $body['scope'] ?? 'offer' ) ) {
+		$item = ps_item_row( (int) ( $body['itemId'] ?? $route_item ) );
+		if ( ! $item || (int) $item['project_id'] !== (int) $proj['id'] ) {
+			return new WP_Error( 'ps_validation', ps__( 'اختر الصنف الذي تخصه الفاتورة' ), array( 'status' => 422, 'errors' => array( 'itemId' => ps__( 'اختر الصنف الذي تخصه الفاتورة' ) ) ) );
+		}
+		$item_id = (int) $item['id'];
+	}
+	$id = ps_invoice_create( $proj, $body, $uid, $item_id );
 	return is_wp_error( $id ) ? $id : rest_ensure_response( ps_rest_invoice_one( $id ) );
 }
 

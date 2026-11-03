@@ -450,12 +450,46 @@ PS.ui = (function () {
 		});
 	}
 
+	/* ---------- Tableaux larges (1.13.0) : barre de défilement aussi en HAUT ---------- */
+
+	/*
+	 * Demande du client : « il faut descendre en bas du tableau pour trouver la barre et voir les autres colonnes ».
+	 * Les listes (.ps-table--list) ont une hauteur limitée à l'écran (CSS) : leur barre du bas et les titres des colonnes
+	 * restent visibles ; ici on ajoute une 2e barre AU-DESSUS du tableau, synchronisée, visible seulement si le tableau
+	 * est plus large que l'écran.
+	 */
+	function enhanceTableWrap(wrap) {
+		if (wrap.dataset.psScroll || !wrap.querySelector(':scope > .ps-table--list')) return;
+		wrap.dataset.psScroll = '1';
+		wrap.classList.add('ps-table-wrap--list');
+		const top = document.createElement('div');
+		top.className = 'ps-hscroll';
+		top.setAttribute('aria-hidden', 'true');
+		const inner = document.createElement('div');
+		top.appendChild(inner);
+		wrap.parentNode.insertBefore(top, wrap);
+		let lock = false;
+		const sync = function (from, to) { if (lock) return; lock = true; to.scrollLeft = from.scrollLeft; requestAnimationFrame(function () { lock = false; }); };
+		top.addEventListener('scroll', function () { sync(top, wrap); });
+		wrap.addEventListener('scroll', function () { sync(wrap, top); });
+		const size = function () {
+			inner.style.width = wrap.scrollWidth + 'px';
+			top.hidden = wrap.scrollWidth <= wrap.clientWidth + 1;
+			top.scrollLeft = wrap.scrollLeft;
+		};
+		size();
+		if (window.ResizeObserver) new ResizeObserver(size).observe(wrap.querySelector('.ps-table--list'));
+		window.addEventListener('resize', size);
+	}
+
 	function enhanceAll(n) {
 		if (n.matches && n.matches('input[type="date"]:not(.ps-date__native)')) enhanceDate(n);
 		else if (n.matches && n.matches('input[type="file"]')) enhanceFile(n);
 		else if (n.querySelectorAll) {
 			enhanceDates(n);
 			n.querySelectorAll('input[type="file"]').forEach(enhanceFile);
+			if (n.matches && n.matches('.ps-table-wrap')) enhanceTableWrap(n);
+			n.querySelectorAll('.ps-table-wrap').forEach(enhanceTableWrap);
 		}
 	}
 	new MutationObserver(function (list) {

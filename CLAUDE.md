@@ -43,13 +43,15 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 1.9.1 | Décision laissée à Claude : demandes « بانتظار القرار » dans le compteur مهامي + résumé du matin (e-mail, Telegram) | ✅ terminée, tests verts | 1.9.1 · base v7 |
 | 1.10.0 | Demande client : plus de « مشروع؟ » à la création (décision dans le tableau), suppression de projets par la الإدارة (lot, corbeille, définitive) | ✅ terminée, tests verts | 1.10.0 · base v7 |
 | 1.11.0 | Demande client : « مشروع مُلغى », factures par offre entière, آخر أجل saisi + rappel tous les 15 j, tableau factures complet, vitesse (gzip, cache, préchargement) | ✅ terminée, tests verts | 1.11.0 · base v8 |
-| 1.12.0 | Revue UX (rapport 17 points, choix laissé à Claude) : إدخال سريع, مهامي, résumé lecture seule, erreurs, barre du bas, تراجع, menu du compte, Recap | ✅ terminée, tests verts | **1.12.0** · base v8 |
+| 1.12.0 | Revue UX (rapport 17 points, choix laissé à Claude) : إدخال سريع, مهامي, résumé lecture seule, erreurs, barre du bas, تراجع, menu du compte, Recap | ✅ terminée, tests verts | 1.12.0 · base v8 |
+| 1.13.0 | Demande client : barre de défilement en haut + tableau à hauteur d'écran, tri par numéro croissant, facture par offre OU par صنف, numéros visibles par ligne | ✅ terminée, tests verts | **1.13.0** · base v8 |
 
-### Tests (dernier passage complet, version 1.12.0) — détail : `docs/TEST-RESULTS.txt`
-- `sh protecta-suivi/tests/run-all.sh` → **1018 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
-  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0 + step12 = 1.5.2 + step13 = 1.5.3 + step14 = 1.6.0 + step15 = 1.6.1/1.6.2 + step16 = 1.7.0 + step17 = 1.8.0 + step18 = 1.9.0 + step19 = 1.10.0 + step20 = 1.11.0 + step21 = 1.12.0) passés.
-- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.12.0.zip $PWD/dist/protecta-suivi-1.11.0.zip` (chemins absolus) →
-  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.11.0 → 1.12.0 avec données (aucune migration) : **aucune perte**.
+### Tests (dernier passage complet, version 1.13.0) — détail : `docs/TEST-RESULTS.txt`
+- `sh protecta-suivi/tests/run-all.sh` → **1031 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
+  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0 + step12 = 1.5.2 + step13 = 1.5.3 + step14 = 1.6.0 + step15 = 1.6.1/1.6.2 + step16 = 1.7.0 + step17 = 1.8.0 + step18 = 1.9.0 + step19 = 1.10.0 + step20 = 1.11.0 + step21 = 1.12.0 + step22 = 1.13.0) passés.
+- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.13.0.zip $PWD/dist/protecta-suivi-1.12.0.zip` (chemins absolus) →
+  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.12.0 → 1.13.0 avec données (aucune migration) : **aucune perte** ; + sauvegarde RÉELLE du client
+  (1.10.0, 179 projets) restaurée puis mise à jour en 1.13.0 : **aucune perte** (fichier gardé hors dépôt).
 
 ### Prochaines actions
 1. Dès que l'accès GitHub est rétabli : `git push -u origin claude/sweet-hopper-le9393` puis
@@ -358,6 +360,16 @@ chaque décision prise seul.
 - مهامي : `pendingDecision` (المسؤول ou المتابع, plus ancien d'abord), affiché seulement s'il n'est pas vide.
   1.9.1 (le client a laissé Claude décider) : compté dans le compteur مهامي du menu et dans le résumé du matin
   (e-mail + Telegram) — c'est une tâche à faire.
+
+### Version 1.13.0 — décisions (questionnaire du 03/11 : le client a choisi les options recommandées)
+- **Défilement** : `.ps-table-wrap` qui contient `.ps-table--list` → classe `ps-table-wrap--list` (hauteur max = écran,
+  overflow auto, `th` déjà sticky) + `.ps-hscroll` au-dessus, synchronisé (`PS.ui` enhanceTableWrap, MutationObserver).
+- **Tri** : `ps_project_no_cmp()` (strnatcasecmp) ; défaut `projectNo` asc dans `ps_projects_list`, `ps_items_list`
+  (sort=due garde l'ancien ordre) et `ps_invoices_list` (puis date d'envoi).
+- **Factures** : `scope: 'item'` (+ `itemId`, ou le صنف de /items/{id}/invoices) → `item_id` = ce صنف ; défaut = offre
+  entière (item_id 0). Ligne d'offre : `invoices` = offre entière + son صنف (`nos`) ; `otherNos` = factures des autres
+  أصناف du projet (affichées en petit). La colonne « رقم فاتورة العرض » montre offer_invoice_no + ces numéros.
+- Données du client : sauvegarde du 03/11 (179 projets, dont 159 dans la corbeille) testée localement, jamais versionnée.
 
 ### Version 1.12.0 — revue UX (le client a répondu « choisis » : décisions prises seul)
 - Rapport artifact « مراجعة تجربة الاستعمال » (17 points). Réalisés : 1-8, 10, 11, 14, 15. Non réalisés : 9 (recherche

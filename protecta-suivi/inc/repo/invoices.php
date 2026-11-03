@@ -182,7 +182,7 @@ function ps_invoice_input( array $b, ?array $existing = null ) {
 /**
  * Crée une facture pour l'OFFRE ENTIÈRE d'un projet (1.11.0 : item_id = 0). @return int|WP_Error
  */
-function ps_invoice_create( array $project, array $b, int $user_id ) {
+function ps_invoice_create( array $project, array $b, int $user_id, int $item_id = 0 ) {
 	global $wpdb;
 	$set = ps_invoice_input( $b );
 	if ( is_wp_error( $set ) ) {
@@ -197,7 +197,7 @@ function ps_invoice_create( array $project, array $b, int $user_id ) {
 		ps_table( 'invoices' ),
 		$set + array(
 			'project_id' => (int) $project['id'],
-			'item_id'    => 0, // 1.11.0 : facture de l'offre entière
+			'item_id'    => $item_id, // 0 = offre entière (1.11.0) ; sinon un صنف (1.13.0)
 			'created_by' => $user_id,
 			'updated_by' => $user_id,
 			'created_at' => $now,
@@ -345,6 +345,9 @@ function ps_invoices_list( array $args, int $user_id, ?string $today = null ): a
 		}
 		$out[] = $api;
 	}
+	// 1.13.0 : par numéro de projet croissant, puis date d'envoi (ordre de la requête).
+	$pos = array_flip( array_column( $out, 'id' ) );
+	usort( $out, static fn( $a, $b ) => ps_project_no_cmp( (string) $a['projectNo'], (string) $b['projectNo'] ) ?: ( $pos[ $a['id'] ] <=> $pos[ $b['id'] ] ) );
 	$total    = count( $out );
 	$per_page = max( 1, min( 500, (int) ( $args['perPage'] ?? 200 ) ) );
 	$page     = max( 1, (int) ( $args['page'] ?? 1 ) );

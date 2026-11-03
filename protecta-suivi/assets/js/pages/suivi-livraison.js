@@ -40,6 +40,13 @@
 	 * autres), cellules en texte simple (sauf la حالة), clic sur la ligne → panneau de modification.
 	 * Colonnes : [identifiant, titre, rendu, importante].
 	 */
+	/** 1.13.0 : رقم فاتورة العرض du صنف + numéros des factures 🧾 (de ce صنف et de l'offre entière). */
+	function invNos(r) {
+		const out = [];
+		[r.offerInvoiceNo].concat((r.invoices && r.invoices.nos) || []).forEach(function (n) { if (n && out.indexOf(n) === -1) out.push(n); });
+		return out;
+	}
+
 	const COLS = [
 		['projectNo', PS.t('رقم المشروع'), function (r) { return html`${ui.projectTitle({ id: r.projectId, name: r.projectName, no: r.projectNo }, { numberFirst: true })}`; }, true],
 		['itemTypeId', PS.t('الصنف'), function (r) { return L.label(r.itemTypeId); }, true],
@@ -47,7 +54,7 @@
 		['deliveryActualDate', PS.t('أجل التسليم الفعلي'), function (r) { return F.date(r.deliveryActualDate); }, true],
 		['delay', PS.t('تأخير (أيام)'), function (r) { return r.computed.delayDays > 0 ? html`<strong class="ps-text-danger">${r.computed.delayDays}</strong>` : String(r.computed.delayDays); }, true],
 		['deliveryStatusId', PS.t('الحالة'), statusCell, true],
-		['offerInvoiceNo', PS.t('فاتورة العرض'), function (r) { return r.offerInvoiceNo ? html`<span dir="ltr">${r.offerInvoiceNo}</span>` : html`<span class="ps-text-danger ps-small">—</span>`; }, true],
+		['offerInvoiceNo', PS.t('فاتورة العرض'), function (r) { const n = invNos(r); return n.length ? html`<span class="ps-invnos" dir="ltr">${n.map(function (x) { return html`<span>${x}</span>`; })}</span>` : html`<span class="ps-text-danger ps-small">—</span>`; }, true],
 		['deliveryNotes', PS.t('ملاحظات'), function (r) { return html`<span class="ps-clip" title="${r.deliveryNotes || ''}">${r.deliveryNotes || ''}</span>`; }, true],
 		['supplierInvoiceNo', PS.t('فاتورة المورد'), function (r) { return html`<span dir="ltr">${r.supplierInvoiceNo || ''}</span>`; }, false],
 		['availabilityId', PS.t('المتوفر'), function (r) { return L.label(r.availabilityId); }, false],
@@ -65,7 +72,7 @@
 				${ui.kv(PS.t('أجل التسليم المطلوب'), F.date(r.deliveryDueDate) || '—')}
 				${ui.kv(PS.t('أجل التسليم الفعلي'), F.date(r.deliveryActualDate) || '—')}
 				${ui.kv(PS.t('تأخير (أيام)'), String(r.computed.delayDays))}
-				${ui.kv(PS.t('فاتورة العرض'), r.offerInvoiceNo || '—')}
+				${ui.kv(PS.t('فاتورة العرض'), invNos(r).join(' · ') || '—')}
 			</div>
 		</div>`;
 	}
@@ -127,7 +134,7 @@
 			<div class="ps-kvs">
 				${ui.kv(PS.t('الصنف'), L.label(r.itemTypeId))}
 				${ui.kv(PS.t('موظف الصنف'), L.label(r.employeeId))}
-				${ui.kv(PS.t('فاتورة العرض'), r.offerInvoiceNo || '—')}
+				${ui.kv(PS.t('فاتورة العرض'), invNos(r).join(' · ') || '—')}
 			</div>
 			<div class="ps-drawer__section"><h3>${PS.t('التسليم')}</h3><div class="ps-drawer__form">
 				${field(PS.t('أجل التسليم المطلوب *'), date('deliveryDueDate'), true)}

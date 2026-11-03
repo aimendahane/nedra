@@ -1,6 +1,6 @@
 ######## Tests PHP ########
 Site de test installé (thème : protecta-suivi)
-Thème v1.12.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
+Thème v1.13.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 
 == Activation : base de données ==
   ✔ ps_db_version = dernière migration
@@ -794,9 +794,9 @@ Thème v1.12.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ inc/i18n/en.json : JSON valide
   ✔ inc/i18n/fr.json : JSON valide
   ✔ en.json et fr.json ont exactement les mêmes clés
-  ✔ en : chaque texte de l'interface a sa traduction (1241 textes)
+  ✔ en : chaque texte de l'interface a sa traduction (1247 textes)
   ✔ en : traductions non vides, sans arabe, mêmes %s / %d que l'original
-  ✔ fr : chaque texte de l'interface a sa traduction (1241 textes)
+  ✔ fr : chaque texte de l'interface a sa traduction (1247 textes)
   ✔ fr : traductions non vides, sans arabe, mêmes %s / %d que l'original
 
 == Langues : traduction côté serveur ==
@@ -1244,8 +1244,25 @@ Thème v1.12.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ « تراجع » : l'ancien choix et son سبب reviennent
   ✔ chaque changement (et le retour en arrière) est journalisé
 
+== 1.13.0 : ordre naturel des numéros ==
+  ✔ P009 < P010 < P100 < PRJ-…
+  ✔ PRJ : année puis numéro
+  ✔ Base Projets : par numéro croissant par défaut
+  ✔ … et décroissant au 2e clic (dir=desc)
+  ✔ Suivi Offres : par numéro de projet, أصناف d'un projet ensemble
+
+== 1.13.0 : facture pour l'offre entière ou pour un صنف ==
+  ✔ sans choix : facture de l'offre entière (comme 1.11.0)
+  ✔ « هذا الصنف فقط » : facture du صنف 2
+  ✔ صنف d'un autre projet → refusé
+  ✔ ligne صنف 1 : la facture de l'offre seulement
+  ✔ ligne صنف 2 : facture de l'offre + la sienne
+  ✔ autre projet : aucune facture
+  ✔ fenêtre 🧾 d'un صنف : toutes les factures du projet (avec الأصناف de chacune)
+  ✔ ligne صنف 1 : numéro de la facture du صنف 2 du même projet (otherNos, affiché en petit)
+
 ----------------------------------------
-Résultat : 1018 réussis, 0 échoués
+Résultat : 1031 réussis, 0 échoués
 
 ######## Navigateur : fondations (étape 1) ########
 Page de connexion
@@ -1574,7 +1591,7 @@ Tous les contrôles navigateur sont passés.
   ✔ Suivi Offres : 8 colonnes par défaut
   ✔ filtre rapide « لازم قرار » : nombre de lignes = compteur
   ✔ panneau de l'offre : ملاحظة العرض enregistrée
-  ✘ ملاحظة العرض visible dans le tableau
+  ✔ ملاحظة العرض visible dans le tableau
   ✔ Factures : filtres rapides avec compteurs (متأخرة 1)
   ✔ clic sur une facture → panneau latéral (formulaire)
   ✔ fiche (création) : 6 raccourcis de sections (« مشروع؟ » se décide ensuite dans « المشاريع »)
@@ -1585,8 +1602,7 @@ Tous les contrôles navigateur sont passés.
   ✔ téléphone : carte → panneau plein écran
   ✔ téléphone (الفواتير) : cartes, sans défilement horizontal
 
-1 échec(s)
-✘ ÉCHEC : navigateur step16
+Tous les contrôles navigateur sont passés.
 
 ######## Navigateur : step17 (jeu de démonstration) ########
 1.8.0 — «مشروع؟» من الجدول، متابعة التسليم
@@ -1643,7 +1659,7 @@ Tous les contrôles navigateur sont passés.
 1.11.0 — الفواتير حسب العرض، آخر أجل يدوي، السرعة
   ✔ offre de démonstration avec ≥ 2 أصناف
   ✔ formulaire : « آخر أجل للرد » est un champ à saisir (proposé +15 j)
-  ✔ formulaire : « الفاتورة تخص العرض كاملًا »
+  ✘ formulaire : « الفاتورة تخص العرض كاملًا »
   ✔ la date proposée suit la date d'envoi (16/10/2026)
   ✔ facture enregistrée pour l'offre entière (visible depuis chaque صنف), آخر أجل = 20/10
   ✔ الفواتير : les 10 colonnes visibles (… الأصناف، الموظف المتابع)
@@ -1652,7 +1668,8 @@ Tous les contrôles navigateur sont passés.
   ✔ vitesse : réponses JSON compressées (gzip)
   ✔ vitesse : les listes viennent de la page (pas d'appel /lists)
 
-Tous les contrôles navigateur sont passés.
+1 échec(s)
+✘ ÉCHEC : navigateur step20
 
 ######## Navigateur : step21 (jeu de démonstration) ########
 1.12.0 — إدخال سريع, résumé des erreurs, تراجع, résumé en lecture seule, Recap, fichiers
@@ -1684,6 +1701,18 @@ Tous les contrôles navigateur sont passés.
 
 Tous les contrôles navigateur sont passés.
 
+######## Navigateur : step22 (jeu de démonstration) ########
+1.13.0 — barre de défilement en haut, tri par numéro, factures par صنف
+  ✔ المشاريع : par numéro croissant par défaut (▲ sur « رقم المشروع »)
+  ✔ tableau large : 2e barre de défilement AU-DESSUS du tableau
+  ✔ … le tableau tient dans l'écran (barre du bas toujours visible)
+  ✔ la barre du haut fait défiler le tableau
+  ✔ Suivi Offres : par numéro de projet croissant
+  ✔ nouvelle facture : choix « العرض كاملًا » / « هذا الصنف فقط »
+  ✔ la ligne du صنف affiche le numéro ; l'autre ligne du projet le montre en petit (↳)
+
+Tous les contrôles navigateur sont passés.
+
 ######## Navigateur : step10 = 1.4.0 (import Excel, comptes, Telegram) ########
 1.4.0 — import Excel, numéros P…, هامش الربح, ورقة الحسابات, Telegram à la connexion
   ✔ connexion : fenêtre « اربط حسابك بـ Telegram » (compte non lié)
@@ -1699,8 +1728,11 @@ Tous les contrôles navigateur sont passés.
 
 === ÉCHECS : voir ci-dessus ===
 
-######## Nouveau passage step16 (attente du rechargement du tableau ajoutée au test) ########
-Tous les contrôles navigateur sont passés. (2 passages)
+######## Nouveau passage step20 (contrôle adapté au choix « الفاتورة تخص ») ########
+Tous les contrôles navigateur sont passés.
 
-######## release-check 1.11.0 → 1.12.0 ########
-AUCUNE PERTE — Contrôles de livraison : tout est passé. === LIVRAISON VÉRIFIÉE ===
+######## release-check 1.12.0 → 1.13.0 ########
+AUCUNE PERTE — === LIVRAISON VÉRIFIÉE ===
+
+######## Sauvegarde réelle du client (1.10.0, 179 projets / 198 أصناف / 24 factures) → 1.13.0 ########
+AUCUNE PERTE : projets, أصناف, intervenants, sociétés, suivis, fichiers, journal, listes, réglages et comptes identiques

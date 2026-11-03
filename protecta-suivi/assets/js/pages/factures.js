@@ -82,7 +82,12 @@ PS.invoices = (function () {
 			wide: !(opts && opts.drawer),
 			drawer: !!(opts && opts.drawer), // 1.7.0 : panneau latéral depuis la page « الفواتير »
 			body: html`<p class="ps-small ps-muted">${PS.t('العرض')}: <strong>${ctx.projectName || ''}</strong> <span dir="ltr">${ctx.projectNo || ''}</span>${(ctx.itemTypeIds || []).length ? html` · ${PS.t('الأصناف')}: ${ctx.itemTypeIds.map(L.label).join(PS.t('، '))}` : ''}</p>
-				<p class="ps-small ps-muted">${PS.t('الفاتورة تخص العرض كاملًا (كل أصناف المشروع).')}</p>
+				${!inv && ctx.itemId ? html`<div class="ps-field ps-inv-scope" data-key="itemId"><span class="ps-field__label">${PS.t('الفاتورة تخص')}</span>
+					<div class="ps-row ps-row--tight" role="radiogroup" aria-label="${PS.t('الفاتورة تخص')}">
+						<label class="ps-check"><input type="radio" name="scope" value="offer" checked> ${PS.t('العرض كاملًا (كل أصناف المشروع)')}</label>
+						<label class="ps-check"><input type="radio" name="scope" value="item"> ${PS.t('هذا الصنف فقط:')} <strong>${L.label(ctx.itemTypeId)}</strong></label>
+					</div></div>`
+					: html`<p class="ps-small ps-muted">${inv && inv.itemId ? html`${PS.t('الفاتورة تخص الصنف:')} <strong>${(inv.itemTypeIds || []).map(L.label).join(PS.t('، '))}</strong>` : PS.t('الفاتورة تخص العرض كاملًا (كل أصناف المشروع).')}</p>`}
 				${ro ? PS.items.readOnlyNote([PS.t('المسؤول عن المشروع') + (ctx.responsibleEmpId ? ' (' + L.label(ctx.responsibleEmpId) + ')' : ''), PS.t('الموظف المتابع') + (ctx.followerEmpId ? ' (' + L.label(ctx.followerEmpId) + ')' : ''), PS.t('موظفو أصناف العرض')]) : ''}
 				<div class="ps-grid" data-inv-form>
 					<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('رقم الفاتورة *')}</span><input name="invoiceNo" data-key="invoiceNo" dir="ltr" value="${v.invoiceNo}"${dis}></label>
@@ -131,6 +136,9 @@ PS.invoices = (function () {
 					ui.toast(PS.t('يرجى تعبئة الخانات الإجبارية'), 'error');
 					return false;
 				}
+				// 1.13.0 : nouvelle facture pour l'offre entière (défaut) ou pour ce صنف seulement.
+				const scope = wrap.querySelector('[name="scope"]:checked');
+				if (!inv && scope && scope.value === 'item') { body.scope = 'item'; body.itemId = ctx.itemId; }
 				const req = inv ? PS.api.put('invoices/' + inv.id, body) : PS.api.post('items/' + ctx.itemId + '/invoices', body);
 				const files = wrap.querySelector('[data-inv-upload]');
 				req.then(function (r) {
@@ -195,8 +203,7 @@ PS.invoices = (function () {
 		const ctx = { projectName: row.projectName, projectNo: row.projectNo, itemTypeId: row.itemTypeId, itemId: row.id };
 		const canAdd = row.canEdit || (PS.config.user.employeeId && row.followerEmpId === PS.config.user.employeeId);
 		return PS.api.get('invoices?itemId=' + row.id).then(function (d) {
-			// 1.11.0 : les factures de l'offre ENTIÈRE (toutes ses أصناف).
-			if (d.rows[0]) ctx.itemTypeIds = d.rows[0].itemTypeIds;
+			// 1.11.0 : les factures du projet (offre entière et أصناف) ; 1.13.0 : la colonne « الأصناف » dit ce que couvre chacune.
 			return ui.modal({
 				title: PS.t('🧾 فواتير العرض'),
 				wide: true,

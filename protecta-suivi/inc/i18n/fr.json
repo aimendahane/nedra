@@ -1279,5 +1279,11 @@
 	"يعدّله:": "Modifiable par :",
 	"يوم/شهر/سنة": "jj/mm/aaaa",
 	"↩ تراجع": "↩ Annuler",
-	"العروض": "Offres"
+	"العروض": "Offres",
+	"اختر الصنف الذي تخصه الفاتورة": "Choisissez l’article concerné par la facture",
+	"العرض كاملًا (كل أصناف المشروع)": "L’offre entière (tous les articles du projet)",
+	"الفاتورة تخص": "Cette facture concerne",
+	"الفاتورة تخص الصنف:": "Cette facture concerne l’article :",
+	"هذا الصنف فقط:": "Cet article seulement :",
+	"فاتورة صنف آخر من نفس المشروع": "Facture d’un autre article du même projet"
 }

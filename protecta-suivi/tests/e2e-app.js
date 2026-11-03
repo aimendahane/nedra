@@ -1232,9 +1232,7 @@ async function step15(browser) {
 	check('Base Projets : رقم المشروع | الاسم | مشروع؟ | سبب عدم الاعتبار | المسؤول | المتابع | تاريخ الاستلام | الحالة', bp.slice(0, 8).join('|') === 'رقم المشروع|الاسم|مشروع؟|سبب عدم الاعتبار|المسؤول عن المشروع|الموظف المتابع|تاريخ الاستلام|الحالة', bp.slice(0, 9).join('|'));
 	const chipTxt = await page.textContent('[data-chips="isProject"]').catch(() => '');
 	check('Base Projets : filtres rapides « مشروع؟ » avec compteurs, sans ouvrir les filtres', await page.isVisible('[data-chip="isProject"][data-value="0"]') && /مشروع مُلغى\s*1/.test(chipTxt), chipTxt.replace(/\s+/g, ' '));
-	await page.click('.ps-sort[data-sort="isProject"]');
-	await page.waitForTimeout(800);
-	await page.click('.ps-sort[data-sort="isProject"]');
+	await page.click('.ps-sort[data-sort="isProject"]'); // 1.13.0 : 1er clic = croissant
 	await page.waitForTimeout(800);
 	const firstCells = await page.$$eval('.ps-table--list tbody tr', (t) => t.slice(0, 1).map((r) => [r.children[3].textContent.trim(), r.children[4].textContent.trim()]));
 	check('« مشروع؟ » triable : le projet « لا » en tête, avec son motif', /لا/.test(firstCells[0][0]) && /خارج الاختصاص/.test(firstCells[0][1]), JSON.stringify(firstCells));
@@ -1629,7 +1627,7 @@ async function step20(browser) {
 	await page.click('.ps-modal [data-btn=new]');
 	await page.waitForSelector('.ps-modal [name=replyDeadline]');
 	check('formulaire : « آخر أجل للرد » est un champ à saisir (proposé +15 j)', (await page.inputValue('.ps-modal [name=replyDeadline]')) === '03/11/2026', await page.inputValue('.ps-modal [name=replyDeadline]'));
-	check('formulaire : « الفاتورة تخص العرض كاملًا »', /تخص العرض كاملًا/.test(await page.textContent('.ps-modal')));
+	check('formulaire : « الفاتورة تخص » — العرض كاملًا (par défaut) ou هذا الصنف فقط (1.13.0)', /العرض كاملًا/.test(await page.textContent('.ps-modal')) && (await page.isChecked('.ps-modal [name="scope"][value="offer"]')));
 	await page.fill('.ps-modal [name=invoiceNo]', 'FAC-1110');
 	await page.fill('.ps-modal [name=sentDate]', '01/10/2026');
 	await page.waitForTimeout(200);
@@ -1795,7 +1793,60 @@ async function step21(browser) {
 	await m.ctx.close();
 }
 
-const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15, step16, step17, step18, step19, step20, step21 };
+/* 1.13.0 — demandes du client (03/11) : barre de défilement en haut, tri par numéro, facture par صنف ou offre. */
+async function step22(browser) {
+	console.log('1.13.0 — barre de défilement en haut, tri par numéro, factures par صنف');
+	const { ctx, page } = await newPage(browser, 'idara');
+	await go(page, '#/projets');
+	await page.waitForSelector('.ps-table--list tbody tr');
+	const nos = await page.$$eval('.ps-table--list tbody tr .ps-pno', (a) => a.map((x) => x.textContent.trim()));
+	const sorted = nos.slice().sort((a, b) => a.localeCompare(b, 'en', { numeric: true }));
+	check('المشاريع : par numéro croissant par défaut (▲ sur « رقم المشروع »)', nos.join() === sorted.join() && /▲/.test(await page.textContent('.ps-sort[data-sort="projectNo"]')), nos.slice(0, 4).join(','));
+	// Suivi Offres avec toutes les colonnes : tableau plus large que l'écran.
+	await page.evaluate(() => localStorage.setItem('ps_cols_offres', JSON.stringify(['projectNo', 'offerInvoiceNo', 'responsibleEmpId', 'followerEmpId', 'offerDate', 'offerStatusId', 'files', 'offerNotes', 'itemTypeId', 'employeeId', 'urgencyId', 'dueDate', 'invoices'])));
+	await go(page, '#/offres');
+	await page.waitForSelector('.ps-table--list tbody tr');
+	const sc = await page.evaluate(() => { const w = document.querySelector('.ps-table-wrap--list'); const t = document.querySelector('.ps-hscroll'); return { wide: w.scrollWidth > w.clientWidth, top: !!t && !t.hidden && t.firstChild.offsetWidth === w.scrollWidth, fits: w.getBoundingClientRect().height <= window.innerHeight }; });
+	check('tableau large : 2e barre de défilement AU-DESSUS du tableau', sc.wide && sc.top, JSON.stringify(sc));
+	check('… le tableau tient dans l\'écran (barre du bas toujours visible)', sc.fits);
+	await page.evaluate(() => { const t = document.querySelector('.ps-hscroll'); t.scrollLeft = -300; t.dispatchEvent(new Event('scroll')); });
+	await page.waitForTimeout(300);
+	check('la barre du haut fait défiler le tableau', await page.evaluate(() => Math.abs(document.querySelector('.ps-table-wrap--list').scrollLeft) > 100));
+	const pn = await page.$$eval('.ps-table--list tbody tr .ps-ptitle__num', (a) => a.map((x) => x.textContent.trim()));
+	check('Suivi Offres : par numéro de projet croissant', pn.join() === pn.slice().sort((a, b) => a.localeCompare(b, 'en', { numeric: true })).join(), pn.slice(0, 4).join(','));
+	await page.screenshot({ path: SHOTS + '/s22-01-offres-large.png' });
+	await page.evaluate(() => localStorage.setItem('ps_cols_offres', 'null'));
+	// Facture pour UN صنف d'une offre à plusieurs أصناف.
+	const t = await page.evaluate(async () => {
+		const rows = (await PS.api.get('items?view=offers&perPage=300')).rows;
+		const by = {};
+		rows.forEach((r) => { (by[r.projectId] = by[r.projectId] || []).push(r); });
+		const multi = Object.values(by).find((l) => l.length >= 2);
+		return { a: multi[0].id, b: multi[1].id, no: multi[0].projectNo };
+	});
+	await go(page, '#/offres?q=' + encodeURIComponent(t.no));
+	await page.waitForSelector(`tr[data-row="${t.b}"]`);
+	await page.click(`tr[data-row="${t.b}"] td:nth-child(3)`);
+	await page.click('.ps-modal [data-btn="invoices"]');
+	await page.waitForSelector('.ps-modal [data-btn="new"]');
+	await page.click('.ps-modal [data-btn="new"]');
+	await page.waitForSelector('.ps-modal [name="scope"]');
+	check('nouvelle facture : choix « العرض كاملًا » / « هذا الصنف فقط »', (await page.$$('.ps-modal [name="scope"]')).length === 2);
+	await page.check('.ps-modal [name="scope"][value="item"]');
+	await page.fill('.ps-modal [name="invoiceNo"]', 'F-SENF-E2E');
+	await page.click('.ps-modal [data-btn="save"]');
+	await page.waitForTimeout(1500);
+	await page.keyboard.press('Escape');
+	await go(page, '#/offres?q=' + encodeURIComponent(t.no));
+	await page.waitForSelector(`tr[data-row="${t.b}"]`);
+	const cellB = await page.textContent(`tr[data-row="${t.b}"] td:nth-child(2)`);
+	const cellA = await page.textContent(`tr[data-row="${t.a}"] td:nth-child(2)`);
+	check('la ligne du صنف affiche le numéro ; l\'autre ligne du projet le montre en petit (↳)', /F-SENF-E2E/.test(cellB) && /F-SENF-E2E/.test(cellA) && !!(await page.$(`tr[data-row="${t.a}"] .ps-invnos__other`)), cellA + ' / ' + cellB);
+	await page.screenshot({ path: SHOTS + '/s22-02-factures-senf.png' });
+	await ctx.close();
+}
+
+const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15, step16, step17, step18, step19, step20, step21, step22 };
 
 (async () => {
 	const browser = await chromium.launch();
