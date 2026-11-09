@@ -1335,5 +1335,20 @@
 	"تعذّر الاتصال بـ OneDrive:": "Could not reach OneDrive:",
 	"تعذّر جلب الملف من OneDrive:": "Could not get the file from OneDrive:",
 	"رفضت Microsoft الاتصال:": "Microsoft refused the connection:",
-	"نُقل:": "Moved:"
+	"نُقل:": "Moved:",
+	"إضافة العضو": "Add member",
+	"اتركها فارغة: تُنشأ تلقائيًا": "Leave empty: generated automatically",
+	"اسم الدخول *": "Login *",
+	"اسم الدخول:": "Login:",
+	"البريد الإلكتروني (اختياري)": "Email (optional)",
+	"تمت إضافة": "Added:",
+	"عضو جديد": "New member",
+	"في قائمة الموظفين": "In the employee list",
+	"كلمة السر تظهر الآن فقط: انسخها وأرسلها للعضو.": "The password is shown only now: copy it and send it to the member.",
+	"كلمة السر:": "Password:",
+	"مثال: سارة الهمامي": "e.g. Sarah Hammami",
+	"مخفي": "hidden",
+	"موظف جديد بهذا الاسم": "New employee with this name",
+	"يظهر الموظف في القوائم (المسؤول، المتابع، الأصناف) ويرى مهامه.": "The employee appears in the lists (manager, follower, items) and sees their tasks.",
+	"يُقترح من الاسم، يمكنك تغييره.": "Suggested from the name; you can change it."
 }

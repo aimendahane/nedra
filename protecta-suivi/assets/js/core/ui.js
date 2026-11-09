@@ -546,5 +546,45 @@ PS.ui = (function () {
 		return value === '' || value === null || value === undefined ? '' : html`<div class="ps-kv"><span class="ps-kv__k">${label}</span><span class="ps-kv__v">${value}</span></div>`;
 	}
 
-	return { esc, html, raw, toast, undoToast, clearErrorToasts, projectTitle, empty, badge, modal, confirm, autocomplete, showErrors, getPath, setPath, debounce, parseDate, enhanceDates, visibleColumns, chooseColumns, chips, kv };
+	/*
+	 * 1.15.0 (demande du client : « tous les tableaux comme المشاريع ») — tri par clic sur le titre d'une colonne pour
+	 * les listes chargées en entier (Offres, Livraison, Factures). Défaut : رقم المشروع croissant. Valeurs vides en
+	 * dernier ; nombres comparés comme des nombres (P9 avant P10) ; ex aequo → numéro de projet puis id (ordre stable).
+	 *   sortHeads(cols, sort, dir, skip) → <th> de chaque colonne [clé, titre…] (bouton .ps-sort, comme « المشاريع »)
+	 *   sortRows(rows, sort, dir, get)   → copie triée ; get(r, clé) = valeur de tri (défaut r[clé])
+	 *   nextSort(cur, dir, key)          → { sort, dir } après un clic (2e clic sur la même colonne = inverse)
+	 */
+	let collator = null;
+	function sortRows(rows, sort, dir, get) {
+		collator = collator || new Intl.Collator((PS.i18n && PS.i18n.lang) || 'ar', { numeric: true, sensitivity: 'base' });
+		const k = sort || 'projectNo';
+		const sign = dir === 'desc' ? -1 : 1;
+		const val = function (r, key) { const v = get ? get(r, key) : r[key]; return v === undefined || v === null || v === '' ? null : v; };
+		const cmp = function (a, b) {
+			if (typeof a === 'number' && typeof b === 'number') return a - b;
+			return collator.compare(String(a), String(b));
+		};
+		return rows.map(function (r, i) { return { r: r, i: i, v: val(r, k) }; }).sort(function (x, y) {
+			if (x.v === null || y.v === null) { if (x.v === y.v) return x.i - y.i; return x.v === null ? 1 : -1; }
+			const c = cmp(x.v, y.v) * sign;
+			if (c) return c;
+			if (k !== 'projectNo') { const p = cmp(String(x.r.projectNo || ''), String(y.r.projectNo || '')); if (p) return p; }
+			return x.i - y.i;
+		}).map(function (x) { return x.r; });
+	}
+	function sortHeads(cols, sort, dir, skip) {
+		const cur = sort || 'projectNo';
+		return cols.map(function (c) {
+			if (skip && skip[c[0]]) return html`<th>${c[1]}</th>`;
+			const on = cur === c[0];
+			const d = dir === 'desc' ? 'desc' : 'asc';
+			return html`<th aria-sort="${on ? (d === 'asc' ? 'ascending' : 'descending') : 'none'}"><button type="button" class="ps-sort" data-sort="${c[0]}">${c[1]} ${on ? (d === 'asc' ? '▲' : '▼') : ''}</button></th>`;
+		});
+	}
+	function nextSort(sort, dir, key) {
+		const same = (sort || 'projectNo') === key;
+		return { sort: key, dir: same && (dir || 'asc') === 'asc' ? 'desc' : 'asc' };
+	}
+
+	return { esc, html, raw, toast, undoToast, clearErrorToasts, projectTitle, empty, badge, modal, confirm, autocomplete, showErrors, getPath, setPath, debounce, parseDate, enhanceDates, visibleColumns, chooseColumns, chips, kv, sortRows, sortHeads, nextSort };
 })();

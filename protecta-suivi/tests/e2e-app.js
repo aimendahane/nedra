@@ -1884,7 +1884,73 @@ async function step23(browser) {
 	await e.ctx.close();
 }
 
-const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15, step16, step17, step18, step19, step20, step21, step22, step23 };
+/* 1.15.0 — tous les tableaux triables comme « المشاريع » + « عضو جديد ». */
+async function step24(browser) {
+	console.log('1.15.0 — tri des tableaux, ajout d\'un membre');
+	const { ctx, page } = await newPage(browser, 'idara');
+	const num = (a) => a.slice().sort((x, y) => x.localeCompare(y, 'en', { numeric: true }));
+	// Quelques factures sur des offres de projets différents (le jeu de démonstration n'en a pas).
+	await page.evaluate(async () => {
+		const rows = (await PS.api.get('items?view=offers&perPage=300')).rows;
+		const seen = {};
+		const pick = rows.filter((r) => !seen[r.projectId] && (seen[r.projectId] = 1)).slice(0, 4);
+		for (let i = 0; i < pick.length; i++) await PS.api.post('items/' + pick[i].id + '/invoices', { invoiceNo: 'F24-' + Date.now() % 1000000 + '-' + (i + 1), sentDate: '2026-09-0' + (4 - i) });
+	});
+	for (const [hash, label] of [['#/offres', 'العروض'], ['#/livraison', 'التسليم'], ['#/factures?status=all', 'الفواتير']]) {
+		await go(page, hash);
+		await page.waitForSelector('.ps-table--list tbody tr');
+		const nums = () => page.$$eval('.ps-table--list tbody tr .ps-ptitle__num', (a) => a.map((x) => x.textContent.trim()));
+		const pn = await nums();
+		const btn = await page.$('.ps-table--list thead .ps-sort[data-sort="projectNo"]');
+		check(label + ' : titres de colonnes cliquables, ▲ « رقم المشروع » par défaut, numéros croissants', !!btn && /▲/.test(await btn.textContent()) && pn.join() === num(pn).join() && (await page.$$('.ps-table--list thead .ps-sort')).length >= 6, pn.slice(0, 4).join(','));
+		await btn.click();
+		await page.waitForTimeout(250);
+		const desc = await nums();
+		check(label + ' : 2e clic → décroissant ▼ (adresse mise à jour)', desc.join() === num(desc).reverse().join() && /▼/.test(await page.textContent('.ps-table--list thead .ps-sort[data-sort="projectNo"]')) && /dir=desc/.test(page.url()), desc.slice(0, 4).join(','));
+	}
+	// Tri sur une autre colonne (date d'envoi des factures) : ▲ sur cette colonne ; vides en dernier, P9 avant P10.
+	await page.click('.ps-table--list thead .ps-sort[data-sort="sentDate"]');
+	await page.waitForTimeout(250);
+	const t = await page.evaluate(() => ({
+		a: PS.ui.sortRows([{ sentDate: '2026-02-01', projectNo: 'P2' }, { sentDate: null, projectNo: 'P1' }, { sentDate: '2026-01-05', projectNo: 'P10' }], 'sentDate', 'asc').map((r) => r.projectNo).join(),
+		b: PS.ui.sortRows([{ projectNo: 'P10' }, { projectNo: 'P9' }], 'projectNo', 'asc').map((r) => r.projectNo).join(),
+	}));
+	check('autre colonne : ▲ sur « تاريخ الإرسال » ; vides en dernier, « P9 » avant « P10 »', t.a === 'P10,P2,P1' && t.b === 'P9,P10' && /▲/.test(await page.textContent('.ps-sort[data-sort="sentDate"]')), JSON.stringify(t));
+	await page.screenshot({ path: SHOTS + '/s24-01-factures-tri.png' });
+
+	// « عضو جديد » : le nom suffit, identifiant proposé, mot de passe généré, carte d'accès à copier.
+	await go(page, '#/parametres?tab=users');
+	await page.waitForSelector('[data-member-new]');
+	await page.click('[data-member-new]');
+	await page.waitForSelector('[data-member-form]');
+	await page.fill('[data-member-form] [name=name]', 'غفران دريدي');
+	await page.waitForTimeout(100);
+	const login = await page.inputValue('[data-member-form] [name=login]');
+	check('identifiant proposé à partir du nom arabe (lettres latines)', /^[a-z]+\.dridi$/.test(login), login);
+	check('« موظف جديد بهذا الاسم » choisi par défaut, e-mail facultatif', (await page.inputValue('[data-member-form] [name=emp]')) === 'new' && !(await page.$('[data-member-form] .ps-field--required [name=email]')));
+	await page.screenshot({ path: SHOTS + '/s24-02-membre.png' });
+	await page.click('.ps-modal [data-btn=ok]');
+	await page.waitForSelector('[data-access-password]');
+	const pw = (await page.textContent('[data-access-password]')).trim();
+	check('carte d\'accès : identifiant + mot de passe généré + lien du site, bouton « نسخ »', pw.length >= 8 && (await page.textContent('[data-access-login]')).trim() === login && !!(await page.$('.ps-modal [data-btn=copy]')), pw);
+	await page.screenshot({ path: SHOTS + '/s24-03-acces.png' });
+	await page.click('.ps-modal [data-btn=cancel]');
+	const tr = `tr:has-text("${login}")`;
+	await page.waitForSelector(tr);
+	check('le membre apparaît dans « حسابات الفريق », lié à l\'employé « غفران دريدي »', /غفران دريدي/.test(await page.textContent(tr)) && !(await page.$(tr + ' .ps-text-danger')));
+	check('… et dans la liste des employés (المسؤول / المتابع)', await page.evaluate(() => PS.lists.values('employee').some((v) => v.label === 'غفران دريدي')));
+	await ctx.close();
+	const c2 = await browser.newContext();
+	const p2 = await c2.newPage();
+	await p2.goto(BASE + '/');
+	await p2.fill('input[name=log]', login);
+	await p2.fill('input[name=pwd]', pw);
+	await Promise.all([p2.waitForLoadState('networkidle'), p2.click('button[type=submit]')]);
+	check('le nouveau membre se connecte avec ces accès', await p2.isVisible('.ps-header'));
+	await c2.close();
+}
+
+const STEPS = { step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15, step16, step17, step18, step19, step20, step21, step22, step23, step24 };
 
 (async () => {
 	const browser = await chromium.launch();

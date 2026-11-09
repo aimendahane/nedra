@@ -3,6 +3,21 @@
 Format : chaque version indique la version du thème et la version de la base (`PS_DB_VERSION`).
 Une mise à jour du thème conserve toujours toutes les données (voir README.md).
 
+## 1.15.0 — 2026-11-09 · base v8 — Tous les tableaux triables, ajout facile des membres
+
+Demande du client : « tous les tableaux comme celui des المشاريع, tri par numéro de projet, meilleure expérience, et la
+الإدارة peut ajouter des membres ». Aucune migration.
+- **Tri par colonne** dans « متابعة العروض », « متابعة التسليم » et « الفواتير », comme « المشاريع » : clic sur le titre
+  d'une colonne → croissant ▲, 2e clic → décroissant ▼ ; par défaut رقم المشروع croissant. Numéros comparés comme des
+  nombres (P9 avant P10), cases vides en dernier, tri gardé dans l'adresse de la page ; aucun rechargement (instantané).
+  Sur téléphone, les cartes suivent le même ordre.
+- **« 👤 عضو جديد »** (الإعدادات ← المستخدمون) : le nom suffit. L'employé est ajouté à la liste « الموظفون » (ou un
+  employé de la liste sans compte est réutilisé / choisi), le compte est lié, l'identifiant est proposé à partir du nom,
+  le mot de passe est créé automatiquement s'il est laissé vide, et une carte d'accès (lien, identifiant, mot de passe)
+  s'affiche une seule fois avec un bouton « نسخ » pour l'envoyer au membre.
+- **E-mail facultatif** pour un compte (résumé du matin alors par Telegram seulement) ; une adresse mal écrite reste refusée.
+- Tests : tests/test-1150.php, step24.
+
 ## 1.14.0 — 2026-11-03 · base v8 — Fichiers dans OneDrive (Microsoft 365), vitesse
 
 Demande du client : « plus de performance ; les fichiers doivent être enregistrés dans OneDrive, mais l'utilisateur

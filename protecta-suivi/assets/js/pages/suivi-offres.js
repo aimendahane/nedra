@@ -5,6 +5,7 @@
  * رقم فاتورة العرض، ملاحظات. Ligne ROUGE = offre en retard (قيد الإعداد, أجل dépassé, hors L),
  * VERTE = مقبول (calculé par le serveur).
  * « لازم قرار » : filtre rapide (1.12.0 : plus de deuxième compteur en haut de page, avec « منها X لك »).
+ * 1.15.0 : tri par clic sur le titre d'une colonne (défaut : رقم المشروع croissant), comme « المشاريع ».
  * 1.7.0 : tableau court (8 colonnes importantes, « الأعمدة » pour les autres), filtres rapides par حالة العرض avec
  * compteurs, clic sur une ligne → panneau latéral où l'on modifie toute l'offre (fichiers et factures compris).
  *
@@ -212,6 +213,15 @@ PS.items = (function () {
 
 	function colDefs() { return COLS.map(function (c) { return { key: c[0], label: c[1], important: c[3], col: c }; }); }
 
+	/** 1.15.0 : valeur de tri d'une colonne (listes → libellé, numéros de facture → le premier). */
+	function sortVal(r, k) {
+		if (k === 'offerInvoiceNo') return invoiceNos(r)[0] || null;
+		if (k === 'files') return r.filesCount || null;
+		if (k === 'invoices') return r.invoices && r.invoices.total ? r.invoices.total : null;
+		if (k.slice(-2) === 'Id') return L.label(r[k]) || null;
+		return r[k];
+	}
+
 	function rowClass(r) { return r.computed.rowColor === 'late' ? 'is-late' : r.computed.rowColor === 'done' ? 'is-done' : ''; }
 
 	function rowHtml(cols) {
@@ -255,11 +265,12 @@ PS.items = (function () {
 			return;
 		}
 		const cols = ui.visibleColumns('offres', colDefs()).map(function (x) { return x.col; });
+		const rows = ui.sortRows(d.rows, st.params.sort, st.params.dir, sortVal); // 1.15.0 : tri comme « المشاريع »
 		box.innerHTML = html`${head}<p class="ps-muted ps-small" role="status">${d.total} ${PS.t('صنف ·')} <span class="ps-legend ps-legend--late"></span> ${PS.t('متأخر (لازم قرار) ·')} <span class="ps-legend ps-legend--done"></span> ${PS.t('مقبول')}</p>
 			<div class="ps-table-wrap ps-desktop-only"><table class="ps-table ps-table--list ps-table--clickable">
-				<thead><tr>${cols.map(function (c) { return html`<th>${c[1]}</th>`; })}</tr></thead>
-				<tbody>${d.rows.map(rowHtml(cols))}</tbody></table></div>
-			<div class="ps-cards ps-mobile-only">${d.rows.map(cardHtml)}</div>`.html;
+				<thead><tr>${ui.sortHeads(cols, st.params.sort, st.params.dir)}</tr></thead>
+				<tbody>${rows.map(rowHtml(cols))}</tbody></table></div>
+			<div class="ps-cards ps-mobile-only">${rows.map(cardHtml)}</div>`.html;
 	}
 
 	/*
@@ -408,6 +419,8 @@ PS.items = (function () {
 				window.location.href = PS.config.restUrl + 'export/items?' + qs;
 				return;
 			}
+			const so = e.target.closest('[data-sort]');
+			if (so) { Object.assign(st.params, ui.nextSort(st.params.sort, st.params.dir, so.dataset.sort)); PS.router.setParams(st.params); renderRows(); return; }
 			const chip = e.target.closest('[data-chip]');
 			if (chip) {
 				const v = chip.dataset.value;

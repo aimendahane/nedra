@@ -1335,5 +1335,20 @@
 	"تعذّر الاتصال بـ OneDrive:": "Impossible de joindre OneDrive :",
 	"تعذّر جلب الملف من OneDrive:": "Impossible de récupérer le fichier dans OneDrive :",
 	"رفضت Microsoft الاتصال:": "Microsoft a refusé la connexion :",
-	"نُقل:": "Transférés :"
+	"نُقل:": "Transférés :",
+	"إضافة العضو": "Ajouter le membre",
+	"اتركها فارغة: تُنشأ تلقائيًا": "Laisser vide : générée automatiquement",
+	"اسم الدخول *": "Identifiant *",
+	"اسم الدخول:": "Identifiant :",
+	"البريد الإلكتروني (اختياري)": "E-mail (facultatif)",
+	"تمت إضافة": "Ajouté :",
+	"عضو جديد": "Nouveau membre",
+	"في قائمة الموظفين": "Dans la liste des employés",
+	"كلمة السر تظهر الآن فقط: انسخها وأرسلها للعضو.": "Le mot de passe n'est affiché que maintenant : copiez-le et envoyez-le au membre.",
+	"كلمة السر:": "Mot de passe :",
+	"مثال: سارة الهمامي": "ex. : Sarra Hammami",
+	"مخفي": "masqué",
+	"موظف جديد بهذا الاسم": "Nouvel employé avec ce nom",
+	"يظهر الموظف في القوائم (المسؤول، المتابع، الأصناف) ويرى مهامه.": "L'employé apparaît dans les listes (responsable, suiveur, articles) et voit ses tâches.",
+	"يُقترح من الاسم، يمكنك تغييره.": "Proposé à partir du nom ; modifiable."
 }

@@ -60,6 +60,13 @@
 		['availabilityId', PS.t('المتوفر'), function (r) { return L.label(r.availabilityId); }, false],
 		['employeeId', PS.t('موظف الصنف'), function (r) { return L.label(r.employeeId); }, false],
 	];
+	/** 1.15.0 : valeur de tri d'une colonne. */
+	function sortVal(r, k) {
+		if (k === 'delay') return r.computed.delayDays;
+		if (k === 'offerInvoiceNo') return invNos(r)[0] || null;
+		if (k.slice(-2) === 'Id') return L.label(r[k]) || null;
+		return r[k];
+	}
 	function colDefs() { return COLS.map(function (c) { return { key: c[0], label: c[1], important: c[3], col: c }; }); }
 
 	function rowClass(r) { return r.computed.deliveryLate ? 'is-late' : (L.code(r.deliveryStatusId) === 'delivered' ? 'is-done' : ''); }
@@ -92,7 +99,7 @@
 		const items = [{ value: '', label: PS.t('الكل'), count: d.rows.length }, { value: 'late', label: '⚠ ' + PS.t('متأخرة'), count: d.rows.filter(function (r) { return matches(r, 'late'); }).length, tone: 'danger' }]
 			.concat(L.values('delivery_status').filter(function (v) { return v.code !== 'late' && !v.hidden; }).map(function (v) { return { value: v.code, label: v.label, count: d.rows.filter(function (r) { return matches(r, v.code); }).length }; }));
 		const head = html`<div class="ps-list-head">${ui.chips('delivery', items, f)}<button type="button" class="ps-btn ps-btn--ghost ps-btn--small ps-desktop-only" data-action="columns">▦ ${PS.t('الأعمدة')}</button></div>`;
-		const rows = d.rows.filter(function (r) { return matches(r, f); });
+		const rows = ui.sortRows(d.rows.filter(function (r) { return matches(r, f); }), st.params.sort, st.params.dir, sortVal);
 		const lateCount = items[1].count;
 		if (!rows.length) {
 			box.innerHTML = html`${head}${ui.empty('🚚', PS.t('لا توجد أصناف مقبولة تطابق الفلاتر.'))}`.html;
@@ -101,7 +108,7 @@
 		const cols = ui.visibleColumns('livraison', colDefs()).map(function (x) { return x.col; });
 		box.innerHTML = html`${head}<p class="ps-muted ps-small" role="status">${rows.length} ${PS.t('صنف مقبول ·')} ${lateCount ? html`<strong class="ps-text-danger">${lateCount} ${PS.t('تسليم متأخر')}</strong>` : PS.t('لا توجد تسليمات متأخرة')}</p>
 			<div class="ps-table-wrap ps-desktop-only"><table class="ps-table ps-table--list ps-table--clickable">
-			<thead><tr>${cols.map(function (c) { return html`<th>${c[1]}</th>`; })}</tr></thead>
+			<thead><tr>${ui.sortHeads(cols, st.params.sort, st.params.dir)}</tr></thead>
 			<tbody>${rows.map(function (r) { return html`<tr class="${rowClass(r)}" data-row="${r.id}" data-open-row="${r.id}" tabindex="0">${cols.map(function (c) { return html`<td>${c[2](r)}</td>`; })}</tr>`; })}</tbody></table></div>
 			<div class="ps-cards ps-mobile-only">${rows.map(cardHtml)}</div>`.html;
 	}
@@ -191,6 +198,8 @@
 			if (row && e.target === row && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openDrawer(row.dataset.openRow); }
 		});
 		m.addEventListener('click', function (e) {
+			const so = e.target.closest('[data-sort]');
+			if (so) { Object.assign(st.params, ui.nextSort(st.params.sort, st.params.dir, so.dataset.sort)); PS.router.setParams(st.params); renderRows(); return; }
 			const ex = e.target.closest('[data-export]');
 			if (ex) {
 				const qs = new URLSearchParams(Object.assign({}, st.params, { view: 'delivery', format: ex.dataset.export, _wpnonce: PS.config.nonce })).toString();

@@ -370,8 +370,11 @@ function ps_user_input( array $b, ?WP_User $existing ) {
 		$out['display_name'] = $name;
 	}
 	if ( array_key_exists( 'email', $b ) || ! $existing ) {
-		$email = sanitize_email( (string) ( $b['email'] ?? '' ) );
-		if ( ! is_email( $email ) ) {
+		$raw   = trim( (string) ( $b['email'] ?? '' ) );
+		$email = sanitize_email( $raw );
+		if ( '' === $raw ) {
+			$out['user_email'] = ''; // 1.15.0 : e-mail facultatif (résumé du matin par Telegram seulement alors)
+		} elseif ( ! is_email( $email ) ) {
 			$errors['email'] = ps__( 'بريد إلكتروني غير صحيح' );
 		} else {
 			$other = email_exists( $email );
@@ -414,11 +417,43 @@ function ps_user_input( array $b, ?WP_User $existing ) {
 	return $out;
 }
 
+/**
+ * 1.15.0 (« الإدارة ynjmou zidou des membres ») : employé de la liste pour un nouveau membre — celui qui porte
+ * déjà ce nom et n'a pas de compte, sinon une nouvelle valeur de la liste « الموظفون ». @return int
+ */
+function ps_member_employee( string $name ): int {
+	global $wpdb;
+	$norm = ps_normalize_text( $name );
+	foreach ( $wpdb->get_results( 'SELECT id, label FROM ' . ps_table( 'lists' ) . " WHERE list_key = 'employee'", ARRAY_A ) as $row ) {
+		if ( ps_normalize_text( $row['label'] ) === $norm && ! get_users( array( 'meta_key' => 'ps_employee_id', 'meta_value' => (string) $row['id'], 'fields' => 'ids' ) ) ) {
+			$wpdb->update( ps_table( 'lists' ), array( 'is_hidden' => 0 ), array( 'id' => (int) $row['id'] ) );
+			return (int) $row['id'];
+		}
+	}
+	$max = (int) $wpdb->get_var( "SELECT COALESCE(MAX(sort_order),0) FROM " . ps_table( 'lists' ) . " WHERE list_key = 'employee'" ); // phpcs:ignore
+	$id  = ps_insert_list_value( 'employee', array( 'label' => $name ), $max + 10 );
+	ps_log( null, 'create', 'list', $id, 'employee', null, $name );
+	return $id;
+}
+
 function ps_rest_user_create( WP_REST_Request $r ) {
-	$b  = (array) $r->get_json_params();
+	$b = (array) $r->get_json_params();
+	// 1.15.0 : « عضو جديد » — mot de passe proposé s'il est vide, employé créé dans la liste si demandé.
+	$generated = '';
+	if ( ! empty( $b['member'] ) && '' === trim( (string) ( $b['password'] ?? '' ) ) ) {
+		$generated     = ps_readable_password();
+		$b['password'] = $generated;
+	}
+	if ( ! empty( $b['newEmployee'] ) ) {
+		unset( $b['employeeId'] );
+	}
 	$in = ps_user_input( $b, null );
 	if ( is_wp_error( $in ) ) {
 		return $in;
+	}
+	if ( ! empty( $b['newEmployee'] ) ) {
+		$in['employee'] = ps_member_employee( (string) $in['display_name'] );
+		ps_lists_by_id( true );
 	}
 	$id = wp_insert_user( array_intersect_key( $in, array_flip( array( 'user_login', 'display_name', 'user_email', 'user_pass', 'role' ) ) ) );
 	if ( is_wp_error( $id ) ) {
@@ -429,7 +464,12 @@ function ps_rest_user_create( WP_REST_Request $r ) {
 	}
 	update_user_meta( $id, 'ps_daily_email', ! empty( $b['dailyEmail'] ) ? 1 : 0 );
 	ps_log( null, 'create', 'user', $id, null, null, $in['user_login'] );
-	return rest_ensure_response( ps_user_to_api( get_userdata( $id ) ) );
+	$out = ps_user_to_api( get_userdata( $id ) );
+	if ( ! empty( $b['member'] ) ) {
+		// Accès à remettre au membre : renvoyés UNE seule fois (le mot de passe n'est stocké que chiffré).
+		$out['access'] = array( 'login' => $in['user_login'], 'password' => (string) $b['password'], 'generated' => '' !== $generated, 'site' => home_url( '/' ) );
+	}
+	return rest_ensure_response( $out );
 }
 
 function ps_rest_user_update( WP_REST_Request $r ) {

@@ -930,3 +930,9 @@ html { scroll-padding-top: calc(var(--ps-header-h) + 12px); scroll-padding-botto
 .ps-inv-scope { margin-bottom: 8px; }
 .ps-invnos__other { font-size: 12px; color: var(--ps-text-muted); }
 .ps-invnos__other::before { content: "↳ "; }
+
+/* 1.15.0 — carte d'accès d'un nouveau membre (à copier) */
+.ps-access { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 14px 0 0; padding: 14px 16px; border: 1px solid var(--ps-border); border-radius: var(--ps-radius-sm); background: var(--ps-surface-2); }
+.ps-access dt { color: var(--ps-text-muted); font-weight: 600; }
+.ps-access dd { margin: 0; overflow-wrap: anywhere; }
+.ps-access code { font-size: 1.15em; letter-spacing: .04em; }

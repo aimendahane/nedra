@@ -1,6 +1,7 @@
 /**
  * الإعدادات › المستخدمون : comptes de l'équipe (الإدارة).
- *   - créer un compte (identifiant, nom, e-mail, mot de passe, rôle, employé lié, e-mail du matin) ;
+ *   - « عضو جديد » (1.15.0) : le nom suffit → employé de la liste + compte + carte d'accès à copier ;
+ *   - créer un compte (identifiant, nom, e-mail facultatif, mot de passe, rôle, employé lié, e-mail du matin) ;
  *   - modifier (rôle, employé, e-mail du matin, nouveau mot de passe) ;
  *   - désactiver / réactiver (un compte n'est jamais supprimé : son historique reste).
  * Le lien compte ↔ employé permet مهامي, « mes أصناف » et les droits du مسؤول مشروع.
@@ -20,7 +21,7 @@ PS.settingsTabs = PS.settingsTabs || {};
 		return html`<form class="ps-grid" data-user-form>
 			${u ? '' : html`<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('اسم المستخدم (للدخول) *')}</span><input name="login" data-key="login" dir="ltr" autocomplete="off"></label>`}
 			<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('الاسم الكامل *')}</span><input name="name" data-key="name" value="${v.name || ''}"></label>
-			<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('البريد الإلكتروني *')}</span><input name="email" type="email" data-key="email" dir="ltr" value="${v.email || ''}"></label>
+			<label class="ps-field"><span class="ps-field__label">${PS.t('البريد الإلكتروني (اختياري)')}</span><input name="email" type="email" data-key="email" dir="ltr" value="${v.email || ''}"></label>
 			<label class="ps-field ${u ? '' : 'ps-field--required'}"><span class="ps-field__label">${u ? PS.t('كلمة سر جديدة (اختياري)') : PS.t('كلمة السر *')}</span><input name="password" type="text" data-key="password" dir="ltr" autocomplete="new-password" placeholder="8 ${PS.t('أحرف على الأقل')}"></label>
 			${u && u.isWpAdmin ? '' : html`<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('الدور *')}</span><select name="role" data-key="role">${Object.keys(roles).map(function (r) { return html`<option value="${r}" ${v.role === r ? ui.raw('selected') : ''}>${roles[r]}</option>`; })}</select></label>`}
 			<label class="ps-field"><span class="ps-field__label">${PS.t('الموظف المرتبط (من القائمة)')}</span><select name="employeeId" data-key="employeeId">${ui.raw(L.options('employee', v.employeeId, { emptyLabel: PS.t('— بدون —') }))}</select></label>
@@ -52,6 +53,102 @@ PS.settingsTabs = PS.settingsTabs || {};
 				return false;
 			},
 		});
+	}
+
+	/* ---- « عضو جديد » (1.15.0) : ajouter un membre en une fois (employé de la liste + compte + accès) ---- */
+
+	/**
+	 * Formulaire court : le nom suffit. Employé = nouveau (même nom) ou un employé de la liste sans compte ;
+	 * identifiant proposé depuis le nom ; mot de passe vide = généré par le serveur ; e-mail facultatif.
+	 */
+	function addMember(d, roles, reload) {
+		const linked = {};
+		const taken = {};
+		d.users.forEach(function (u) { if (u.employeeId) linked[u.employeeId] = true; taken[u.login] = true; });
+		const free = L.values('employee').filter(function (v) { return !linked[v.id]; });
+		const body = html`<form class="ps-grid" data-member-form>
+			<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('الاسم الكامل *')}</span><input name="name" data-key="name" autocomplete="off" placeholder="${PS.t('مثال: سارة الهمامي')}"></label>
+			<label class="ps-field"><span class="ps-field__label">${PS.t('في قائمة الموظفين')}</span><select name="emp" data-key="employeeId">
+				<option value="new">＋ ${PS.t('موظف جديد بهذا الاسم')}</option>
+				${free.map(function (v) { return html`<option value="${v.id}">${v.label}${v.hidden ? ' (' + PS.t('مخفي') + ')' : ''}</option>`; })}
+			</select><span class="ps-small ps-muted">${PS.t('يظهر الموظف في القوائم (المسؤول، المتابع، الأصناف) ويرى مهامه.')}</span></label>
+			<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('الدور *')}</span><select name="role" data-key="role">${Object.keys(roles).map(function (r) { return html`<option value="${r}" ${r === 'ps_employee' ? ui.raw('selected') : ''}>${roles[r]}</option>`; })}</select></label>
+			<label class="ps-field ps-field--required"><span class="ps-field__label">${PS.t('اسم الدخول *')}</span><input name="login" data-key="login" dir="ltr" autocomplete="off"><span class="ps-small ps-muted">${PS.t('يُقترح من الاسم، يمكنك تغييره.')}</span></label>
+			<label class="ps-field"><span class="ps-field__label">${PS.t('كلمة السر')}</span><input name="password" type="text" data-key="password" dir="ltr" autocomplete="new-password" placeholder="${PS.t('اتركها فارغة: تُنشأ تلقائيًا')}"></label>
+			<label class="ps-field"><span class="ps-field__label">${PS.t('البريد الإلكتروني (اختياري)')}</span><input name="email" type="email" data-key="email" dir="ltr"></label>
+			<label class="ps-check"><input type="checkbox" name="dailyEmail" checked> ${PS.t('البريد الصباحي (ملخص المهام)')}</label>
+		</form>`;
+		let loginTouched = false;
+		ui.modal({
+			title: '👤 ' + PS.t('عضو جديد'),
+			body: body,
+			wide: true,
+			buttons: [{ id: 'ok', label: PS.t('إضافة العضو'), kind: 'primary' }, { id: 'cancel', label: PS.t('إلغاء') }],
+			onOpen: function (box) {
+				const f = box.querySelector('[data-member-form]');
+				const sync = function () {
+					if (loginTouched) return;
+					const t = Object.assign({}, taken);
+					f.login.value = f.name.value.trim() ? suggestLogin(f.name.value, t) : '';
+				};
+				f.name.addEventListener('input', sync);
+				f.login.addEventListener('input', function () { loginTouched = true; });
+				f.emp.addEventListener('change', function () {
+					// Employé existant choisi : son nom remplit la خانة (si elle est vide ou suivait l'ancien choix).
+					const o = f.emp.selectedOptions[0];
+					if (f.emp.value !== 'new' && (!f.name.value.trim() || f.name.dataset.auto)) { f.name.value = o.textContent.replace(/\s*\(.*\)$/, ''); f.name.dataset.auto = '1'; sync(); }
+				});
+				f.name.addEventListener('keydown', function () { delete f.name.dataset.auto; });
+				f.name.focus();
+			},
+			onButton: function (id, box, close) {
+				if (id !== 'ok') return true;
+				const f = box.querySelector('[data-member-form]');
+				const b = { member: true, name: f.name.value.trim(), login: f.login.value.trim(), role: f.role.value, email: f.email.value.trim(), dailyEmail: f.dailyEmail.checked };
+				if (f.password.value) b.password = f.password.value;
+				if (f.emp.value === 'new') b.newEmployee = true; else b.employeeId = Number(f.emp.value);
+				PS.api.post('users', b).then(function (r) {
+					close('ok');
+					reload();
+					L.load(true);
+					showAccess(r);
+				}).catch(function (e) {
+					if (e.data && e.data.data && e.data.data.errors) ui.showErrors(f, e.data.data.errors);
+					ui.toast(PS.settingsTabs.errMsg(e), 'error');
+				});
+				return false;
+			},
+		});
+	}
+
+	/** Carte d'accès du nouveau membre (affichée une seule fois) : à copier et envoyer (WhatsApp, Telegram…). */
+	function showAccess(r) {
+		const a = r.access;
+		const text = PS.t('رابط الموقع:') + ' ' + a.site + '\n' + PS.t('اسم الدخول:') + ' ' + a.login + '\n' + PS.t('كلمة السر:') + ' ' + a.password;
+		ui.modal({
+			title: '✔ ' + PS.t('تمت إضافة') + ' ' + r.name,
+			body: html`<div class="ps-alert ps-alert--warning">${PS.t('كلمة السر تظهر الآن فقط: انسخها وأرسلها للعضو.')}</div>
+				<dl class="ps-access" data-access>
+					<dt>${PS.t('رابط الموقع:')}</dt><dd dir="ltr">${a.site}</dd>
+					<dt>${PS.t('اسم الدخول:')}</dt><dd dir="ltr"><b data-access-login>${a.login}</b></dd>
+					<dt>${PS.t('كلمة السر:')}</dt><dd dir="ltr"><code data-access-password>${a.password}</code></dd>
+				</dl>`,
+			buttons: [{ id: 'copy', label: '📋 ' + PS.t('نسخ'), kind: 'primary' }, { id: 'cancel', label: PS.t('إغلاق') }],
+			onButton: function (id) {
+				if (id !== 'copy') return true;
+				const done = function () { ui.toast(PS.t('تم النسخ'), 'success'); };
+				if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+				else { fallbackCopy(text); done(); }
+				return false;
+			},
+		});
+	}
+	function fallbackCopy(text) {
+		const t = document.createElement('textarea');
+		t.value = text; t.style.position = 'fixed'; t.style.opacity = '0';
+		document.body.appendChild(t); t.select();
+		try { document.execCommand('copy'); } catch (e) { /* rien */ }
+		t.remove();
 	}
 
 	/* ---- « ورقة حسابات الفريق » (1.4.0) : accès à remettre au directeur ---- */
@@ -173,7 +270,7 @@ PS.settingsTabs = PS.settingsTabs || {};
 		return Promise.all([PS.api.get('users'), L.load()]).then(function (res) {
 			const d = res[0];
 			box.innerHTML = html`<section class="ps-card">
-				<div class="ps-page-head"><h2 class="ps-card__title">${PS.t('حسابات الفريق (')}${d.users.length})</h2><div class="ps-page-head__actions"><button type="button" class="ps-btn" data-sheet-new>📄 ${PS.t('ورقة حسابات الفريق')}</button><button type="button" class="ps-btn ps-btn--primary" data-new>+ ${PS.t('حساب جديد')}</button></div></div>
+				<div class="ps-page-head"><h2 class="ps-card__title">${PS.t('حسابات الفريق (')}${d.users.length})</h2><div class="ps-page-head__actions"><button type="button" class="ps-btn" data-sheet-new>📄 ${PS.t('ورقة حسابات الفريق')}</button><button type="button" class="ps-btn" data-new>+ ${PS.t('حساب جديد')}</button><button type="button" class="ps-btn ps-btn--primary" data-member-new>👤 ${PS.t('عضو جديد')}</button></div></div>
 				<p class="ps-muted ps-small">${PS.t('لا يُحذف أي حساب: الحساب المعطّل لا يستطيع الدخول ويبقى تاريخه في المشاريع.')}</p>
 				<div class="ps-table-wrap"><table class="ps-table ps-table--compact">
 					<thead><tr><th>${PS.t('الاسم')}</th><th>${PS.t('اسم الدخول')}</th><th>${PS.t('البريد')}</th><th>${PS.t('الدور')}</th><th>${PS.t('الموظف المرتبط')}</th><th>${PS.t('البريد الصباحي')}</th><th>Telegram</th><th>${PS.t('آخر نشاط')}</th><th>${PS.t('الحالة')}</th><th></th></tr></thead>
@@ -189,6 +286,7 @@ PS.settingsTabs = PS.settingsTabs || {};
 					})}</tbody></table></div>
 			</section>`.html;
 			box.onclick = function (e) {
+				if (e.target.closest('[data-member-new]')) { addMember(d, d.roles, reload); return; }
 				if (e.target.closest('[data-new]')) { edit(null, d.roles, reload); return; }
 				if (e.target.closest('[data-sheet-new]')) { accessSheet(d, d.roles, reload); return; }
 				const tr = e.target.closest('tr[data-id]');

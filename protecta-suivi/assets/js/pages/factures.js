@@ -189,6 +189,17 @@ PS.invoices = (function () {
 		return html`${(cols || COLS).map(function (c) { return html`<td class="${NOWRAP[c[0]] ? 'ps-nowrap' : ''}">${c[2](v, open)}</td>`; })}`;
 	}
 
+	/** 1.15.0 : valeur de tri d'une colonne de la page « الفواتير ». */
+	function sortVal(v, k) {
+		if (k === 'deadline') return v.computed.deadline || null;
+		if (k === 'answer') return answerLabel(v.answer);
+		if (k === 'amount') return v.amount !== null && v.amount !== undefined ? Number(v.amount) : null;
+		if (k === 'files') return v.filesCount || null;
+		if (k === 'itemTypeId') return (v.itemTypeIds || []).map(L.label).join(' ') || null;
+		if (k.slice(-2) === 'Id') return L.label(v[k]) || null;
+		return v[k];
+	}
+
 	function colDefs() { return COLS.map(function (c) { return { key: c[0], label: c[1], important: c[3], col: c }; }); }
 
 	/** Fiche d'une facture (lien des alertes : #/factures/ID). */
@@ -243,7 +254,7 @@ PS.invoices = (function () {
 		}).catch(function (e) { ui.toast(e.message, 'error'); });
 	}
 
-	return { forOffer: forOffer, open: open, offerFiles: offerFiles, deadlineHtml: deadlineHtml, answerBadge: answerBadge, headRow: headRow, rowCells: rowCells, colDefs: colDefs };
+	return { forOffer: forOffer, open: open, offerFiles: offerFiles, deadlineHtml: deadlineHtml, answerBadge: answerBadge, headRow: headRow, rowCells: rowCells, colDefs: colDefs, sortVal: sortVal };
 })();
 
 /* ---------------------------------------------------------------------- */
@@ -305,17 +316,19 @@ PS.invoices = (function () {
 		}
 		const cols = ui.visibleColumns('factures', PS.invoices.colDefs()).map(function (c) { return c.col; });
 		const open = function (id) { return 'data-open="' + id + '"'; };
+		const rows = ui.sortRows(d.rows, st.params.sort, st.params.dir, PS.invoices.sortVal); // 1.15.0 : tri comme « المشاريع »
 		box.innerHTML = html`${head}<p class="ps-muted ps-small" role="status">${d.total} ${PS.t('فاتورة')} · ${PS.t('آخر أجل يُكتب في كل فاتورة (مقترح: الإرسال +')} ${d.replyDays} ${PS.t('يوم)')} · ${PS.t('تذكير كل')} ${PS.config.settings.invoiceRemindDays || 15} ${PS.t('يوم بعده حتى الرد')}</p>
 			<div class="ps-table-wrap ps-desktop-only"><table class="ps-table ps-table--list ps-table--clickable">
-				<thead>${PS.invoices.headRow(false, cols)}</thead>
-				<tbody>${d.rows.map(function (v) {
+				<thead><tr>${ui.sortHeads(cols, st.params.sort, st.params.dir)}</tr></thead>
+				<tbody>${rows.map(function (v) {
 					return html`<tr class="${v.computed.late ? 'is-late' : ''}" data-inv="${v.id}" data-open-row="${v.id}" tabindex="0">${PS.invoices.rowCells(v, open, cols)}</tr>`;
 				})}</tbody></table></div>
-			<div class="ps-cards ps-mobile-only">${d.rows.map(cardHtml)}</div>`.html;
+			<div class="ps-cards ps-mobile-only">${rows.map(cardHtml)}</div>`.html;
 	}
 
 	function load() {
-		const qs = new URLSearchParams(Object.assign({ status: 'pending' }, st.params));
+		// 1.15.0 : liste complète (≤ 500) pour trier dans le navigateur.
+		const qs = new URLSearchParams(Object.assign({ status: 'pending', perPage: 500 }, st.params));
 		qs.delete('id');
 		return PS.api.get('invoices?' + qs.toString()).then(function (d) { st.data = d; renderRows(); }).catch(function (e) { ui.toast(e.message, 'error'); });
 	}
@@ -339,6 +352,8 @@ PS.invoices = (function () {
 			if (row && e.target === row && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openInv(row.dataset.openRow); }
 		});
 		st.main.addEventListener('click', function (e) {
+			const so = e.target.closest('[data-sort]');
+			if (so) { Object.assign(st.params, ui.nextSort(st.params.sort, st.params.dir, so.dataset.sort)); delete st.params.id; PS.router.setParams(st.params); renderRows(); return; }
 			const chip = e.target.closest('[data-chip]');
 			if (chip) { setParam('status', chip.dataset.value); return; }
 			if (e.target.closest('[data-action="columns"]')) { ui.chooseColumns('factures', PS.invoices.colDefs()).then(function (ch) { if (ch) renderRows(); }); return; }

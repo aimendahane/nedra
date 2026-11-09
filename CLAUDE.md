@@ -45,14 +45,15 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 1.11.0 | Demande client : « مشروع مُلغى », factures par offre entière, آخر أجل saisi + rappel tous les 15 j, tableau factures complet, vitesse (gzip, cache, préchargement) | ✅ terminée, tests verts | 1.11.0 · base v8 |
 | 1.12.0 | Revue UX (rapport 17 points, choix laissé à Claude) : إدخال سريع, مهامي, résumé lecture seule, erreurs, barre du bas, تراجع, menu du compte, Recap | ✅ terminée, tests verts | 1.12.0 · base v8 |
 | 1.13.0 | Demande client : barre de défilement en haut + tableau à hauteur d'écran, tri par numéro croissant, facture par offre OU par صنف, numéros visibles par ligne | ✅ terminée, tests verts | 1.13.0 · base v8 |
-| 1.14.0 | Demande client : fichiers dans OneDrive (Microsoft 365, invisible pour les employés), transfert des fichiers existants, vitesse (JS en 1 fichier, Chart.js à la demande, préchargement, envoi après réponse) | ✅ terminée, tests verts | **1.14.0** · base v8 |
+| 1.14.0 | Demande client : fichiers dans OneDrive (Microsoft 365, invisible pour les employés), transfert des fichiers existants, vitesse (JS en 1 fichier, Chart.js à la demande, préchargement, envoi après réponse) | ✅ terminée, tests verts | 1.14.0 · base v8 |
+| 1.15.0 | Demande client : tous les tableaux triables comme المشاريع (Offres, Livraison, Factures), « عضو جديد » (la الإدارة ajoute un membre en une fois), e-mail facultatif | ✅ terminée, tests verts | **1.15.0** · base v8 |
 
-### Tests (dernier passage complet, version 1.14.0) — détail : `docs/TEST-RESULTS.txt`
+### Tests (dernier passage complet, version 1.15.0) — détail : `docs/TEST-RESULTS.txt`
 - `sh protecta-suivi/tests/run-all.sh` → **1068 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
-  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0 + step12 = 1.5.2 + step13 = 1.5.3 + step14 = 1.6.0 + step15 = 1.6.1/1.6.2 + step16 = 1.7.0 + step17 = 1.8.0 + step18 = 1.9.0 + step19 = 1.10.0 + step20 = 1.11.0 + step21 = 1.12.0 + step22 = 1.13.0 + step23 = 1.14.0) passés.
-- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.14.0.zip $PWD/dist/protecta-suivi-1.13.0.zip` (chemins absolus) →
-  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.13.0 → 1.14.0 avec données (aucune migration) : **aucune perte** ; + sauvegarde RÉELLE du client
-  (1.10.0, 179 projets) restaurée puis mise à jour en 1.14.0 : **aucune perte** (fichier gardé hors dépôt).
+  (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0 + step12 = 1.5.2 + step13 = 1.5.3 + step14 = 1.6.0 + step15 = 1.6.1/1.6.2 + step16 = 1.7.0 + step17 = 1.8.0 + step18 = 1.9.0 + step19 = 1.10.0 + step20 = 1.11.0 + step21 = 1.12.0 + step22 = 1.13.0 + step23 = 1.14.0 + step24 = 1.15.0) passés.
+- `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.15.0.zip $PWD/dist/protecta-suivi-1.14.0.zip` (chemins absolus) →
+  installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.14.0 → 1.15.0 avec données (aucune migration) : **aucune perte** ; + sauvegarde RÉELLE du client
+  (1.10.0, 179 projets) restaurée puis mise à jour en 1.15.0 : **aucune perte** (fichier gardé hors dépôt).
 
 ### Prochaines actions
 1. Dès que l'accès GitHub est rétabli : `git push -u origin claude/sweet-hopper-le9393` puis
@@ -361,6 +362,18 @@ chaque décision prise seul.
 - مهامي : `pendingDecision` (المسؤول ou المتابع, plus ancien d'abord), affiché seulement s'il n'est pas vide.
   1.9.1 (le client a laissé Claude décider) : compté dans le compteur مهامي du menu et dans le résumé du matin
   (e-mail + Telegram) — c'est une tâche à faire.
+
+### Version 1.15.0 — décisions (demande : « tableaux comme المشاريع, tri par numéro, UX, la الإدارة ajoute des membres »)
+- **Tri** : `PS.ui.sortRows / sortHeads / nextSort` (ui.js) ; listes déjà chargées en entier (Offres/Livraison perPage 300,
+  Factures perPage 500) → tri dans le navigateur, sans rechargement ; `sort`/`dir` dans l'adresse ; défaut projectNo asc ;
+  Intl.Collator numérique ; vides en dernier ; ex aequo → numéro de projet. Colonnes de liste triées par LIBELLÉ ;
+  numéros de facture par le premier ; 📎 / 🧾 par nombre. Cartes du téléphone dans le même ordre.
+- **« عضو جديد »** : POST /users avec `member: true` → mot de passe vide = `ps_readable_password()`, renvoyé une seule fois
+  dans `access` ; `newEmployee: true` → `ps_member_employee()` réutilise un employé de même nom normalisé SANS compte
+  (démasqué) sinon crée une valeur de la liste « employee » (journalisée) — jamais l'employé d'un autre compte ; créé
+  seulement après validation du compte. Bouton « + حساب جديد » (formulaire complet) gardé.
+- **E-mail** facultatif (création et modification) : champ vide accepté, adresse mal écrite refusée (contrôle sur la
+  valeur brute, pas après sanitize_email). Le résumé du matin part alors par Telegram seulement.
 
 ### Version 1.14.0 — décisions (questionnaire du 03/11 : Microsoft 365, transfert des fichiers existants, Google Drive gardé)
 - **OneDrive** (`inc/services/onedrive.php`, routes `inc/rest/onedrive.php`) : Microsoft Graph en « client credentials »
