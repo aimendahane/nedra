@@ -49,7 +49,7 @@ notant ici chaque décision prise seul. Ne lui poser une question que si l'on es
 | 1.15.0 | Demande client : tous les tableaux triables comme المشاريع (Offres, Livraison, Factures), « عضو جديد » (la الإدارة ajoute un membre en une fois), e-mail facultatif | ✅ terminée, tests verts | **1.15.0** · base v8 |
 
 ### Tests (dernier passage complet, version 1.15.0) — détail : `docs/TEST-RESULTS.txt`
-- `sh protecta-suivi/tests/run-all.sh` → **1068 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
+- `sh protecta-suivi/tests/run-all.sh` → **1089 tests PHP réussis / 0 échoué** + **tous** les contrôles navigateur
   (étapes 1 à 5 + step6 = 1.0.1 + step7 = 1.0.2 + step8 = 1.2.0 + step9 = 1.3.0 langues + step10 = 1.4.0 + step11 = 1.5.0 + step12 = 1.5.2 + step13 = 1.5.3 + step14 = 1.6.0 + step15 = 1.6.1/1.6.2 + step16 = 1.7.0 + step17 = 1.8.0 + step18 = 1.9.0 + step19 = 1.10.0 + step20 = 1.11.0 + step21 = 1.12.0 + step22 = 1.13.0 + step23 = 1.14.0 + step24 = 1.15.0) passés.
 - `sh protecta-suivi/tests/release-check.sh $PWD/dist/protecta-suivi-1.15.0.zip $PWD/dist/protecta-suivi-1.14.0.zip` (chemins absolus) →
   installation vierge (connexion, saisie, Recap) OK ; mise à jour 1.14.0 → 1.15.0 avec données (aucune migration) : **aucune perte** ; + sauvegarde RÉELLE du client

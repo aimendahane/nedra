@@ -1,6 +1,6 @@
 ######## Tests PHP ########
 Site de test installé (thème : protecta-suivi)
-Thème v1.14.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
+Thème v1.15.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
 
 == Activation : base de données ==
   ✔ ps_db_version = dernière migration
@@ -794,9 +794,9 @@ Thème v1.14.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ inc/i18n/en.json : JSON valide
   ✔ inc/i18n/fr.json : JSON valide
   ✔ en.json et fr.json ont exactement les mêmes clés
-  ✔ en : chaque texte de l'interface a sa traduction (1296 textes)
+  ✔ en : chaque texte de l'interface a sa traduction (1310 textes)
   ✔ en : traductions non vides, sans arabe, mêmes %s / %d que l'original
-  ✔ fr : chaque texte de l'interface a sa traduction (1296 textes)
+  ✔ fr : chaque texte de l'interface a sa traduction (1310 textes)
   ✔ fr : traductions non vides, sans arabe, mêmes %s / %d que l'original
 
 == Langues : traduction côté serveur ==
@@ -1308,8 +1308,33 @@ Thème v1.14.0 — WordPress 6.7-alpha-58716 — PHP 8.3.6
   ✔ même version → même fichier (cache du navigateur)
   ✔ page : compteurs, notifications et Telegram préchargés ; Chart.js chargé par Recap seulement
 
+== 1.15.0 : عضو جديد (le nom suffit) ==
+  ✔ membre créé sans e-mail ni mot de passe
+  ✔ mot de passe généré et renvoyé avec l'identifiant (carte d'accès)
+  ✔ le mot de passe renvoyé est bien celui du compte
+  ✔ employé ajouté à la liste « الموظفون »
+  ✔ compte lié à ce nouvel employé
+  ✔ réponse : employeeId renseigné
+  ✔ le mot de passe n'est plus jamais renvoyé ensuite
+  ✔ membre créé (mot de passe choisi)
+  ✔ employé existant du même nom (sans compte) réutilisé, pas de doublon
+  ✔ … et de nouveau visible dans les listes
+  ✔ mot de passe saisi : renvoyé tel quel, « generated » = false
+  ✔ employé déjà lié à un compte : jamais repris (nouvelle valeur créée)
+  ✔ employé choisi dans la liste : lié
+
+== 1.15.0 : erreurs et droits ==
+  ✔ nom vide / identifiant pris / e-mail invalide → 422
+  ✔ erreurs sous chaque خانة (name, login, email)
+  ✔ aucun employé créé quand le compte est refusé
+  ✔ compte existant : e-mail vidé accepté, rôle inchangé
+  ✔ formulaire « حساب جديد » : mot de passe toujours obligatoire
+  ✔ موظف : ajout de membre refusé (403)
+  ✔ مسؤول مشروع : ajout de membre refusé (403)
+  ✔ aucun compte créé
+
 ----------------------------------------
-Résultat : 1068 réussis, 0 échoués
+Résultat : 1089 réussis, 0 échoués
 
 ######## Navigateur : fondations (étape 1) ########
 Page de connexion
@@ -1773,6 +1798,24 @@ Tous les contrôles navigateur sont passés.
 
 Tous les contrôles navigateur sont passés.
 
+######## Navigateur : step24 (jeu de démonstration) ########
+1.15.0 — tri des tableaux, ajout d'un membre
+  ✔ العروض : titres de colonnes cliquables, ▲ « رقم المشروع » par défaut, numéros croissants
+  ✔ العروض : 2e clic → décroissant ▼ (adresse mise à jour)
+  ✔ التسليم : titres de colonnes cliquables, ▲ « رقم المشروع » par défaut, numéros croissants
+  ✔ التسليم : 2e clic → décroissant ▼ (adresse mise à jour)
+  ✔ الفواتير : titres de colonnes cliquables, ▲ « رقم المشروع » par défaut, numéros croissants
+  ✔ الفواتير : 2e clic → décroissant ▼ (adresse mise à jour)
+  ✔ autre colonne : ▲ sur « تاريخ الإرسال » ; vides en dernier, « P9 » avant « P10 »
+  ✔ identifiant proposé à partir du nom arabe (lettres latines)
+  ✔ « موظف جديد بهذا الاسم » choisi par défaut, e-mail facultatif
+  ✔ carte d'accès : identifiant + mot de passe généré + lien du site, bouton « نسخ »
+  ✔ le membre apparaît dans « حسابات الفريق », lié à l'employé « غفران دريدي »
+  ✔ … et dans la liste des employés (المسؤول / المتابع)
+  ✔ le nouveau membre se connecte avec ces accès
+
+Tous les contrôles navigateur sont passés.
+
 ######## Navigateur : step10 = 1.4.0 (import Excel, comptes, Telegram) ########
 1.4.0 — import Excel, numéros P…, هامش الربح, ورقة الحسابات, Telegram à la connexion
   ✔ connexion : fenêtre « اربط حسابك بـ Telegram » (compte non lié)
@@ -1787,9 +1830,3 @@ Tous les contrôles navigateur sont passés.
 Tous les contrôles navigateur sont passés.
 
 === TOUS LES TESTS SONT PASSÉS ===
-
-######## release-check 1.13.0 → 1.14.0 ########
-AUCUNE PERTE — === LIVRAISON VÉRIFIÉE ===
-
-######## Sauvegarde réelle du client (1.10.0 : 179 projets / 198 أصناف / 24 factures / 67 fichiers) → 1.14.0 ########
-AUCUNE PERTE : projets, أصناف, intervenants, sociétés, suivis, fichiers, journal, listes, réglages et comptes identiques
